@@ -1,4 +1,6 @@
 # kcp-csharp
+>>> 학습 문서와 샘플 코드 필요  
+  
 KCP - A Fast and Reliable ARQ Protocol
 
 ## TODO
