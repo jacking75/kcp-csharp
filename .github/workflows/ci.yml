@@ -4,9 +4,13 @@ on:
   push:
     branches: [master]
   pull_request:
+  schedule:
+    # 매일 03:00 UTC (KST 12:00) 에 장시간 테스트를 돌린다.
+    - cron: '0 18 * * *'
 
 jobs:
   build-test:
+    if: github.event_name != 'schedule'
     strategy:
       fail-fast: false
       matrix:
@@ -17,7 +21,60 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+
+      - name: 빌드 (경고 0 유지)
+        run: dotnet build -c Release
+
+      - name: 테스트 (Soak 제외)
+        run: dotnet test -c Release --no-build --filter "Category!=Soak"
+
+  coverage:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      # P2-7 커버리지 게이트: 코어(KcpProject) 라인 커버리지 85% 미만이면 실패한다.
+      # 두 테스트 프로젝트의 결과를 MergeWith 로 합친 뒤 마지막 실행에서 임계값을 적용한다.
+      - name: 단위 테스트 커버리지 수집
+        run: >
+          dotnet test tests/KcpProject.Tests -c Release --filter "Category!=Soak"
+          -p:CollectCoverage=true
+          -p:Include="[KcpProject]*"
+          -p:CoverletOutputFormat=json
+          -p:CoverletOutput=${{ github.workspace }}/coverage/coverage.json
+
+      - name: 시뮬레이션 테스트 커버리지 병합 + 게이트
+        run: >
+          dotnet test tests/KcpProject.SimTests -c Release --filter "Category!=Soak"
+          -p:CollectCoverage=true
+          -p:Include="[KcpProject]*"
+          -p:MergeWith=${{ github.workspace }}/coverage/coverage.json
+          -p:CoverletOutputFormat="json,cobertura"
+          -p:CoverletOutput=${{ github.workspace }}/coverage/coverage
+          -p:Threshold=85
+          -p:ThresholdType=line
+
+      - name: 커버리지 아티팩트 업로드
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+
+  soak:
+    # P2-6 장시간·스트레스 테스트는 야간 스케줄에서만 실행한다.
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
       - name: 빌드
         run: dotnet build -c Release
-      - name: 테스트
-        run: dotnet test -c Release --no-build --collect:"XPlat Code Coverage"
+      - name: Soak 테스트
+        run: dotnet test -c Release --no-build --filter "Category=Soak"

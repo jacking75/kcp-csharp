@@ -1,0 +1,5707 @@
+{
+  "KcpProject.dll": {
+    "C:\\github_dev\\kcp-csharp\\src\\KcpProject\\ByteBuffer.cs": {
+      "KcpProject.ByteBuffer": {
+        "KcpProject.ByteBuffer KcpProject.ByteBuffer::Allocate(System.Int32,System.Boolean)": {
+          "Lines": {
+            "61": 28537,
+            "63": 0,
+            "65": 28537,
+            "68": 28537,
+            "70": 257,
+            "71": 257,
+            "72": 257,
+            "73": 257,
+            "74": 257,
+            "76": 28280,
+            "77": 28280,
+            "78": 28280,
+            "79": 28280,
+            "81": 0,
+            "84": 28280,
+            "86": 170,
+            "88": 28280,
+            "90": 28537
+          },
+          "Branches": [
+            {
+              "Line": 61,
+              "Offset": 1,
+              "EndOffset": 3,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 61,
+              "Offset": 1,
+              "EndOffset": 10,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 28537
+            },
+            {
+              "Line": 68,
+              "Offset": 36,
+              "EndOffset": 38,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 257
+            },
+            {
+              "Line": 68,
+              "Offset": 36,
+              "EndOffset": 57,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 28280
+            },
+            {
+              "Line": 79,
+              "Offset": 99,
+              "EndOffset": 101,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 79,
+              "Offset": 99,
+              "EndOffset": 108,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 28280
+            },
+            {
+              "Line": 84,
+              "Offset": 115,
+              "EndOffset": 117,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 170
+            },
+            {
+              "Line": 84,
+              "Offset": 115,
+              "EndOffset": 133,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 28280
+            }
+          ]
+        },
+        "KcpProject.ByteBuffer KcpProject.ByteBuffer::Allocate(System.Byte[],System.Boolean)": {
+          "Lines": {
+            "102": 0,
+            "104": 0,
+            "106": 0,
+            "109": 0,
+            "111": 0,
+            "112": 0,
+            "113": 0,
+            "114": 0,
+            "115": 0,
+            "117": 0,
+            "118": 0,
+            "119": 0,
+            "120": 0,
+            "121": 0,
+            "123": 0,
+            "125": 0,
+            "127": 0
+          },
+          "Branches": [
+            {
+              "Line": 102,
+              "Offset": 1,
+              "EndOffset": 3,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 102,
+              "Offset": 1,
+              "EndOffset": 10,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 109,
+              "Offset": 36,
+              "EndOffset": 38,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 109,
+              "Offset": 36,
+              "EndOffset": 57,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 121,
+              "Offset": 106,
+              "EndOffset": 108,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 121,
+              "Offset": 106,
+              "EndOffset": 115,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Int32 KcpProject.ByteBuffer::FixLength(System.Int32)": {
+          "Lines": {
+            "136": 356,
+            "138": 0,
+            "140": 356,
+            "141": 356,
+            "142": 356,
+            "143": 356,
+            "144": 356,
+            "145": 356,
+            "146": 356
+          },
+          "Branches": [
+            {
+              "Line": 136,
+              "Offset": 1,
+              "EndOffset": 3,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 136,
+              "Offset": 1,
+              "EndOffset": 5,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 356
+            }
+          ]
+        },
+        "System.Byte[] KcpProject.ByteBuffer::Flip(System.Byte[])": {
+          "Lines": {
+            "168": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.ByteBuffer::FixSizeAndReset(System.Int32,System.Int32)": {
+          "Lines": {
+            "179": 21494,
+            "182": 183,
+            "183": 183,
+            "186": 173,
+            "188": 183,
+            "189": 183,
+            "190": 183,
+            "191": 183,
+            "193": 21494
+          },
+          "Branches": [
+            {
+              "Line": 179,
+              "Offset": 2,
+              "EndOffset": 4,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 183
+            },
+            {
+              "Line": 183,
+              "Offset": 15,
+              "EndOffset": 17,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 173
+            },
+            {
+              "Line": 183,
+              "Offset": 15,
+              "EndOffset": 26,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 183
+            },
+            {
+              "Line": 179,
+              "Offset": 2,
+              "EndOffset": 62,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 21494
+            }
+          ]
+        },
+        "System.Void KcpProject.ByteBuffer::EnsureWritableBytes(System.Int32)": {
+          "Lines": {
+            "203": 0,
+            "207": 0,
+            "210": 0,
+            "215": 0,
+            "218": 0
+          },
+          "Branches": [
+            {
+              "Line": 203,
+              "Offset": 7,
+              "EndOffset": 9,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 207,
+              "Offset": 16,
+              "EndOffset": 18,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 207,
+              "Offset": 16,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 203,
+              "Offset": 7,
+              "EndOffset": 50,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void KcpProject.ByteBuffer::TrimReadedBytes()": {
+          "Lines": {
+            "222": 0,
+            "223": 0,
+            "224": 0,
+            "225": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::WriteBytes(System.Byte[],System.Int32,System.Int32)": {
+          "Lines": {
+            "235": 21326,
+            "237": 21324,
+            "238": 21324,
+            "239": 21324,
+            "240": 21324,
+            "241": 21324,
+            "242": 21324
+          },
+          "Branches": [
+            {
+              "Line": 235,
+              "Offset": 2,
+              "EndOffset": 4,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 21324
+            },
+            {
+              "Line": 235,
+              "Offset": 2,
+              "EndOffset": 8,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 1
+            },
+            {
+              "Line": 235,
+              "Offset": 6,
+              "EndOffset": 8,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 235,
+              "Offset": 6,
+              "EndOffset": 9,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 21324
+            }
+          ]
+        },
+        "System.Void KcpProject.ByteBuffer::WriteBytes(System.Byte[],System.Int32)": {
+          "Lines": {
+            "249": 0,
+            "250": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::WriteBytes(System.Byte[])": {
+          "Lines": {
+            "257": 0,
+            "258": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::Write(KcpProject.ByteBuffer)": {
+          "Lines": {
+            "265": 0,
+            "266": 0,
+            "267": 0,
+            "268": 0
+          },
+          "Branches": [
+            {
+              "Line": 265,
+              "Offset": 1,
+              "EndOffset": 3,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 265,
+              "Offset": 1,
+              "EndOffset": 4,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 266,
+              "Offset": 11,
+              "EndOffset": 13,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 266,
+              "Offset": 11,
+              "EndOffset": 14,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void KcpProject.ByteBuffer::WriteShort(System.Int16)": {
+          "Lines": {
+            "272": 0,
+            "273": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::WriteUshort(System.UInt16)": {
+          "Lines": {
+            "277": 0,
+            "278": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::WriteInt(System.Int32)": {
+          "Lines": {
+            "282": 0,
+            "283": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::WriteUint(System.UInt32)": {
+          "Lines": {
+            "287": 0,
+            "288": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::WriteLong(System.Int64)": {
+          "Lines": {
+            "292": 0,
+            "293": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::WriteUlong(System.UInt64)": {
+          "Lines": {
+            "297": 0,
+            "298": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::WriteFloat(System.Single)": {
+          "Lines": {
+            "302": 0,
+            "303": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::WriteByte(System.Byte)": {
+          "Lines": {
+            "307": 0,
+            "308": 0,
+            "309": 0,
+            "310": 0,
+            "311": 0,
+            "312": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::WriteByte(System.Int32)": {
+          "Lines": {
+            "316": 0,
+            "317": 0,
+            "318": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::WriteDouble(System.Double)": {
+          "Lines": {
+            "322": 0,
+            "323": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::WriteChar(System.Char)": {
+          "Lines": {
+            "327": 0,
+            "328": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::WriteBoolean(System.Boolean)": {
+          "Lines": {
+            "332": 0,
+            "333": 0
+          },
+          "Branches": []
+        },
+        "System.Byte KcpProject.ByteBuffer::ReadByte()": {
+          "Lines": {
+            "337": 0,
+            "338": 0,
+            "339": 0
+          },
+          "Branches": []
+        },
+        "System.Byte[] KcpProject.ByteBuffer::Get(System.Int32,System.Int32)": {
+          "Lines": {
+            "350": 0,
+            "351": 0,
+            "352": 0
+          },
+          "Branches": []
+        },
+        "System.Byte[] KcpProject.ByteBuffer::Read(System.Int32)": {
+          "Lines": {
+            "362": 0,
+            "363": 0,
+            "364": 0
+          },
+          "Branches": []
+        },
+        "System.UInt16 KcpProject.ByteBuffer::ReadUshort()": {
+          "Lines": {
+            "369": 0
+          },
+          "Branches": []
+        },
+        "System.Int16 KcpProject.ByteBuffer::ReadShort()": {
+          "Lines": {
+            "374": 0
+          },
+          "Branches": []
+        },
+        "System.UInt32 KcpProject.ByteBuffer::ReadUint()": {
+          "Lines": {
+            "379": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.ByteBuffer::ReadInt()": {
+          "Lines": {
+            "384": 0
+          },
+          "Branches": []
+        },
+        "System.UInt64 KcpProject.ByteBuffer::ReadUlong()": {
+          "Lines": {
+            "389": 0
+          },
+          "Branches": []
+        },
+        "System.Int64 KcpProject.ByteBuffer::ReadLong()": {
+          "Lines": {
+            "394": 0
+          },
+          "Branches": []
+        },
+        "System.Single KcpProject.ByteBuffer::ReadFloat()": {
+          "Lines": {
+            "399": 0
+          },
+          "Branches": []
+        },
+        "System.Double KcpProject.ByteBuffer::ReadDouble()": {
+          "Lines": {
+            "404": 0
+          },
+          "Branches": []
+        },
+        "System.Char KcpProject.ByteBuffer::ReadChar()": {
+          "Lines": {
+            "409": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean KcpProject.ByteBuffer::ReadBoolean()": {
+          "Lines": {
+            "414": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::ReadBytes(System.Byte[],System.Int32,System.Int32)": {
+          "Lines": {
+            "425": 0,
+            "426": 0,
+            "428": 0,
+            "430": 0
+          },
+          "Branches": [
+            {
+              "Line": 426,
+              "Offset": 23,
+              "EndOffset": 8,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 426,
+              "Offset": 23,
+              "EndOffset": 25,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Byte[] KcpProject.ByteBuffer::ReadBytes(System.Int32)": {
+          "Lines": {
+            "434": 0
+          },
+          "Branches": []
+        },
+        "System.Byte[] KcpProject.ByteBuffer::ReadBytes(System.Int32,System.Int32)": {
+          "Lines": {
+            "439": 0,
+            "440": 0,
+            "442": 0,
+            "443": 0,
+            "444": 0,
+            "445": 0
+          },
+          "Branches": [
+            {
+              "Line": 439,
+              "Offset": 7,
+              "EndOffset": 9,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 439,
+              "Offset": 7,
+              "EndOffset": 20,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Byte KcpProject.ByteBuffer::GetByte(System.Int32)": {
+          "Lines": {
+            "450": 0
+          },
+          "Branches": []
+        },
+        "System.Byte KcpProject.ByteBuffer::GetByte()": {
+          "Lines": {
+            "455": 0
+          },
+          "Branches": []
+        },
+        "System.Double KcpProject.ByteBuffer::GetDouble(System.Int32)": {
+          "Lines": {
+            "463": 0
+          },
+          "Branches": []
+        },
+        "System.Double KcpProject.ByteBuffer::GetDouble()": {
+          "Lines": {
+            "472": 0
+          },
+          "Branches": []
+        },
+        "System.Single KcpProject.ByteBuffer::GetFloat(System.Int32)": {
+          "Lines": {
+            "477": 0
+          },
+          "Branches": []
+        },
+        "System.Single KcpProject.ByteBuffer::GetFloat()": {
+          "Lines": {
+            "482": 0
+          },
+          "Branches": []
+        },
+        "System.Int64 KcpProject.ByteBuffer::GetLong(System.Int32)": {
+          "Lines": {
+            "487": 0
+          },
+          "Branches": []
+        },
+        "System.Int64 KcpProject.ByteBuffer::GetLong()": {
+          "Lines": {
+            "492": 0
+          },
+          "Branches": []
+        },
+        "System.UInt64 KcpProject.ByteBuffer::GetUlong(System.Int32)": {
+          "Lines": {
+            "497": 0
+          },
+          "Branches": []
+        },
+        "System.UInt64 KcpProject.ByteBuffer::GetUlong()": {
+          "Lines": {
+            "502": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.ByteBuffer::GetInt(System.Int32)": {
+          "Lines": {
+            "507": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.ByteBuffer::GetInt()": {
+          "Lines": {
+            "512": 0
+          },
+          "Branches": []
+        },
+        "System.UInt32 KcpProject.ByteBuffer::GetUint(System.Int32)": {
+          "Lines": {
+            "517": 0
+          },
+          "Branches": []
+        },
+        "System.UInt32 KcpProject.ByteBuffer::GetUint()": {
+          "Lines": {
+            "522": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.ByteBuffer::GetShort(System.Int32)": {
+          "Lines": {
+            "527": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.ByteBuffer::GetShort()": {
+          "Lines": {
+            "532": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.ByteBuffer::GetUshort(System.Int32)": {
+          "Lines": {
+            "537": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.ByteBuffer::GetUshort()": {
+          "Lines": {
+            "542": 0
+          },
+          "Branches": []
+        },
+        "System.Char KcpProject.ByteBuffer::GetChar(System.Int32)": {
+          "Lines": {
+            "547": 0
+          },
+          "Branches": []
+        },
+        "System.Char KcpProject.ByteBuffer::GetChar()": {
+          "Lines": {
+            "552": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean KcpProject.ByteBuffer::GetBoolean(System.Int32)": {
+          "Lines": {
+            "557": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean KcpProject.ByteBuffer::GetBoolean()": {
+          "Lines": {
+            "562": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::DiscardReadBytes()": {
+          "Lines": {
+            "570": 0,
+            "571": 0,
+            "572": 0,
+            "573": 0,
+            "574": 0,
+            "575": 0,
+            "576": 0,
+            "577": 0,
+            "580": 0,
+            "582": 0,
+            "583": 0,
+            "585": 0,
+            "587": 0,
+            "588": 0
+          },
+          "Branches": [
+            {
+              "Line": 570,
+              "Offset": 7,
+              "EndOffset": 9,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 570,
+              "Offset": 7,
+              "EndOffset": 10,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 577,
+              "Offset": 105,
+              "EndOffset": 107,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 577,
+              "Offset": 105,
+              "EndOffset": 114,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 583,
+              "Offset": 140,
+              "EndOffset": 142,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 583,
+              "Offset": 154,
+              "EndOffset": 156,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 583,
+              "Offset": 140,
+              "EndOffset": 170,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            },
+            {
+              "Line": 583,
+              "Offset": 154,
+              "EndOffset": 170,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 0
+            },
+            {
+              "Line": 583,
+              "Offset": 168,
+              "EndOffset": 170,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 0
+            },
+            {
+              "Line": 583,
+              "Offset": 168,
+              "EndOffset": 182,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Int32 KcpProject.ByteBuffer::get_ReaderIndex()": {
+          "Lines": {
+            "597": 21395
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::set_ReaderIndex(System.Int32)": {
+          "Lines": {
+            "601": 0,
+            "602": 0,
+            "603": 0
+          },
+          "Branches": [
+            {
+              "Line": 601,
+              "Offset": 2,
+              "EndOffset": 4,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 601,
+              "Offset": 2,
+              "EndOffset": 5,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Int32 KcpProject.ByteBuffer::get_WriterIndex()": {
+          "Lines": {
+            "613": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::set_WriterIndex(System.Int32)": {
+          "Lines": {
+            "617": 0,
+            "618": 0,
+            "619": 0
+          },
+          "Branches": [
+            {
+              "Line": 617,
+              "Offset": 2,
+              "EndOffset": 4,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 617,
+              "Offset": 2,
+              "EndOffset": 5,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void KcpProject.ByteBuffer::MarkReaderIndex()": {
+          "Lines": {
+            "627": 0,
+            "628": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::MarkWriterIndex()": {
+          "Lines": {
+            "635": 0,
+            "636": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::ResetReaderIndex()": {
+          "Lines": {
+            "643": 0,
+            "644": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::ResetWriterIndex()": {
+          "Lines": {
+            "651": 0,
+            "652": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.ByteBuffer::get_ReadableBytes()": {
+          "Lines": {
+            "661": 86669
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.ByteBuffer::get_WritableBytes()": {
+          "Lines": {
+            "672": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.ByteBuffer::get_Capacity()": {
+          "Lines": {
+            "680": 0
+          },
+          "Branches": []
+        },
+        "System.Byte[] KcpProject.ByteBuffer::get_RawBuffer()": {
+          "Lines": {
+            "688": 21395
+          },
+          "Branches": []
+        },
+        "System.Byte[] KcpProject.ByteBuffer::ToArray()": {
+          "Lines": {
+            "698": 0,
+            "699": 0,
+            "700": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::WriteValue(System.Int32,KcpProject.ByteBuffer/DataType)": {
+          "Lines": {
+            "722": 0,
+            "723": 0,
+            "725": 0,
+            "726": 0,
+            "728": 0,
+            "729": 0,
+            "731": 0,
+            "734": 0
+          },
+          "Branches": [
+            {
+              "Line": 722,
+              "Offset": 3,
+              "EndOffset": 26,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 722,
+              "Offset": 3,
+              "EndOffset": 34,
+              "Path": 2,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 722,
+              "Offset": 3,
+              "EndOffset": 43,
+              "Path": 4,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 722,
+              "Offset": 3,
+              "EndOffset": 52,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 722,
+              "Offset": 3,
+              "EndOffset": 52,
+              "Path": 3,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Int32 KcpProject.ByteBuffer::ReadValue(KcpProject.ByteBuffer/DataType)": {
+          "Lines": {
+            "741": 0,
+            "743": 0,
+            "745": 0,
+            "747": 0,
+            "749": 0
+          },
+          "Branches": [
+            {
+              "Line": 741,
+              "Offset": 3,
+              "EndOffset": 26,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 741,
+              "Offset": 3,
+              "EndOffset": 33,
+              "Path": 2,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 741,
+              "Offset": 3,
+              "EndOffset": 40,
+              "Path": 3,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 741,
+              "Offset": 3,
+              "EndOffset": 47,
+              "Path": 4,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 741,
+              "Offset": 3,
+              "EndOffset": 55,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void KcpProject.ByteBuffer::WriteUTF8String(System.String,KcpProject.ByteBuffer/DataType)": {
+          "Lines": {
+            "761": 0,
+            "765": 0,
+            "766": 0,
+            "767": 0,
+            "768": 0,
+            "769": 0,
+            "770": 0,
+            "771": 0,
+            "773": 0,
+            "774": 0,
+            "777": 0,
+            "778": 0,
+            "779": 0,
+            "780": 0,
+            "782": 0,
+            "784": 0,
+            "785": 0
+          },
+          "Branches": [
+            {
+              "Line": 765,
+              "Offset": 14,
+              "EndOffset": 16,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 765,
+              "Offset": 14,
+              "EndOffset": 22,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 765,
+              "Offset": 18,
+              "EndOffset": 30,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 765,
+              "Offset": 18,
+              "EndOffset": 38,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 771,
+              "Offset": 50,
+              "EndOffset": 52,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 771,
+              "Offset": 50,
+              "EndOffset": 154,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            },
+            {
+              "Line": 777,
+              "Offset": 156,
+              "EndOffset": 158,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 777,
+              "Offset": 156,
+              "EndOffset": 169,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 0
+            },
+            {
+              "Line": 779,
+              "Offset": 171,
+              "EndOffset": 173,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 0
+            },
+            {
+              "Line": 779,
+              "Offset": 171,
+              "EndOffset": 185,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void KcpProject.ByteBuffer::WriteUTF(System.String)": {
+          "Lines": {
+            "793": 0,
+            "794": 0
+          },
+          "Branches": []
+        },
+        "System.String KcpProject.ByteBuffer::ReadUTF8String(System.Int32)": {
+          "Lines": {
+            "803": 0,
+            "804": 0,
+            "805": 0
+          },
+          "Branches": []
+        },
+        "System.String KcpProject.ByteBuffer::ReadUTF8String(KcpProject.ByteBuffer/DataType)": {
+          "Lines": {
+            "815": 0,
+            "816": 0
+          },
+          "Branches": []
+        },
+        "System.String KcpProject.ByteBuffer::ReadUTF()": {
+          "Lines": {
+            "825": 0
+          },
+          "Branches": []
+        },
+        "KcpProject.ByteBuffer KcpProject.ByteBuffer::Copy()": {
+          "Lines": {
+            "834": 0,
+            "836": 0,
+            "838": 0,
+            "840": 0,
+            "841": 0,
+            "842": 0,
+            "843": 0,
+            "844": 0,
+            "845": 0,
+            "847": 0
+          },
+          "Branches": [
+            {
+              "Line": 834,
+              "Offset": 6,
+              "EndOffset": 8,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 834,
+              "Offset": 6,
+              "EndOffset": 16,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 838,
+              "Offset": 28,
+              "EndOffset": 30,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 838,
+              "Offset": 28,
+              "EndOffset": 99,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Object KcpProject.ByteBuffer::Clone()": {
+          "Lines": {
+            "856": 0,
+            "858": 0,
+            "860": 0,
+            "861": 0,
+            "862": 0,
+            "863": 0,
+            "864": 0,
+            "865": 0,
+            "866": 0,
+            "867": 0,
+            "868": 0,
+            "869": 0
+          },
+          "Branches": [
+            {
+              "Line": 856,
+              "Offset": 6,
+              "EndOffset": 8,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 856,
+              "Offset": 6,
+              "EndOffset": 16,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void KcpProject.ByteBuffer::ForEach(System.Action`1<System.Byte>)": {
+          "Lines": {
+            "878": 0,
+            "880": 0,
+            "882": 0
+          },
+          "Branches": [
+            {
+              "Line": 878,
+              "Offset": 29,
+              "EndOffset": 4,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 878,
+              "Offset": 29,
+              "EndOffset": 31,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void KcpProject.ByteBuffer::Clear()": {
+          "Lines": {
+            "886": 56985,
+            "887": 56985,
+            "888": 56985,
+            "889": 56985,
+            "890": 56985,
+            "891": 56985
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::Dispose()": {
+          "Lines": {
+            "898": 28505,
+            "899": 28505,
+            "900": 28505,
+            "901": 28480,
+            "902": 28480,
+            "903": 28480,
+            "905": 25,
+            "908": 25,
+            "909": 25,
+            "910": 25,
+            "911": 25,
+            "912": 25,
+            "913": 25,
+            "914": 28505
+          },
+          "Branches": [
+            {
+              "Line": 898,
+              "Offset": 6,
+              "EndOffset": 8,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 28505
+            },
+            {
+              "Line": 900,
+              "Offset": 39,
+              "EndOffset": 41,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 28480
+            },
+            {
+              "Line": 900,
+              "Offset": 39,
+              "EndOffset": 60,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 25
+            },
+            {
+              "Line": 898,
+              "Offset": 6,
+              "EndOffset": 72,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 25
+            }
+          ]
+        },
+        "System.Void KcpProject.ByteBuffer::.ctor(System.Int32)": {
+          "Lines": {
+            "31": 257,
+            "33": 257,
+            "34": 257,
+            "35": 257,
+            "36": 257,
+            "37": 257
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::.ctor(System.Byte[])": {
+          "Lines": {
+            "40": 0,
+            "42": 0,
+            "43": 0,
+            "44": 0,
+            "45": 0,
+            "47": 0,
+            "48": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.ByteBuffer::.cctor()": {
+          "Lines": {
+            "24": 1,
+            "25": 1
+          },
+          "Branches": []
+        }
+      }
+    },
+    "C:\\github_dev\\kcp-csharp\\src\\KcpProject\\Kcp.cs": {
+      "KcpProject.Kcp": {
+        "System.Int32 KcpProject.Kcp::ikcp_encode8u(System.Byte[],System.Int32,System.Byte)": {
+          "Lines": {
+            "107": 23191,
+            "108": 23191
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.Kcp::ikcp_decode8u(System.Byte[],System.Int32,System.Byte&)": {
+          "Lines": {
+            "118": 22990,
+            "119": 22990
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.Kcp::ikcp_encode16u(System.Byte[],System.Int32,System.UInt16)": {
+          "Lines": {
+            "129": 11595,
+            "130": 11595,
+            "131": 11595
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.Kcp::ikcp_decode16u(System.Byte[],System.Int32,System.UInt16&)": {
+          "Lines": {
+            "141": 11495,
+            "142": 11495,
+            "143": 11495,
+            "144": 11495,
+            "145": 11495
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.Kcp::ikcp_encode32u(System.Byte[],System.Int32,System.UInt32)": {
+          "Lines": {
+            "155": 58176,
+            "156": 58176,
+            "157": 58176,
+            "158": 58176,
+            "159": 58176
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.Kcp::ikcp_decode32u(System.Byte[],System.Int32,System.UInt32&)": {
+          "Lines": {
+            "169": 57476,
+            "170": 57476,
+            "171": 57476,
+            "172": 57476,
+            "173": 57476,
+            "174": 57476,
+            "175": 57476
+          },
+          "Branches": []
+        },
+        "System.UInt32 KcpProject.Kcp::_imin_(System.UInt32,System.UInt32)": {
+          "Lines": {
+            "178": 7254
+          },
+          "Branches": [
+            {
+              "Line": 178,
+              "Offset": 2,
+              "EndOffset": 4,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1094
+            },
+            {
+              "Line": 178,
+              "Offset": 2,
+              "EndOffset": 6,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 6160
+            }
+          ]
+        },
+        "System.UInt32 KcpProject.Kcp::_imax_(System.UInt32,System.UInt32)": {
+          "Lines": {
+            "180": 1190
+          },
+          "Branches": [
+            {
+              "Line": 180,
+              "Offset": 2,
+              "EndOffset": 4,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 699
+            },
+            {
+              "Line": 180,
+              "Offset": 2,
+              "EndOffset": 6,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 491
+            }
+          ]
+        },
+        "System.UInt32 KcpProject.Kcp::_ibound_(System.UInt32,System.UInt32,System.UInt32)": {
+          "Lines": {
+            "182": 595
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.Kcp::_itimediff(System.UInt32,System.UInt32)": {
+          "Lines": {
+            "188": 221890
+          },
+          "Branches": []
+        },
+        "System.UInt32 KcpProject.Kcp::get_SndWnd()": {
+          "Lines": {
+            "340": 0
+          },
+          "Branches": []
+        },
+        "System.UInt32 KcpProject.Kcp::get_RcvWnd()": {
+          "Lines": {
+            "343": 1
+          },
+          "Branches": []
+        },
+        "System.UInt32 KcpProject.Kcp::get_RmtWnd()": {
+          "Lines": {
+            "346": 6
+          },
+          "Branches": []
+        },
+        "System.UInt32 KcpProject.Kcp::get_Mss()": {
+          "Lines": {
+            "349": 1
+          },
+          "Branches": []
+        },
+        "System.UInt32 KcpProject.Kcp::get_Conv()": {
+          "Lines": {
+            "352": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.Kcp::get_Srtt()": {
+          "Lines": {
+            "355": 1
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.Kcp::get_RttVar()": {
+          "Lines": {
+            "358": 0
+          },
+          "Branches": []
+        },
+        "System.UInt32 KcpProject.Kcp::get_Rto()": {
+          "Lines": {
+            "361": 1
+          },
+          "Branches": []
+        },
+        "System.UInt32 KcpProject.Kcp::get_Interval()": {
+          "Lines": {
+            "364": 0
+          },
+          "Branches": []
+        },
+        "System.UInt32 KcpProject.Kcp::get_State()": {
+          "Lines": {
+            "367": 1
+          },
+          "Branches": []
+        },
+        "System.Boolean KcpProject.Kcp::get_IsDeadLink()": {
+          "Lines": {
+            "373": 2096
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.Kcp::get_WaitSnd()": {
+          "Lines": {
+            "376": 11090
+          },
+          "Branches": []
+        },
+        "System.UInt32 KcpProject.Kcp::get_CurrentMS()": {
+          "Lines": {
+            "379": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.Kcp::PeekSize()": {
+          "Lines": {
+            "456": 33246,
+            "458": 21072,
+            "460": 42142,
+            "462": 2,
+            "464": 2,
+            "466": 126,
+            "468": 62,
+            "469": 62,
+            "470": 2,
+            "473": 2
+          },
+          "Branches": [
+            {
+              "Line": 456,
+              "Offset": 11,
+              "EndOffset": 13,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 6087
+            },
+            {
+              "Line": 456,
+              "Offset": 11,
+              "EndOffset": 15,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 21072
+            },
+            {
+              "Line": 460,
+              "Offset": 34,
+              "EndOffset": 36,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 21070
+            },
+            {
+              "Line": 460,
+              "Offset": 34,
+              "EndOffset": 48,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 2
+            },
+            {
+              "Line": 462,
+              "Offset": 69,
+              "EndOffset": 71,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 462,
+              "Offset": 69,
+              "EndOffset": 73,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 2
+            },
+            {
+              "Line": 466,
+              "Offset": 128,
+              "EndOffset": 89,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 62
+            },
+            {
+              "Line": 469,
+              "Offset": 117,
+              "EndOffset": 119,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 2
+            },
+            {
+              "Line": 469,
+              "Offset": 117,
+              "EndOffset": 121,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 62
+            },
+            {
+              "Line": 466,
+              "Offset": 128,
+              "EndOffset": 130,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Int32 KcpProject.Kcp::Recv(System.Byte[])": {
+          "Lines": {
+            "481": 2
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.Kcp::Recv(System.Byte[],System.Int32,System.Int32)": {
+          "Lines": {
+            "494": 10537,
+            "495": 10537,
+            "496": 1,
+            "498": 10536,
+            "499": 0,
+            "501": 10536,
+            "502": 10536,
+            "503": 5,
+            "506": 10536,
+            "507": 10536,
+            "508": 31668,
+            "510": 10566,
+            "511": 10566,
+            "513": 10566,
+            "514": 10566,
+            "516": 10566,
+            "518": 0,
+            "521": 10566,
+            "522": 21102,
+            "525": 10536,
+            "527": 10536,
+            "531": 10536,
+            "532": 21288,
+            "534": 216,
+            "536": 0,
+            "537": 0,
+            "538": 0,
+            "546": 10536,
+            "548": 0,
+            "552": 10536,
+            "554": 5,
+            "557": 10536
+          },
+          "Branches": [
+            {
+              "Line": 495,
+              "Offset": 9,
+              "EndOffset": 11,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 495,
+              "Offset": 9,
+              "EndOffset": 13,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 10536
+            },
+            {
+              "Line": 498,
+              "Offset": 15,
+              "EndOffset": 17,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 498,
+              "Offset": 15,
+              "EndOffset": 20,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 10536
+            },
+            {
+              "Line": 502,
+              "Offset": 41,
+              "EndOffset": 43,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 5
+            },
+            {
+              "Line": 502,
+              "Offset": 41,
+              "EndOffset": 45,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 10536
+            },
+            {
+              "Line": 508,
+              "Offset": 204,
+              "EndOffset": 67,
+              "Path": 1,
+              "Ordinal": 11,
+              "Hits": 10566
+            },
+            {
+              "Line": 516,
+              "Offset": 154,
+              "EndOffset": 156,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 516,
+              "Offset": 154,
+              "EndOffset": 184,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 10566
+            },
+            {
+              "Line": 522,
+              "Offset": 193,
+              "EndOffset": 195,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 10536
+            },
+            {
+              "Line": 522,
+              "Offset": 193,
+              "EndOffset": 197,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 10566
+            },
+            {
+              "Line": 508,
+              "Offset": 204,
+              "EndOffset": 209,
+              "Path": 0,
+              "Ordinal": 10,
+              "Hits": 0
+            },
+            {
+              "Line": 525,
+              "Offset": 227,
+              "EndOffset": 229,
+              "Path": 0,
+              "Ordinal": 12,
+              "Hits": 10536
+            },
+            {
+              "Line": 525,
+              "Offset": 227,
+              "EndOffset": 242,
+              "Path": 1,
+              "Ordinal": 13,
+              "Hits": 10536
+            },
+            {
+              "Line": 532,
+              "Offset": 344,
+              "EndOffset": 259,
+              "Path": 1,
+              "Ordinal": 19,
+              "Hits": 216
+            },
+            {
+              "Line": 534,
+              "Offset": 281,
+              "EndOffset": 283,
+              "Path": 0,
+              "Ordinal": 14,
+              "Hits": 0
+            },
+            {
+              "Line": 534,
+              "Offset": 304,
+              "EndOffset": 306,
+              "Path": 0,
+              "Ordinal": 16,
+              "Hits": 0
+            },
+            {
+              "Line": 534,
+              "Offset": 281,
+              "EndOffset": 346,
+              "Path": 1,
+              "Ordinal": 15,
+              "Hits": 10536
+            },
+            {
+              "Line": 534,
+              "Offset": 304,
+              "EndOffset": 346,
+              "Path": 1,
+              "Ordinal": 17,
+              "Hits": 10536
+            },
+            {
+              "Line": 532,
+              "Offset": 344,
+              "EndOffset": 346,
+              "Path": 0,
+              "Ordinal": 18,
+              "Hits": 10536
+            },
+            {
+              "Line": 546,
+              "Offset": 364,
+              "EndOffset": 366,
+              "Path": 0,
+              "Ordinal": 20,
+              "Hits": 0
+            },
+            {
+              "Line": 546,
+              "Offset": 364,
+              "EndOffset": 379,
+              "Path": 1,
+              "Ordinal": 21,
+              "Hits": 10536
+            },
+            {
+              "Line": 552,
+              "Offset": 402,
+              "EndOffset": 404,
+              "Path": 0,
+              "Ordinal": 22,
+              "Hits": 5
+            },
+            {
+              "Line": 552,
+              "Offset": 402,
+              "EndOffset": 418,
+              "Path": 1,
+              "Ordinal": 23,
+              "Hits": 10536
+            }
+          ]
+        },
+        "System.Int32 KcpProject.Kcp::Send(System.Byte[])": {
+          "Lines": {
+            "565": 10666
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.Kcp::Send(System.Byte[],System.Int32,System.Int32)": {
+          "Lines": {
+            "584": 10667,
+            "586": 10665,
+            "588": 164,
+            "589": 164,
+            "591": 163,
+            "592": 163,
+            "594": 163,
+            "595": 163,
+            "596": 163,
+            "597": 163,
+            "598": 163,
+            "603": 10665,
+            "604": 128,
+            "606": 10537,
+            "610": 10538,
+            "612": 10536,
+            "614": 42204,
+            "616": 10566,
+            "618": 10566,
+            "619": 10566,
+            "620": 10566,
+            "621": 10566,
+            "623": 10566,
+            "624": 10566,
+            "627": 10536
+          },
+          "Branches": [
+            {
+              "Line": 584,
+              "Offset": 1,
+              "EndOffset": 3,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 584,
+              "Offset": 1,
+              "EndOffset": 5,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 10665
+            },
+            {
+              "Line": 586,
+              "Offset": 11,
+              "EndOffset": 13,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 164
+            },
+            {
+              "Line": 589,
+              "Offset": 27,
+              "EndOffset": 29,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 163
+            },
+            {
+              "Line": 592,
+              "Offset": 63,
+              "EndOffset": 65,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 163
+            },
+            {
+              "Line": 586,
+              "Offset": 11,
+              "EndOffset": 117,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 10665
+            },
+            {
+              "Line": 589,
+              "Offset": 27,
+              "EndOffset": 117,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 10665
+            },
+            {
+              "Line": 592,
+              "Offset": 63,
+              "EndOffset": 117,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 10665
+            },
+            {
+              "Line": 603,
+              "Offset": 118,
+              "EndOffset": 120,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 128
+            },
+            {
+              "Line": 603,
+              "Offset": 118,
+              "EndOffset": 122,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 10537
+            },
+            {
+              "Line": 606,
+              "Offset": 131,
+              "EndOffset": 133,
+              "Path": 0,
+              "Ordinal": 10,
+              "Hits": 2
+            },
+            {
+              "Line": 606,
+              "Offset": 131,
+              "EndOffset": 157,
+              "Path": 1,
+              "Ordinal": 11,
+              "Hits": 10535
+            },
+            {
+              "Line": 610,
+              "Offset": 168,
+              "EndOffset": 170,
+              "Path": 0,
+              "Ordinal": 12,
+              "Hits": 1
+            },
+            {
+              "Line": 610,
+              "Offset": 168,
+              "EndOffset": 173,
+              "Path": 1,
+              "Ordinal": 13,
+              "Hits": 10536
+            },
+            {
+              "Line": 612,
+              "Offset": 174,
+              "EndOffset": 176,
+              "Path": 0,
+              "Ordinal": 14,
+              "Hits": 0
+            },
+            {
+              "Line": 612,
+              "Offset": 174,
+              "EndOffset": 178,
+              "Path": 1,
+              "Ordinal": 15,
+              "Hits": 10536
+            },
+            {
+              "Line": 614,
+              "Offset": 281,
+              "EndOffset": 183,
+              "Path": 1,
+              "Ordinal": 19,
+              "Hits": 10566
+            },
+            {
+              "Line": 623,
+              "Offset": 242,
+              "EndOffset": 244,
+              "Path": 0,
+              "Ordinal": 16,
+              "Hits": 36
+            },
+            {
+              "Line": 623,
+              "Offset": 242,
+              "EndOffset": 247,
+              "Path": 1,
+              "Ordinal": 17,
+              "Hits": 10530
+            },
+            {
+              "Line": 614,
+              "Offset": 281,
+              "EndOffset": 283,
+              "Path": 0,
+              "Ordinal": 18,
+              "Hits": 10536
+            }
+          ]
+        },
+        "System.Void KcpProject.Kcp::update_ack(System.Int32)": {
+          "Lines": {
+            "633": 595,
+            "635": 12,
+            "636": 12,
+            "640": 583,
+            "641": 583,
+            "642": 599,
+            "644": 583,
+            "647": 1,
+            "651": 582,
+            "655": 595,
+            "656": 595,
+            "657": 595
+          },
+          "Branches": [
+            {
+              "Line": 633,
+              "Offset": 6,
+              "EndOffset": 8,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 12
+            },
+            {
+              "Line": 633,
+              "Offset": 6,
+              "EndOffset": 26,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 583
+            },
+            {
+              "Line": 642,
+              "Offset": 53,
+              "EndOffset": 55,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 16
+            },
+            {
+              "Line": 642,
+              "Offset": 53,
+              "EndOffset": 58,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 583
+            },
+            {
+              "Line": 644,
+              "Offset": 72,
+              "EndOffset": 74,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 644,
+              "Offset": 72,
+              "EndOffset": 99,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 582
+            }
+          ]
+        },
+        "System.Void KcpProject.Kcp::shrink_buf()": {
+          "Lines": {
+            "661": 11293,
+            "662": 11293
+          },
+          "Branches": [
+            {
+              "Line": 661,
+              "Offset": 13,
+              "EndOffset": 15,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 10760
+            },
+            {
+              "Line": 661,
+              "Offset": 13,
+              "EndOffset": 23,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 533
+            }
+          ]
+        },
+        "System.Void KcpProject.Kcp::parse_ack(System.UInt32)": {
+          "Lines": {
+            "666": 1041,
+            "668": 9385,
+            "670": 4582,
+            "673": 221,
+            "674": 221,
+            "676": 4361,
+            "677": 0,
+            "679": 221
+          },
+          "Branches": [
+            {
+              "Line": 666,
+              "Offset": 13,
+              "EndOffset": 15,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 221
+            },
+            {
+              "Line": 666,
+              "Offset": 13,
+              "EndOffset": 30,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 410
+            },
+            {
+              "Line": 666,
+              "Offset": 28,
+              "EndOffset": 30,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 410
+            },
+            {
+              "Line": 666,
+              "Offset": 28,
+              "EndOffset": 31,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 221
+            },
+            {
+              "Line": 668,
+              "Offset": 95,
+              "EndOffset": 45,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 4582
+            },
+            {
+              "Line": 670,
+              "Offset": 60,
+              "EndOffset": 62,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 221
+            },
+            {
+              "Line": 670,
+              "Offset": 60,
+              "EndOffset": 71,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 4361
+            },
+            {
+              "Line": 676,
+              "Offset": 84,
+              "EndOffset": 86,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 676,
+              "Offset": 84,
+              "EndOffset": 88,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 4582
+            },
+            {
+              "Line": 668,
+              "Offset": 95,
+              "EndOffset": 97,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void KcpProject.Kcp::parse_fastack(System.UInt32,System.UInt32)": {
+          "Lines": {
+            "683": 631,
+            "684": 410,
+            "686": 9821,
+            "688": 4797,
+            "689": 215,
+            "690": 4582,
+            "691": 4171,
+            "693": 221
+          },
+          "Branches": [
+            {
+              "Line": 683,
+              "Offset": 13,
+              "EndOffset": 15,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 221
+            },
+            {
+              "Line": 683,
+              "Offset": 13,
+              "EndOffset": 30,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 410
+            },
+            {
+              "Line": 683,
+              "Offset": 28,
+              "EndOffset": 30,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 410
+            },
+            {
+              "Line": 683,
+              "Offset": 28,
+              "EndOffset": 31,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 221
+            },
+            {
+              "Line": 686,
+              "Offset": 115,
+              "EndOffset": 45,
+              "Path": 1,
+              "Ordinal": 11,
+              "Hits": 4797
+            },
+            {
+              "Line": 688,
+              "Offset": 66,
+              "EndOffset": 68,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 215
+            },
+            {
+              "Line": 688,
+              "Offset": 66,
+              "EndOffset": 70,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 4582
+            },
+            {
+              "Line": 690,
+              "Offset": 77,
+              "EndOffset": 79,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 4361
+            },
+            {
+              "Line": 690,
+              "Offset": 92,
+              "EndOffset": 94,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 4171
+            },
+            {
+              "Line": 690,
+              "Offset": 77,
+              "EndOffset": 108,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 4803
+            },
+            {
+              "Line": 690,
+              "Offset": 92,
+              "EndOffset": 108,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 4803
+            },
+            {
+              "Line": 686,
+              "Offset": 115,
+              "EndOffset": 117,
+              "Path": 0,
+              "Ordinal": 10,
+              "Hits": 6
+            }
+          ]
+        },
+        "System.Int32 KcpProject.Kcp::parse_una(System.UInt32)": {
+          "Lines": {
+            "697": 11293,
+            "698": 44187,
+            "700": 11067,
+            "702": 10534,
+            "703": 10534,
+            "709": 11293,
+            "710": 393,
+            "711": 11293
+          },
+          "Branches": [
+            {
+              "Line": 698,
+              "Offset": 56,
+              "EndOffset": 16,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 11067
+            },
+            {
+              "Line": 700,
+              "Offset": 37,
+              "EndOffset": 39,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 10534
+            },
+            {
+              "Line": 700,
+              "Offset": 37,
+              "EndOffset": 58,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 11293
+            },
+            {
+              "Line": 698,
+              "Offset": 56,
+              "EndOffset": 58,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 11293
+            },
+            {
+              "Line": 709,
+              "Offset": 76,
+              "EndOffset": 78,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 393
+            },
+            {
+              "Line": 709,
+              "Offset": 76,
+              "EndOffset": 91,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 11293
+            }
+          ]
+        },
+        "System.Void KcpProject.Kcp::ack_push(System.UInt32,System.UInt32)": {
+          "Lines": {
+            "716": 10659,
+            "717": 10659
+          },
+          "Branches": []
+        },
+        "System.Boolean KcpProject.Kcp::parse_data(KcpProject.Kcp/Segment)": {
+          "Lines": {
+            "722": 10596,
+            "723": 10596,
+            "724": 0,
+            "726": 10596,
+            "727": 10596,
+            "728": 10596,
+            "729": 25726,
+            "731": 2538,
+            "732": 2538,
+            "734": 30,
+            "735": 30,
+            "738": 2508,
+            "740": 241,
+            "741": 241,
+            "745": 10596,
+            "747": 10566,
+            "748": 10464,
+            "750": 102,
+            "754": 10596,
+            "755": 42649,
+            "757": 10891,
+            "759": 10566,
+            "760": 10566,
+            "768": 10596,
+            "770": 41754,
+            "771": 10566,
+            "772": 10311,
+            "774": 10596
+          },
+          "Branches": [
+            {
+              "Line": 723,
+              "Offset": 27,
+              "EndOffset": 29,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 10596
+            },
+            {
+              "Line": 723,
+              "Offset": 27,
+              "EndOffset": 44,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 723,
+              "Offset": 42,
+              "EndOffset": 44,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 723,
+              "Offset": 42,
+              "EndOffset": 46,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 10596
+            },
+            {
+              "Line": 729,
+              "Offset": 130,
+              "EndOffset": 69,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 2538
+            },
+            {
+              "Line": 732,
+              "Offset": 92,
+              "EndOffset": 94,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 30
+            },
+            {
+              "Line": 732,
+              "Offset": 92,
+              "EndOffset": 98,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 2508
+            },
+            {
+              "Line": 738,
+              "Offset": 112,
+              "EndOffset": 114,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 241
+            },
+            {
+              "Line": 738,
+              "Offset": 112,
+              "EndOffset": 121,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 2267
+            },
+            {
+              "Line": 729,
+              "Offset": 130,
+              "EndOffset": 132,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 10596
+            },
+            {
+              "Line": 745,
+              "Offset": 133,
+              "EndOffset": 135,
+              "Path": 0,
+              "Ordinal": 10,
+              "Hits": 10566
+            },
+            {
+              "Line": 747,
+              "Offset": 139,
+              "EndOffset": 141,
+              "Path": 0,
+              "Ordinal": 12,
+              "Hits": 10464
+            },
+            {
+              "Line": 747,
+              "Offset": 139,
+              "EndOffset": 155,
+              "Path": 1,
+              "Ordinal": 13,
+              "Hits": 102
+            },
+            {
+              "Line": 745,
+              "Offset": 133,
+              "EndOffset": 168,
+              "Path": 1,
+              "Ordinal": 11,
+              "Hits": 10596
+            },
+            {
+              "Line": 755,
+              "Offset": 257,
+              "EndOffset": 186,
+              "Path": 1,
+              "Ordinal": 19,
+              "Hits": 10891
+            },
+            {
+              "Line": 757,
+              "Offset": 204,
+              "EndOffset": 206,
+              "Path": 0,
+              "Ordinal": 14,
+              "Hits": 10566
+            },
+            {
+              "Line": 757,
+              "Offset": 228,
+              "EndOffset": 230,
+              "Path": 0,
+              "Ordinal": 16,
+              "Hits": 10566
+            },
+            {
+              "Line": 757,
+              "Offset": 204,
+              "EndOffset": 259,
+              "Path": 1,
+              "Ordinal": 15,
+              "Hits": 10596
+            },
+            {
+              "Line": 757,
+              "Offset": 228,
+              "EndOffset": 259,
+              "Path": 1,
+              "Ordinal": 17,
+              "Hits": 10596
+            },
+            {
+              "Line": 755,
+              "Offset": 257,
+              "EndOffset": 259,
+              "Path": 0,
+              "Ordinal": 18,
+              "Hits": 10596
+            },
+            {
+              "Line": 768,
+              "Offset": 278,
+              "EndOffset": 280,
+              "Path": 0,
+              "Ordinal": 20,
+              "Hits": 10311
+            },
+            {
+              "Line": 770,
+              "Offset": 319,
+              "EndOffset": 285,
+              "Path": 1,
+              "Ordinal": 23,
+              "Hits": 10566
+            },
+            {
+              "Line": 770,
+              "Offset": 319,
+              "EndOffset": 321,
+              "Path": 0,
+              "Ordinal": 22,
+              "Hits": 10311
+            },
+            {
+              "Line": 768,
+              "Offset": 278,
+              "EndOffset": 335,
+              "Path": 1,
+              "Ordinal": 21,
+              "Hits": 10596
+            }
+          ]
+        },
+        "System.Int32 KcpProject.Kcp::Input(System.Byte[],System.Int32,System.Int32,System.Boolean,System.Boolean)": {
+          "Lines": {
+            "795": 1520,
+            "796": 1521,
+            "798": 1519,
+            "799": 1519,
+            "800": 1519,
+            "801": 1519,
+            "802": 1519,
+            "805": 1519,
+            "807": 1519,
+            "809": 1519,
+            "811": 0,
+            "814": 11293,
+            "816": 12812,
+            "817": 12812,
+            "818": 12812,
+            "819": 12812,
+            "820": 12812,
+            "822": 12812,
+            "823": 12812,
+            "824": 12812,
+            "826": 12812,
+            "828": 11496,
+            "830": 11497,
+            "832": 11495,
+            "833": 11495,
+            "834": 11495,
+            "835": 11495,
+            "836": 11495,
+            "837": 11495,
+            "838": 11495,
+            "840": 11696,
+            "850": 1,
+            "854": 11293,
+            "856": 11293,
+            "859": 11293,
+            "861": 393,
+            "864": 11293,
+            "866": 11293,
+            "868": 631,
+            "869": 631,
+            "870": 631,
+            "871": 631,
+            "873": 631,
+            "875": 0,
+            "878": 10662,
+            "880": 10659,
+            "882": 0,
+            "885": 10659,
+            "887": 10659,
+            "888": 10659,
+            "890": 10596,
+            "891": 10596,
+            "892": 10596,
+            "893": 10596,
+            "894": 10596,
+            "895": 10596,
+            "896": 10596,
+            "897": 10596,
+            "898": 10596,
+            "899": 10596,
+            "902": 30,
+            "903": 30,
+            "908": 63,
+            "913": 0,
+            "916": 3,
+            "919": 0,
+            "921": 0,
+            "923": 0,
+            "926": 3,
+            "928": 3,
+            "930": 0,
+            "935": 0,
+            "938": 11293,
+            "939": 11293,
+            "942": 1316,
+            "945": 1316,
+            "947": 595,
+            "949": 595,
+            "954": 1316,
+            "956": 1,
+            "958": 0,
+            "960": 0,
+            "961": 0,
+            "963": 0,
+            "964": 0,
+            "968": 0,
+            "970": 0,
+            "972": 0,
+            "973": 0,
+            "975": 0,
+            "978": 0,
+            "980": 0,
+            "981": 0,
+            "987": 1316,
+            "989": 393,
+            "991": 923,
+            "993": 716,
+            "996": 1316
+          },
+          "Branches": [
+            {
+              "Line": 796,
+              "Offset": 10,
+              "EndOffset": 12,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 796,
+              "Offset": 10,
+              "EndOffset": 14,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 1519
+            },
+            {
+              "Line": 809,
+              "Offset": 64,
+              "EndOffset": 66,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 809,
+              "Offset": 64,
+              "EndOffset": 94,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 12812
+            },
+            {
+              "Line": 826,
+              "Offset": 125,
+              "EndOffset": 130,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 11496
+            },
+            {
+              "Line": 830,
+              "Offset": 150,
+              "EndOffset": 152,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 1
+            },
+            {
+              "Line": 830,
+              "Offset": 150,
+              "EndOffset": 154,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 11495
+            },
+            {
+              "Line": 840,
+              "Offset": 247,
+              "EndOffset": 249,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 201
+            },
+            {
+              "Line": 840,
+              "Offset": 247,
+              "EndOffset": 252,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 11294
+            },
+            {
+              "Line": 840,
+              "Offset": 258,
+              "EndOffset": 260,
+              "Path": 0,
+              "Ordinal": 10,
+              "Hits": 1
+            },
+            {
+              "Line": 840,
+              "Offset": 258,
+              "EndOffset": 263,
+              "Path": 1,
+              "Ordinal": 11,
+              "Hits": 11293
+            },
+            {
+              "Line": 854,
+              "Offset": 265,
+              "EndOffset": 267,
+              "Path": 0,
+              "Ordinal": 12,
+              "Hits": 11293
+            },
+            {
+              "Line": 854,
+              "Offset": 265,
+              "EndOffset": 275,
+              "Path": 1,
+              "Ordinal": 13,
+              "Hits": 11293
+            },
+            {
+              "Line": 859,
+              "Offset": 284,
+              "EndOffset": 286,
+              "Path": 0,
+              "Ordinal": 14,
+              "Hits": 393
+            },
+            {
+              "Line": 859,
+              "Offset": 284,
+              "EndOffset": 289,
+              "Path": 1,
+              "Ordinal": 15,
+              "Hits": 11293
+            },
+            {
+              "Line": 866,
+              "Offset": 299,
+              "EndOffset": 304,
+              "Path": 0,
+              "Ordinal": 16,
+              "Hits": 631
+            },
+            {
+              "Line": 873,
+              "Offset": 337,
+              "EndOffset": 342,
+              "Path": 0,
+              "Ordinal": 18,
+              "Hits": 0
+            },
+            {
+              "Line": 866,
+              "Offset": 299,
+              "EndOffset": 489,
+              "Path": 1,
+              "Ordinal": 17,
+              "Hits": 10662
+            },
+            {
+              "Line": 878,
+              "Offset": 493,
+              "EndOffset": 498,
+              "Path": 0,
+              "Ordinal": 20,
+              "Hits": 10659
+            },
+            {
+              "Line": 880,
+              "Offset": 506,
+              "EndOffset": 508,
+              "Path": 0,
+              "Ordinal": 22,
+              "Hits": 0
+            },
+            {
+              "Line": 880,
+              "Offset": 506,
+              "EndOffset": 543,
+              "Path": 1,
+              "Ordinal": 23,
+              "Hits": 10659
+            },
+            {
+              "Line": 885,
+              "Offset": 564,
+              "EndOffset": 569,
+              "Path": 0,
+              "Ordinal": 24,
+              "Hits": 10659
+            },
+            {
+              "Line": 888,
+              "Offset": 593,
+              "EndOffset": 598,
+              "Path": 0,
+              "Ordinal": 26,
+              "Hits": 10596
+            },
+            {
+              "Line": 899,
+              "Offset": 694,
+              "EndOffset": 699,
+              "Path": 0,
+              "Ordinal": 28,
+              "Hits": 30
+            },
+            {
+              "Line": 888,
+              "Offset": 593,
+              "EndOffset": 728,
+              "Path": 1,
+              "Ordinal": 27,
+              "Hits": 63
+            },
+            {
+              "Line": 885,
+              "Offset": 564,
+              "EndOffset": 747,
+              "Path": 1,
+              "Ordinal": 25,
+              "Hits": 0
+            },
+            {
+              "Line": 878,
+              "Offset": 493,
+              "EndOffset": 766,
+              "Path": 1,
+              "Ordinal": 21,
+              "Hits": 3
+            },
+            {
+              "Line": 916,
+              "Offset": 770,
+              "EndOffset": 772,
+              "Path": 0,
+              "Ordinal": 30,
+              "Hits": 0
+            },
+            {
+              "Line": 921,
+              "Offset": 794,
+              "EndOffset": 796,
+              "Path": 0,
+              "Ordinal": 32,
+              "Hits": 0
+            },
+            {
+              "Line": 916,
+              "Offset": 770,
+              "EndOffset": 809,
+              "Path": 1,
+              "Ordinal": 31,
+              "Hits": 3
+            },
+            {
+              "Line": 926,
+              "Offset": 813,
+              "EndOffset": 815,
+              "Path": 0,
+              "Ordinal": 34,
+              "Hits": 3
+            },
+            {
+              "Line": 928,
+              "Offset": 826,
+              "EndOffset": 828,
+              "Path": 0,
+              "Ordinal": 36,
+              "Hits": 0
+            },
+            {
+              "Line": 926,
+              "Offset": 813,
+              "EndOffset": 853,
+              "Path": 1,
+              "Ordinal": 35,
+              "Hits": 0
+            },
+            {
+              "Line": 873,
+              "Offset": 337,
+              "EndOffset": 856,
+              "Path": 1,
+              "Ordinal": 19,
+              "Hits": 11293
+            },
+            {
+              "Line": 899,
+              "Offset": 694,
+              "EndOffset": 856,
+              "Path": 1,
+              "Ordinal": 29,
+              "Hits": 11293
+            },
+            {
+              "Line": 921,
+              "Offset": 794,
+              "EndOffset": 856,
+              "Path": 1,
+              "Ordinal": 33,
+              "Hits": 11293
+            },
+            {
+              "Line": 928,
+              "Offset": 826,
+              "EndOffset": 856,
+              "Path": 1,
+              "Ordinal": 37,
+              "Hits": 11293
+            },
+            {
+              "Line": 826,
+              "Offset": 125,
+              "EndOffset": 873,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 1316
+            },
+            {
+              "Line": 945,
+              "Offset": 897,
+              "EndOffset": 899,
+              "Path": 0,
+              "Ordinal": 38,
+              "Hits": 595
+            },
+            {
+              "Line": 947,
+              "Offset": 908,
+              "EndOffset": 910,
+              "Path": 0,
+              "Ordinal": 40,
+              "Hits": 595
+            },
+            {
+              "Line": 945,
+              "Offset": 897,
+              "EndOffset": 924,
+              "Path": 1,
+              "Ordinal": 39,
+              "Hits": 1316
+            },
+            {
+              "Line": 947,
+              "Offset": 908,
+              "EndOffset": 924,
+              "Path": 1,
+              "Ordinal": 41,
+              "Hits": 1316
+            },
+            {
+              "Line": 954,
+              "Offset": 930,
+              "EndOffset": 935,
+              "Path": 0,
+              "Ordinal": 42,
+              "Hits": 1
+            },
+            {
+              "Line": 956,
+              "Offset": 948,
+              "EndOffset": 953,
+              "Path": 0,
+              "Ordinal": 44,
+              "Hits": 0
+            },
+            {
+              "Line": 958,
+              "Offset": 965,
+              "EndOffset": 970,
+              "Path": 0,
+              "Ordinal": 46,
+              "Hits": 0
+            },
+            {
+              "Line": 961,
+              "Offset": 990,
+              "EndOffset": 992,
+              "Path": 0,
+              "Ordinal": 48,
+              "Hits": 0
+            },
+            {
+              "Line": 961,
+              "Offset": 990,
+              "EndOffset": 1023,
+              "Path": 1,
+              "Ordinal": 49,
+              "Hits": 0
+            },
+            {
+              "Line": 968,
+              "Offset": 1031,
+              "EndOffset": 1033,
+              "Path": 0,
+              "Ordinal": 50,
+              "Hits": 0
+            },
+            {
+              "Line": 968,
+              "Offset": 1031,
+              "EndOffset": 1041,
+              "Path": 1,
+              "Ordinal": 51,
+              "Hits": 0
+            },
+            {
+              "Line": 973,
+              "Offset": 1089,
+              "EndOffset": 1091,
+              "Path": 0,
+              "Ordinal": 52,
+              "Hits": 0
+            },
+            {
+              "Line": 975,
+              "Offset": 1095,
+              "EndOffset": 1097,
+              "Path": 0,
+              "Ordinal": 54,
+              "Hits": 0
+            },
+            {
+              "Line": 975,
+              "Offset": 1095,
+              "EndOffset": 1110,
+              "Path": 1,
+              "Ordinal": 55,
+              "Hits": 0
+            },
+            {
+              "Line": 973,
+              "Offset": 1089,
+              "EndOffset": 1129,
+              "Path": 1,
+              "Ordinal": 53,
+              "Hits": 0
+            },
+            {
+              "Line": 978,
+              "Offset": 1141,
+              "EndOffset": 1143,
+              "Path": 0,
+              "Ordinal": 56,
+              "Hits": 0
+            },
+            {
+              "Line": 954,
+              "Offset": 930,
+              "EndOffset": 1170,
+              "Path": 1,
+              "Ordinal": 43,
+              "Hits": 1316
+            },
+            {
+              "Line": 956,
+              "Offset": 948,
+              "EndOffset": 1170,
+              "Path": 1,
+              "Ordinal": 45,
+              "Hits": 1316
+            },
+            {
+              "Line": 958,
+              "Offset": 965,
+              "EndOffset": 1170,
+              "Path": 1,
+              "Ordinal": 47,
+              "Hits": 1316
+            },
+            {
+              "Line": 978,
+              "Offset": 1141,
+              "EndOffset": 1170,
+              "Path": 1,
+              "Ordinal": 57,
+              "Hits": 1316
+            },
+            {
+              "Line": 987,
+              "Offset": 1172,
+              "EndOffset": 1174,
+              "Path": 0,
+              "Ordinal": 58,
+              "Hits": 393
+            },
+            {
+              "Line": 987,
+              "Offset": 1172,
+              "EndOffset": 1184,
+              "Path": 1,
+              "Ordinal": 59,
+              "Hits": 923
+            },
+            {
+              "Line": 991,
+              "Offset": 1186,
+              "EndOffset": 1188,
+              "Path": 0,
+              "Ordinal": 60,
+              "Hits": 921
+            },
+            {
+              "Line": 991,
+              "Offset": 1200,
+              "EndOffset": 1202,
+              "Path": 0,
+              "Ordinal": 62,
+              "Hits": 716
+            },
+            {
+              "Line": 991,
+              "Offset": 1186,
+              "EndOffset": 1210,
+              "Path": 1,
+              "Ordinal": 61,
+              "Hits": 1316
+            },
+            {
+              "Line": 991,
+              "Offset": 1200,
+              "EndOffset": 1210,
+              "Path": 1,
+              "Ordinal": 63,
+              "Hits": 1316
+            }
+          ]
+        },
+        "System.UInt16 KcpProject.Kcp::wnd_unused()": {
+          "Lines": {
+            "1001": 7375,
+            "1002": 7163,
+            "1003": 212
+          },
+          "Branches": [
+            {
+              "Line": 1001,
+              "Offset": 19,
+              "EndOffset": 21,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 7163
+            },
+            {
+              "Line": 1001,
+              "Offset": 19,
+              "EndOffset": 43,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 212
+            }
+          ]
+        },
+        "System.Int32 KcpProject.Kcp::makeSpace(System.Int32,System.Int32)": {
+          "Lines": {
+            "1008": 21492,
+            "1010": 653,
+            "1012": 0,
+            "1014": 653,
+            "1015": 653,
+            "1016": 653,
+            "1018": 21492
+          },
+          "Branches": [
+            {
+              "Line": 1008,
+              "Offset": 11,
+              "EndOffset": 13,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 653
+            },
+            {
+              "Line": 1010,
+              "Offset": 20,
+              "EndOffset": 22,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 1010,
+              "Offset": 20,
+              "EndOffset": 50,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 653
+            },
+            {
+              "Line": 1008,
+              "Offset": 11,
+              "EndOffset": 93,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 21492
+            }
+          ]
+        },
+        "System.Void KcpProject.Kcp::flushBuffer(System.Int32)": {
+          "Lines": {
+            "1023": 7375,
+            "1025": 951,
+            "1027": 0,
+            "1029": 951,
+            "1030": 951,
+            "1032": 7375
+          },
+          "Branches": [
+            {
+              "Line": 1023,
+              "Offset": 7,
+              "EndOffset": 9,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 951
+            },
+            {
+              "Line": 1025,
+              "Offset": 16,
+              "EndOffset": 18,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 1025,
+              "Offset": 16,
+              "EndOffset": 46,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 951
+            },
+            {
+              "Line": 1023,
+              "Offset": 7,
+              "EndOffset": 81,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 7375
+            }
+          ]
+        },
+        "System.UInt32 KcpProject.Kcp::Flush(System.Boolean)": {
+          "Lines": {
+            "1039": 7375,
+            "1040": 7375,
+            "1041": 7375,
+            "1042": 7375,
+            "1043": 7375,
+            "1045": 7375,
+            "1048": 36066,
+            "1050": 10658,
+            "1051": 10658,
+            "1052": 10658,
+            "1054": 758,
+            "1055": 758,
+            "1056": 758,
+            "1057": 758,
+            "1059": 758,
+            "1061": 0,
+            "1065": 7375,
+            "1067": 7375,
+            "1069": 716,
+            "1070": 716,
+            "1071": 716,
+            "1075": 6659,
+            "1078": 6659,
+            "1080": 215,
+            "1082": 5,
+            "1083": 5,
+            "1087": 210,
+            "1089": 0,
+            "1090": 0,
+            "1091": 0,
+            "1092": 0,
+            "1093": 0,
+            "1094": 0,
+            "1095": 0,
+            "1101": 6444,
+            "1102": 6444,
+            "1105": 6659,
+            "1107": 0,
+            "1108": 0,
+            "1109": 0,
+            "1110": 0,
+            "1113": 6659,
+            "1115": 5,
+            "1116": 5,
+            "1117": 5,
+            "1118": 5,
+            "1121": 6659,
+            "1124": 6659,
+            "1125": 6659,
+            "1126": 0,
+            "1129": 6659,
+            "1130": 34450,
+            "1132": 10868,
+            "1135": 10566,
+            "1136": 10566,
+            "1137": 10566,
+            "1138": 10566,
+            "1139": 10566,
+            "1140": 10566,
+            "1141": 10566,
+            "1144": 6659,
+            "1146": 180,
+            "1150": 6659,
+            "1151": 6667,
+            "1153": 6659,
+            "1154": 6659,
+            "1155": 6659,
+            "1156": 6659,
+            "1157": 6659,
+            "1159": 135492,
+            "1161": 61087,
+            "1162": 61087,
+            "1163": 61087,
+            "1165": 57332,
+            "1167": 10566,
+            "1168": 10566,
+            "1169": 10566,
+            "1171": 46766,
+            "1173": 192,
+            "1174": 192,
+            "1175": 192,
+            "1176": 192,
+            "1177": 192,
+            "1178": 192,
+            "1180": 46574,
+            "1182": 19,
+            "1183": 19,
+            "1184": 19,
+            "1185": 19,
+            "1186": 19,
+            "1187": 19,
+            "1189": 46555,
+            "1191": 52,
+            "1192": 52,
+            "1193": 0,
+            "1195": 52,
+            "1196": 52,
+            "1197": 52,
+            "1198": 52,
+            "1201": 57332,
+            "1203": 10829,
+            "1204": 10829,
+            "1205": 10829,
+            "1206": 10829,
+            "1208": 10829,
+            "1209": 10829,
+            "1210": 10829,
+            "1211": 10829,
+            "1212": 10829,
+            "1213": 10829,
+            "1215": 10829,
+            "1217": 1,
+            "1220": 10829,
+            "1222": 0,
+            "1227": 57332,
+            "1228": 57332,
+            "1230": 0,
+            "1234": 6659,
+            "1236": 6659,
+            "1237": 6659,
+            "1238": 6659,
+            "1241": 6659,
+            "1244": 0,
+            "1246": 0,
+            "1247": 0,
+            "1248": 0,
+            "1249": 0,
+            "1250": 0,
+            "1251": 0,
+            "1255": 0,
+            "1257": 0,
+            "1258": 0,
+            "1259": 0,
+            "1260": 0,
+            "1261": 0,
+            "1264": 0,
+            "1266": 0,
+            "1267": 0,
+            "1271": 6659,
+            "1272": 6659
+          },
+          "Branches": [
+            {
+              "Line": 1048,
+              "Offset": 248,
+              "EndOffset": 67,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 10658
+            },
+            {
+              "Line": 1052,
+              "Offset": 111,
+              "EndOffset": 113,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 10373
+            },
+            {
+              "Line": 1052,
+              "Offset": 111,
+              "EndOffset": 130,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 758
+            },
+            {
+              "Line": 1052,
+              "Offset": 128,
+              "EndOffset": 130,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 758
+            },
+            {
+              "Line": 1059,
+              "Offset": 200,
+              "EndOffset": 202,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 1052,
+              "Offset": 128,
+              "EndOffset": 229,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 10658
+            },
+            {
+              "Line": 1059,
+              "Offset": 200,
+              "EndOffset": 229,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 10658
+            },
+            {
+              "Line": 1048,
+              "Offset": 248,
+              "EndOffset": 253,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 7375
+            },
+            {
+              "Line": 1067,
+              "Offset": 265,
+              "EndOffset": 267,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 716
+            },
+            {
+              "Line": 1067,
+              "Offset": 265,
+              "EndOffset": 287,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 6659
+            },
+            {
+              "Line": 1078,
+              "Offset": 305,
+              "EndOffset": 310,
+              "Path": 0,
+              "Ordinal": 10,
+              "Hits": 215
+            },
+            {
+              "Line": 1080,
+              "Offset": 316,
+              "EndOffset": 318,
+              "Path": 0,
+              "Ordinal": 12,
+              "Hits": 5
+            },
+            {
+              "Line": 1080,
+              "Offset": 316,
+              "EndOffset": 348,
+              "Path": 1,
+              "Ordinal": 13,
+              "Hits": 210
+            },
+            {
+              "Line": 1087,
+              "Offset": 361,
+              "EndOffset": 363,
+              "Path": 0,
+              "Ordinal": 14,
+              "Hits": 0
+            },
+            {
+              "Line": 1089,
+              "Offset": 374,
+              "EndOffset": 376,
+              "Path": 0,
+              "Ordinal": 16,
+              "Hits": 0
+            },
+            {
+              "Line": 1089,
+              "Offset": 374,
+              "EndOffset": 387,
+              "Path": 1,
+              "Ordinal": 17,
+              "Hits": 0
+            },
+            {
+              "Line": 1092,
+              "Offset": 419,
+              "EndOffset": 421,
+              "Path": 0,
+              "Ordinal": 18,
+              "Hits": 0
+            },
+            {
+              "Line": 1092,
+              "Offset": 419,
+              "EndOffset": 432,
+              "Path": 1,
+              "Ordinal": 19,
+              "Hits": 0
+            },
+            {
+              "Line": 1078,
+              "Offset": 305,
+              "EndOffset": 462,
+              "Path": 1,
+              "Ordinal": 11,
+              "Hits": 6444
+            },
+            {
+              "Line": 1087,
+              "Offset": 361,
+              "EndOffset": 476,
+              "Path": 1,
+              "Ordinal": 15,
+              "Hits": 6659
+            },
+            {
+              "Line": 1105,
+              "Offset": 484,
+              "EndOffset": 486,
+              "Path": 0,
+              "Ordinal": 20,
+              "Hits": 0
+            },
+            {
+              "Line": 1105,
+              "Offset": 484,
+              "EndOffset": 537,
+              "Path": 1,
+              "Ordinal": 21,
+              "Hits": 6659
+            },
+            {
+              "Line": 1113,
+              "Offset": 545,
+              "EndOffset": 547,
+              "Path": 0,
+              "Ordinal": 22,
+              "Hits": 5
+            },
+            {
+              "Line": 1113,
+              "Offset": 545,
+              "EndOffset": 598,
+              "Path": 1,
+              "Ordinal": 23,
+              "Hits": 6659
+            },
+            {
+              "Line": 1125,
+              "Offset": 629,
+              "EndOffset": 631,
+              "Path": 0,
+              "Ordinal": 24,
+              "Hits": 0
+            },
+            {
+              "Line": 1125,
+              "Offset": 629,
+              "EndOffset": 644,
+              "Path": 1,
+              "Ordinal": 25,
+              "Hits": 6659
+            },
+            {
+              "Line": 1130,
+              "Offset": 776,
+              "EndOffset": 652,
+              "Path": 1,
+              "Ordinal": 29,
+              "Hits": 10868
+            },
+            {
+              "Line": 1132,
+              "Offset": 672,
+              "EndOffset": 674,
+              "Path": 0,
+              "Ordinal": 26,
+              "Hits": 10566
+            },
+            {
+              "Line": 1132,
+              "Offset": 672,
+              "EndOffset": 778,
+              "Path": 1,
+              "Ordinal": 27,
+              "Hits": 6659
+            },
+            {
+              "Line": 1130,
+              "Offset": 776,
+              "EndOffset": 778,
+              "Path": 0,
+              "Ordinal": 28,
+              "Hits": 6659
+            },
+            {
+              "Line": 1144,
+              "Offset": 781,
+              "EndOffset": 783,
+              "Path": 0,
+              "Ordinal": 30,
+              "Hits": 180
+            },
+            {
+              "Line": 1144,
+              "Offset": 781,
+              "EndOffset": 797,
+              "Path": 1,
+              "Ordinal": 31,
+              "Hits": 6659
+            },
+            {
+              "Line": 1151,
+              "Offset": 812,
+              "EndOffset": 814,
+              "Path": 0,
+              "Ordinal": 32,
+              "Hits": 8
+            },
+            {
+              "Line": 1151,
+              "Offset": 812,
+              "EndOffset": 817,
+              "Path": 1,
+              "Ordinal": 33,
+              "Hits": 6659
+            },
+            {
+              "Line": 1159,
+              "Offset": 1644,
+              "EndOffset": 849,
+              "Path": 1,
+              "Ordinal": 59,
+              "Hits": 61087
+            },
+            {
+              "Line": 1163,
+              "Offset": 875,
+              "EndOffset": 880,
+              "Path": 0,
+              "Ordinal": 34,
+              "Hits": 57332
+            },
+            {
+              "Line": 1165,
+              "Offset": 887,
+              "EndOffset": 889,
+              "Path": 0,
+              "Ordinal": 36,
+              "Hits": 10566
+            },
+            {
+              "Line": 1165,
+              "Offset": 887,
+              "EndOffset": 926,
+              "Path": 1,
+              "Ordinal": 37,
+              "Hits": 46766
+            },
+            {
+              "Line": 1171,
+              "Offset": 935,
+              "EndOffset": 937,
+              "Path": 0,
+              "Ordinal": 38,
+              "Hits": 192
+            },
+            {
+              "Line": 1171,
+              "Offset": 935,
+              "EndOffset": 996,
+              "Path": 1,
+              "Ordinal": 39,
+              "Hits": 46574
+            },
+            {
+              "Line": 1180,
+              "Offset": 1004,
+              "EndOffset": 1006,
+              "Path": 0,
+              "Ordinal": 40,
+              "Hits": 23
+            },
+            {
+              "Line": 1180,
+              "Offset": 1008,
+              "EndOffset": 1010,
+              "Path": 0,
+              "Ordinal": 42,
+              "Hits": 19
+            },
+            {
+              "Line": 1180,
+              "Offset": 1004,
+              "EndOffset": 1066,
+              "Path": 1,
+              "Ordinal": 41,
+              "Hits": 46555
+            },
+            {
+              "Line": 1180,
+              "Offset": 1008,
+              "EndOffset": 1066,
+              "Path": 1,
+              "Ordinal": 43,
+              "Hits": 46555
+            },
+            {
+              "Line": 1189,
+              "Offset": 1080,
+              "EndOffset": 1082,
+              "Path": 0,
+              "Ordinal": 44,
+              "Hits": 52
+            },
+            {
+              "Line": 1192,
+              "Offset": 1091,
+              "EndOffset": 1093,
+              "Path": 0,
+              "Ordinal": 46,
+              "Hits": 0
+            },
+            {
+              "Line": 1192,
+              "Offset": 1091,
+              "EndOffset": 1115,
+              "Path": 1,
+              "Ordinal": 47,
+              "Hits": 52
+            },
+            {
+              "Line": 1189,
+              "Offset": 1080,
+              "EndOffset": 1168,
+              "Path": 1,
+              "Ordinal": 45,
+              "Hits": 57332
+            },
+            {
+              "Line": 1201,
+              "Offset": 1170,
+              "EndOffset": 1175,
+              "Path": 0,
+              "Ordinal": 48,
+              "Hits": 10829
+            },
+            {
+              "Line": 1215,
+              "Offset": 1361,
+              "EndOffset": 1363,
+              "Path": 0,
+              "Ordinal": 50,
+              "Hits": 1
+            },
+            {
+              "Line": 1215,
+              "Offset": 1361,
+              "EndOffset": 1370,
+              "Path": 1,
+              "Ordinal": 51,
+              "Hits": 10829
+            },
+            {
+              "Line": 1220,
+              "Offset": 1381,
+              "EndOffset": 1386,
+              "Path": 0,
+              "Ordinal": 52,
+              "Hits": 0
+            },
+            {
+              "Line": 1201,
+              "Offset": 1170,
+              "EndOffset": 1595,
+              "Path": 1,
+              "Ordinal": 49,
+              "Hits": 57332
+            },
+            {
+              "Line": 1220,
+              "Offset": 1381,
+              "EndOffset": 1595,
+              "Path": 1,
+              "Ordinal": 53,
+              "Hits": 57332
+            },
+            {
+              "Line": 1228,
+              "Offset": 1613,
+              "EndOffset": 1615,
+              "Path": 0,
+              "Ordinal": 54,
+              "Hits": 57332
+            },
+            {
+              "Line": 1228,
+              "Offset": 1619,
+              "EndOffset": 1621,
+              "Path": 0,
+              "Ordinal": 56,
+              "Hits": 0
+            },
+            {
+              "Line": 1163,
+              "Offset": 875,
+              "EndOffset": 1625,
+              "Path": 1,
+              "Ordinal": 35,
+              "Hits": 61087
+            },
+            {
+              "Line": 1228,
+              "Offset": 1613,
+              "EndOffset": 1625,
+              "Path": 1,
+              "Ordinal": 55,
+              "Hits": 61087
+            },
+            {
+              "Line": 1228,
+              "Offset": 1619,
+              "EndOffset": 1625,
+              "Path": 1,
+              "Ordinal": 57,
+              "Hits": 61087
+            },
+            {
+              "Line": 1159,
+              "Offset": 1644,
+              "EndOffset": 1649,
+              "Path": 0,
+              "Ordinal": 58,
+              "Hits": 6659
+            },
+            {
+              "Line": 1241,
+              "Offset": 1713,
+              "EndOffset": 1718,
+              "Path": 0,
+              "Ordinal": 60,
+              "Hits": 0
+            },
+            {
+              "Line": 1244,
+              "Offset": 1722,
+              "EndOffset": 1724,
+              "Path": 0,
+              "Ordinal": 62,
+              "Hits": 0
+            },
+            {
+              "Line": 1248,
+              "Offset": 1756,
+              "EndOffset": 1758,
+              "Path": 0,
+              "Ordinal": 64,
+              "Hits": 0
+            },
+            {
+              "Line": 1248,
+              "Offset": 1756,
+              "EndOffset": 1765,
+              "Path": 1,
+              "Ordinal": 65,
+              "Hits": 0
+            },
+            {
+              "Line": 1244,
+              "Offset": 1722,
+              "EndOffset": 1799,
+              "Path": 1,
+              "Ordinal": 63,
+              "Hits": 0
+            },
+            {
+              "Line": 1255,
+              "Offset": 1803,
+              "EndOffset": 1805,
+              "Path": 0,
+              "Ordinal": 66,
+              "Hits": 0
+            },
+            {
+              "Line": 1258,
+              "Offset": 1826,
+              "EndOffset": 1828,
+              "Path": 0,
+              "Ordinal": 68,
+              "Hits": 0
+            },
+            {
+              "Line": 1258,
+              "Offset": 1826,
+              "EndOffset": 1835,
+              "Path": 1,
+              "Ordinal": 69,
+              "Hits": 0
+            },
+            {
+              "Line": 1255,
+              "Offset": 1803,
+              "EndOffset": 1854,
+              "Path": 1,
+              "Ordinal": 67,
+              "Hits": 0
+            },
+            {
+              "Line": 1264,
+              "Offset": 1861,
+              "EndOffset": 1863,
+              "Path": 0,
+              "Ordinal": 70,
+              "Hits": 0
+            },
+            {
+              "Line": 1241,
+              "Offset": 1713,
+              "EndOffset": 1882,
+              "Path": 1,
+              "Ordinal": 61,
+              "Hits": 6659
+            },
+            {
+              "Line": 1264,
+              "Offset": 1861,
+              "EndOffset": 1882,
+              "Path": 1,
+              "Ordinal": 71,
+              "Hits": 6659
+            }
+          ]
+        },
+        "System.Void KcpProject.Kcp::Update()": {
+          "Lines": {
+            "1280": 6288,
+            "1282": 6288,
+            "1284": 28,
+            "1285": 28,
+            "1288": 6288,
+            "1290": 6288,
+            "1292": 0,
+            "1293": 0,
+            "1296": 6288,
+            "1298": 6266,
+            "1299": 6266,
+            "1300": 0,
+            "1301": 6266,
+            "1303": 6288
+          },
+          "Branches": [
+            {
+              "Line": 1282,
+              "Offset": 18,
+              "EndOffset": 20,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 28
+            },
+            {
+              "Line": 1282,
+              "Offset": 18,
+              "EndOffset": 34,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 6288
+            },
+            {
+              "Line": 1290,
+              "Offset": 53,
+              "EndOffset": 55,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 6288
+            },
+            {
+              "Line": 1290,
+              "Offset": 53,
+              "EndOffset": 63,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 1290,
+              "Offset": 61,
+              "EndOffset": 63,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 1290,
+              "Offset": 61,
+              "EndOffset": 72,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 6288
+            },
+            {
+              "Line": 1296,
+              "Offset": 74,
+              "EndOffset": 76,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 6266
+            },
+            {
+              "Line": 1299,
+              "Offset": 108,
+              "EndOffset": 110,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 0
+            },
+            {
+              "Line": 1299,
+              "Offset": 108,
+              "EndOffset": 124,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 6266
+            },
+            {
+              "Line": 1296,
+              "Offset": 74,
+              "EndOffset": 132,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 6288
+            }
+          ]
+        },
+        "System.UInt32 KcpProject.Kcp::Check()": {
+          "Lines": {
+            "1315": 0,
+            "1317": 0,
+            "1318": 0,
+            "1319": 0,
+            "1320": 0,
+            "1322": 0,
+            "1323": 0,
+            "1325": 0,
+            "1326": 0,
+            "1328": 0,
+            "1329": 0,
+            "1331": 0,
+            "1333": 0,
+            "1335": 0,
+            "1336": 0,
+            "1337": 0,
+            "1338": 0,
+            "1339": 0,
+            "1342": 0,
+            "1343": 0,
+            "1344": 0,
+            "1345": 0,
+            "1346": 0,
+            "1348": 0,
+            "1349": 0
+          },
+          "Branches": [
+            {
+              "Line": 1322,
+              "Offset": 40,
+              "EndOffset": 42,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 1322,
+              "Offset": 40,
+              "EndOffset": 44,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 1325,
+              "Offset": 56,
+              "EndOffset": 58,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 1325,
+              "Offset": 56,
+              "EndOffset": 72,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 1325,
+              "Offset": 70,
+              "EndOffset": 72,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 1325,
+              "Offset": 70,
+              "EndOffset": 74,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            },
+            {
+              "Line": 1328,
+              "Offset": 82,
+              "EndOffset": 84,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 1328,
+              "Offset": 82,
+              "EndOffset": 86,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 0
+            },
+            {
+              "Line": 1333,
+              "Offset": 154,
+              "EndOffset": 109,
+              "Path": 1,
+              "Ordinal": 13,
+              "Hits": 0
+            },
+            {
+              "Line": 1336,
+              "Offset": 132,
+              "EndOffset": 134,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 0
+            },
+            {
+              "Line": 1336,
+              "Offset": 132,
+              "EndOffset": 139,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 0
+            },
+            {
+              "Line": 1338,
+              "Offset": 142,
+              "EndOffset": 144,
+              "Path": 0,
+              "Ordinal": 10,
+              "Hits": 0
+            },
+            {
+              "Line": 1338,
+              "Offset": 142,
+              "EndOffset": 147,
+              "Path": 1,
+              "Ordinal": 11,
+              "Hits": 0
+            },
+            {
+              "Line": 1333,
+              "Offset": 154,
+              "EndOffset": 156,
+              "Path": 0,
+              "Ordinal": 12,
+              "Hits": 0
+            },
+            {
+              "Line": 1343,
+              "Offset": 177,
+              "EndOffset": 179,
+              "Path": 0,
+              "Ordinal": 14,
+              "Hits": 0
+            },
+            {
+              "Line": 1343,
+              "Offset": 177,
+              "EndOffset": 182,
+              "Path": 1,
+              "Ordinal": 15,
+              "Hits": 0
+            },
+            {
+              "Line": 1345,
+              "Offset": 192,
+              "EndOffset": 194,
+              "Path": 0,
+              "Ordinal": 16,
+              "Hits": 0
+            },
+            {
+              "Line": 1345,
+              "Offset": 192,
+              "EndOffset": 202,
+              "Path": 1,
+              "Ordinal": 17,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Int32 KcpProject.Kcp::SetMtu(System.Int32)": {
+          "Lines": {
+            "1356": 0,
+            "1357": 0,
+            "1358": 0,
+            "1359": 0,
+            "1361": 0,
+            "1363": 0,
+            "1364": 0,
+            "1365": 0,
+            "1366": 0
+          },
+          "Branches": [
+            {
+              "Line": 1356,
+              "Offset": 3,
+              "EndOffset": 5,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 1356,
+              "Offset": 3,
+              "EndOffset": 10,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 1356,
+              "Offset": 8,
+              "EndOffset": 10,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 1356,
+              "Offset": 8,
+              "EndOffset": 12,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 1358,
+              "Offset": 27,
+              "EndOffset": 29,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 1358,
+              "Offset": 27,
+              "EndOffset": 38,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            },
+            {
+              "Line": 1358,
+              "Offset": 36,
+              "EndOffset": 38,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 1358,
+              "Offset": 36,
+              "EndOffset": 40,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Int32 KcpProject.Kcp::NoDelay(System.Int32,System.Int32,System.Int32,System.Int32)": {
+          "Lines": {
+            "1377": 32,
+            "1379": 32,
+            "1380": 32,
+            "1383": 32,
+            "1385": 32,
+            "1386": 0,
+            "1387": 32,
+            "1388": 0,
+            "1389": 32,
+            "1392": 32,
+            "1393": 32,
+            "1395": 32,
+            "1396": 32,
+            "1398": 32
+          },
+          "Branches": [
+            {
+              "Line": 1377,
+              "Offset": 2,
+              "EndOffset": 4,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 32
+            },
+            {
+              "Line": 1380,
+              "Offset": 13,
+              "EndOffset": 15,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 4
+            },
+            {
+              "Line": 1380,
+              "Offset": 13,
+              "EndOffset": 19,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 28
+            },
+            {
+              "Line": 1377,
+              "Offset": 2,
+              "EndOffset": 26,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 32
+            },
+            {
+              "Line": 1383,
+              "Offset": 28,
+              "EndOffset": 30,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 32
+            },
+            {
+              "Line": 1385,
+              "Offset": 36,
+              "EndOffset": 38,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 1385,
+              "Offset": 36,
+              "EndOffset": 47,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 32
+            },
+            {
+              "Line": 1387,
+              "Offset": 50,
+              "EndOffset": 52,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 0
+            },
+            {
+              "Line": 1387,
+              "Offset": 50,
+              "EndOffset": 56,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 32
+            },
+            {
+              "Line": 1383,
+              "Offset": 28,
+              "EndOffset": 63,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 32
+            },
+            {
+              "Line": 1392,
+              "Offset": 65,
+              "EndOffset": 67,
+              "Path": 0,
+              "Ordinal": 10,
+              "Hits": 32
+            },
+            {
+              "Line": 1392,
+              "Offset": 65,
+              "EndOffset": 74,
+              "Path": 1,
+              "Ordinal": 11,
+              "Hits": 32
+            },
+            {
+              "Line": 1395,
+              "Offset": 77,
+              "EndOffset": 79,
+              "Path": 0,
+              "Ordinal": 12,
+              "Hits": 32
+            },
+            {
+              "Line": 1395,
+              "Offset": 77,
+              "EndOffset": 87,
+              "Path": 1,
+              "Ordinal": 13,
+              "Hits": 32
+            }
+          ]
+        },
+        "System.Int32 KcpProject.Kcp::WndSize(System.Int32,System.Int32)": {
+          "Lines": {
+            "1407": 12,
+            "1408": 12,
+            "1410": 12,
+            "1411": 12,
+            "1412": 12
+          },
+          "Branches": [
+            {
+              "Line": 1407,
+              "Offset": 2,
+              "EndOffset": 4,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 12
+            },
+            {
+              "Line": 1407,
+              "Offset": 2,
+              "EndOffset": 11,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 12
+            },
+            {
+              "Line": 1410,
+              "Offset": 13,
+              "EndOffset": 15,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 12
+            },
+            {
+              "Line": 1410,
+              "Offset": 13,
+              "EndOffset": 22,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 12
+            }
+          ]
+        },
+        "System.Boolean KcpProject.Kcp::ReserveBytes(System.Int32)": {
+          "Lines": {
+            "1422": 0,
+            "1423": 0,
+            "1425": 0,
+            "1426": 0,
+            "1427": 0
+          },
+          "Branches": [
+            {
+              "Line": 1422,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 1422,
+              "Offset": 12,
+              "EndOffset": 18,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 1422,
+              "Offset": 16,
+              "EndOffset": 18,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 1422,
+              "Offset": 16,
+              "EndOffset": 20,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void KcpProject.Kcp::SetStreamMode(System.Boolean)": {
+          "Lines": {
+            "1434": 2,
+            "1435": 2
+          },
+          "Branches": []
+        },
+        "KcpProject.KcpStats KcpProject.Kcp::GetStats()": {
+          "Lines": {
+            "1441": 4,
+            "1442": 4,
+            "1443": 4,
+            "1444": 4,
+            "1445": 4,
+            "1446": 4
+          },
+          "Branches": []
+        },
+        "System.Boolean KcpProject.Kcp::ikcp_canlog(System.Int32)": {
+          "Lines": {
+            "1451": 73138,
+            "1452": 0
+          },
+          "Branches": [
+            {
+              "Line": 1451,
+              "Offset": 8,
+              "EndOffset": 10,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 1451,
+              "Offset": 8,
+              "EndOffset": 18,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 36569
+            },
+            {
+              "Line": 1451,
+              "Offset": 16,
+              "EndOffset": 18,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 36569
+            },
+            {
+              "Line": 1451,
+              "Offset": 16,
+              "EndOffset": 20,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void KcpProject.Kcp::SetLogger(System.Action`1<System.String>)": {
+          "Lines": {
+            "1459": 0,
+            "1460": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.Kcp::SetLogMask(System.Int32)": {
+          "Lines": {
+            "1466": 0,
+            "1467": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.Kcp::ikcp_log(System.String)": {
+          "Lines": {
+            "1471": 0,
+            "1472": 0
+          },
+          "Branches": [
+            {
+              "Line": 1471,
+              "Offset": 7,
+              "EndOffset": 9,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 1471,
+              "Offset": 7,
+              "EndOffset": 11,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void KcpProject.Kcp::.ctor(System.UInt32,System.Action`2<System.Byte[],System.Int32>,System.Func`1<System.UInt32>)": {
+          "Lines": {
+            "322": 31,
+            "323": 31,
+            "324": 31,
+            "325": 31,
+            "327": 31,
+            "433": 31,
+            "435": 31,
+            "436": 31,
+            "437": 31,
+            "438": 31,
+            "439": 31,
+            "440": 31,
+            "441": 31,
+            "442": 31,
+            "443": 31,
+            "444": 31,
+            "445": 31,
+            "446": 31,
+            "447": 31,
+            "448": 31,
+            "449": 31,
+            "450": 31
+          },
+          "Branches": [
+            {
+              "Line": 448,
+              "Offset": 198,
+              "EndOffset": 200,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 448,
+              "Offset": 198,
+              "EndOffset": 212,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 31
+            },
+            {
+              "Line": 449,
+              "Offset": 220,
+              "EndOffset": 222,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 449,
+              "Offset": 220,
+              "EndOffset": 254,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 31
+            }
+          ]
+        }
+      },
+      "KcpProject.Kcp/Segment": {
+        "KcpProject.Kcp/Segment KcpProject.Kcp/Segment::Get(System.Int32)": {
+          "Lines": {
+            "214": 28537,
+            "216": 28537,
+            "218": 28280,
+            "219": 28280,
+            "220": 28280,
+            "222": 257,
+            "223": 257,
+            "224": 28280
+          },
+          "Branches": [
+            {
+              "Line": 216,
+              "Offset": 27,
+              "EndOffset": 29,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 28280
+            },
+            {
+              "Line": 216,
+              "Offset": 27,
+              "EndOffset": 55,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 257
+            }
+          ]
+        },
+        "System.Void KcpProject.Kcp/Segment::Put(KcpProject.Kcp/Segment)": {
+          "Lines": {
+            "228": 28505,
+            "229": 28505,
+            "231": 28505,
+            "232": 28505,
+            "233": 28505,
+            "234": 28505
+          },
+          "Branches": [
+            {
+              "Line": 231,
+              "Offset": 37,
+              "EndOffset": 39,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 28505
+            },
+            {
+              "Line": 231,
+              "Offset": 37,
+              "EndOffset": 50,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 28505
+            }
+          ]
+        },
+        "System.Int32 KcpProject.Kcp/Segment::get_PoolCount()": {
+          "Lines": {
+            "239": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 KcpProject.Kcp/Segment::encode(System.Byte[],System.Int32)": {
+          "Lines": {
+            "250": 11592,
+            "252": 11592,
+            "253": 11592,
+            "254": 11592,
+            "255": 11592,
+            "256": 11592,
+            "257": 11592,
+            "258": 11592,
+            "259": 11592,
+            "261": 11592
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.Kcp/Segment::reset()": {
+          "Lines": {
+            "266": 28505,
+            "267": 28505,
+            "268": 28505,
+            "269": 28505,
+            "270": 28505,
+            "271": 28505,
+            "272": 28505,
+            "273": 28505,
+            "274": 28505,
+            "275": 28505,
+            "276": 28505,
+            "277": 28505,
+            "279": 28505,
+            "280": 28505,
+            "281": 28505,
+            "282": 28505
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.Kcp/Segment::.ctor(System.Int32)": {
+          "Lines": {
+            "242": 257,
+            "244": 257,
+            "245": 257
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.Kcp/Segment::.cctor()": {
+          "Lines": {
+            "210": 1
+          },
+          "Branches": []
+        }
+      },
+      "KcpProject.KCP": {
+        "System.Void KcpProject.KCP::.ctor(System.UInt32,System.Action`2<System.Byte[],System.Int32>)": {
+          "Lines": {
+            "1484": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "C:\\github_dev\\kcp-csharp\\src\\KcpProject\\KcpClock.cs": {
+      "KcpProject.KcpClock": {
+        "System.UInt32 KcpProject.KcpClock::get_NowMs()": {
+          "Lines": {
+            "25": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.KcpClock::.cctor()": {
+          "Lines": {
+            "21": 0,
+            "22": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "C:\\github_dev\\kcp-csharp\\src\\KcpProject\\UDPSession.cs": {
+      "KcpProject.UDPSession": {
+        "System.Boolean KcpProject.UDPSession::get_IsConnected()": {
+          "Lines": {
+            "28": 0
+          },
+          "Branches": [
+            {
+              "Line": 28,
+              "Offset": 6,
+              "EndOffset": 8,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 28,
+              "Offset": 6,
+              "EndOffset": 20,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Boolean KcpProject.UDPSession::get_WriteDelay()": {
+          "Lines": {
+            "31": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean KcpProject.UDPSession::get_AckNoDelay()": {
+          "Lines": {
+            "34": 0
+          },
+          "Branches": []
+        },
+        "System.Action`1<System.Exception> KcpProject.UDPSession::get_OnError()": {
+          "Lines": {
+            "37": 0
+          },
+          "Branches": []
+        },
+        "System.Net.IPEndPoint KcpProject.UDPSession::get_RemoteAddress()": {
+          "Lines": {
+            "40": 0
+          },
+          "Branches": []
+        },
+        "System.Net.IPEndPoint KcpProject.UDPSession::get_LocalAddress()": {
+          "Lines": {
+            "43": 0
+          },
+          "Branches": []
+        },
+        "KcpProject.Kcp KcpProject.UDPSession::get_Kcp()": {
+          "Lines": {
+            "46": 0
+          },
+          "Branches": []
+        },
+        "System.Void KcpProject.UDPSession::Connect(System.String,System.Int32)": {
+          "Lines": {
+            "56": 0,
+            "58": 0,
+            "59": 0,
+            "60": 0,
+            "63": 0,
+            "64": 0,
+            "65": 0,
+            "66": 0,
+            "68": 0,
+            "70": 0,
+            "71": 0,
+            "73": 0,
+            "74": 0,
+            "75": 0
+          },
+          "Branches": [
+            {
+              "Line": 56,
+              "Offset": 8,
+              "EndOffset": 10,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 59,
+              "Offset": 55,
+              "EndOffset": 57,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 59,
+              "Offset": 60,
+              "EndOffset": 62,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 59,
+              "Offset": 60,
+              "EndOffset": 73,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            },
+            {
+              "Line": 59,
+              "Offset": 55,
+              "EndOffset": 76,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 56,
+              "Offset": 8,
+              "EndOffset": 77,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void KcpProject.UDPSession::Close()": {
+          "Lines": {
+            "80": 0,
+            "82": 0,
+            "83": 0,
+            "84": 0,
+            "86": 0
+          },
+          "Branches": [
+            {
+              "Line": 80,
+              "Offset": 6,
+              "EndOffset": 8,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 80,
+              "Offset": 6,
+              "EndOffset": 37,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void KcpProject.UDPSession::rawSend(System.Byte[],System.Int32)": {
+          "Lines": {
+            "90": 0,
+            "91": 0
+          },
+          "Branches": [
+            {
+              "Line": 90,
+              "Offset": 7,
+              "EndOffset": 9,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 90,
+              "Offset": 7,
+              "EndOffset": 11,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Int32 KcpProject.UDPSession::Send(System.Byte[],System.Int32,System.Int32)": {
+          "Lines": {
+            "103": 0,
+            "104": 0,
+            "106": 0,
+            "107": 0,
+            "109": 0,
+            "112": 0,
+            "114": 0,
+            "115": 0,
+            "116": 0,
+            "117": 0,
+            "118": 0,
+            "120": 0,
+            "121": 0,
+            "123": 0,
+            "126": 0,
+            "129": 0
+          },
+          "Branches": [
+            {
+              "Line": 103,
+              "Offset": 6,
+              "EndOffset": 8,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 103,
+              "Offset": 6,
+              "EndOffset": 16,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 103,
+              "Offset": 14,
+              "EndOffset": 16,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 103,
+              "Offset": 14,
+              "EndOffset": 18,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 107,
+              "Offset": 44,
+              "EndOffset": 49,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 107,
+              "Offset": 63,
+              "EndOffset": 65,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 118,
+              "Offset": 116,
+              "EndOffset": 67,
+              "Path": 1,
+              "Ordinal": 11,
+              "Hits": 0
+            },
+            {
+              "Line": 115,
+              "Offset": 106,
+              "EndOffset": 108,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 0
+            },
+            {
+              "Line": 115,
+              "Offset": 106,
+              "EndOffset": 110,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 0
+            },
+            {
+              "Line": 118,
+              "Offset": 116,
+              "EndOffset": 118,
+              "Path": 0,
+              "Ordinal": 10,
+              "Hits": 0
+            },
+            {
+              "Line": 121,
+              "Offset": 144,
+              "EndOffset": 146,
+              "Path": 0,
+              "Ordinal": 12,
+              "Hits": 0
+            },
+            {
+              "Line": 121,
+              "Offset": 160,
+              "EndOffset": 162,
+              "Path": 0,
+              "Ordinal": 14,
+              "Hits": 0
+            },
+            {
+              "Line": 121,
+              "Offset": 144,
+              "EndOffset": 170,
+              "Path": 1,
+              "Ordinal": 13,
+              "Hits": 0
+            },
+            {
+              "Line": 121,
+              "Offset": 160,
+              "EndOffset": 170,
+              "Path": 1,
+              "Ordinal": 15,
+              "Hits": 0
+            },
+            {
+              "Line": 121,
+              "Offset": 168,
+              "EndOffset": 170,
+              "Path": 0,
+              "Ordinal": 16,
+              "Hits": 0
+            },
+            {
+              "Line": 121,
+              "Offset": 168,
+              "EndOffset": 183,
+              "Path": 1,
+              "Ordinal": 17,
+              "Hits": 0
+            },
+            {
+              "Line": 107,
+              "Offset": 44,
+              "EndOffset": 185,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            },
+            {
+              "Line": 107,
+              "Offset": 63,
+              "EndOffset": 185,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Int32 KcpProject.UDPSession::Recv(System.Byte[],System.Int32,System.Int32)": {
+          "Lines": {
+            "140": 0,
+            "142": 0,
+            "143": 0,
+            "144": 0,
+            "145": 0,
+            "147": 0,
+            "149": 0,
+            "152": 0,
+            "153": 0,
+            "155": 0,
+            "157": 0,
+            "163": 0,
+            "164": 0,
+            "165": 0,
+            "168": 0,
+            "169": 0,
+            "170": 0,
+            "173": 0,
+            "175": 0,
+            "177": 0,
+            "179": 0,
+            "180": 0,
+            "182": 0,
+            "183": 0,
+            "185": 0,
+            "190": 0,
+            "191": 0,
+            "193": 0,
+            "195": 0,
+            "196": 0,
+            "200": 0,
+            "202": 0,
+            "205": 0,
+            "206": 0
+          },
+          "Branches": [
+            {
+              "Line": 140,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 145,
+              "Offset": 103,
+              "EndOffset": 105,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 145,
+              "Offset": 103,
+              "EndOffset": 116,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 140,
+              "Offset": 12,
+              "EndOffset": 118,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 152,
+              "Offset": 124,
+              "EndOffset": 126,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 152,
+              "Offset": 124,
+              "EndOffset": 134,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            },
+            {
+              "Line": 152,
+              "Offset": 132,
+              "EndOffset": 134,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 152,
+              "Offset": 132,
+              "EndOffset": 136,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 0
+            },
+            {
+              "Line": 155,
+              "Offset": 149,
+              "EndOffset": 151,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 0
+            },
+            {
+              "Line": 155,
+              "Offset": 149,
+              "EndOffset": 153,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 0
+            },
+            {
+              "Line": 168,
+              "Offset": 209,
+              "EndOffset": 211,
+              "Path": 0,
+              "Ordinal": 10,
+              "Hits": 0
+            },
+            {
+              "Line": 168,
+              "Offset": 209,
+              "EndOffset": 213,
+              "Path": 1,
+              "Ordinal": 11,
+              "Hits": 0
+            },
+            {
+              "Line": 173,
+              "Offset": 235,
+              "EndOffset": 237,
+              "Path": 0,
+              "Ordinal": 12,
+              "Hits": 0
+            },
+            {
+              "Line": 173,
+              "Offset": 235,
+              "EndOffset": 239,
+              "Path": 1,
+              "Ordinal": 13,
+              "Hits": 0
+            },
+            {
+              "Line": 180,
+              "Offset": 312,
+              "EndOffset": 314,
+              "Path": 0,
+              "Ordinal": 14,
+              "Hits": 0
+            },
+            {
+              "Line": 180,
+              "Offset": 312,
+              "EndOffset": 327,
+              "Path": 1,
+              "Ordinal": 15,
+              "Hits": 0
+            },
+            {
+              "Line": 196,
+              "Offset": 409,
+              "EndOffset": 338,
+              "Path": 1,
+              "Ordinal": 19,
+              "Hits": 0
+            },
+            {
+              "Line": 191,
+              "Offset": 354,
+              "EndOffset": 356,
+              "Path": 0,
+              "Ordinal": 16,
+              "Hits": 0
+            },
+            {
+              "Line": 196,
+              "Offset": 409,
+              "EndOffset": 411,
+              "Path": 0,
+              "Ordinal": 18,
+              "Hits": 0
+            },
+            {
+              "Line": 191,
+              "Offset": 354,
+              "EndOffset": 433,
+              "Path": 1,
+              "Ordinal": 17,
+              "Hits": 0
+            },
+            {
+              "Line": 200,
+              "Offset": 445,
+              "EndOffset": 447,
+              "Path": 0,
+              "Ordinal": 20,
+              "Hits": 0
+            },
+            {
+              "Line": 200,
+              "Offset": 445,
+              "EndOffset": 457,
+              "Path": 1,
+              "Ordinal": 21,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void KcpProject.UDPSession::Update()": {
+          "Lines": {
+            "211": 0,
+            "212": 0,
+            "214": 0,
+            "218": 0,
+            "220": 0,
+            "221": 0,
+            "223": 0
+          },
+          "Branches": [
+            {
+              "Line": 211,
+              "Offset": 6,
+              "EndOffset": 8,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 211,
+              "Offset": 6,
+              "EndOffset": 16,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 211,
+              "Offset": 14,
+              "EndOffset": 16,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 211,
+              "Offset": 14,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 218,
+              "Offset": 35,
+              "EndOffset": 37,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 218,
+              "Offset": 35,
+              "EndOffset": 48,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            },
+            {
+              "Line": 218,
+              "Offset": 46,
+              "EndOffset": 48,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 218,
+              "Offset": 46,
+              "EndOffset": 76,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void KcpProject.UDPSession::.ctor()": {
+          "Lines": {
+            "24": 0
+          },
+          "Branches": []
+        }
+      }
+    }
+  }
+}
