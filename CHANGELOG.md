@@ -5,9 +5,22 @@
 
 ## [Unreleased]
 
-라이브러리·샘플·책이 모두 갖춰졌습니다. NuGet 배포(P8-1)만 남았습니다.
+### 알려진 미완
+
+- nuget.org 실제 게시(API 키 필요, 별도 결정 사항) — 패키징 자체는 완료, 로컬 `dotnet pack` 검증 완료
+- CI(GitHub Actions), 릴리스 자동화, `master` 브랜치 보호 — 푸시 토큰에 `workflow` 스코프가 없어 보류.
+  자세한 사유는 `docs/kcp-csharp-roadmap.md` 의 P8-1·P8-2 절 참고
+
+## [1.0.0] - 2026-08-25
+
+라이브러리·전송 계층·보안·FEC·테스트·벤치마크·샘플 5종·온라인 책·NuGet 패키징까지 갖춘 첫 배포 대상
+버전입니다. 중간 프리뷰(`preview.1`/`preview.2`)는 실제로 낸 적이 없어 곧바로 `1.0.0` 으로 시작합니다.
 
 ### 추가됨
+
+- **패키징(P8-1)** — `KcpCSharpR1`, `KcpCSharpR1.Transport` 두 NuGet 패키지. MIT 라이선스, README·XML
+  문서 동봉, `net8.0`/`netstandard2.1` 양쪽 타깃, Transport → 코어 자동 의존성. 심볼 패키지(`.snupkg`)
+  포함
 
 - **전송 계층** `KcpCSharpR1.Transport`
   - `KcpClient` / `KcpServer` / `KcpSession` — 핸드셰이크·keepalive·정상 종료를 포함한 세션 관리

@@ -7,6 +7,17 @@
     <Description>KCP(신뢰성 UDP ARQ 프로토콜) C# 코어 구현. 외부 의존성 0.</Description>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>KcpCSharpR1</PackageId>
+    <PackageTags>kcp;udp;networking;game;arq;reliable-udp;monogame</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
   <!-- 테스트에서 내부 상태(Segment 큐, RingBuffer 등)를 직접 검증한다. -->
   <ItemGroup>
     <InternalsVisibleTo Include="KcpCSharpR1.Tests" />

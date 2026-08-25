@@ -7,8 +7,19 @@
     <Description>KcpCSharpR1 전송 계층: 소켓 I/O, 세션 수명(핸드셰이크/keepalive/종료), 프레이밍.</Description>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>KcpCSharpR1.Transport</PackageId>
+    <PackageTags>kcp;udp;networking;game;arq;reliable-udp;monogame</PackageTags>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\KcpCSharpR1\KcpCSharpR1.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>

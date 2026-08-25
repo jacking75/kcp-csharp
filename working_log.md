@@ -1,5 +1,18 @@
 # 작업 로그
 
+## 2026-08-25 14:25 KST — 로드맵 Phase 8 배포 준비 (P8-1 완료, P8-2 부분)
+
+P8-1 NuGet 패키징을 구현했다. src/KcpCSharpR1, src/KcpCSharpR1.Transport 두 프로젝트에
+PackageId·MIT 라이선스·README/LICENSE 동봉·심볼 패키지(.snupkg) 설정을 추가하고,
+Directory.Build.props 에 공통 패키징 속성 + 기본 IsPackable=false 를 두어 샘플/테스트는 제외했다.
+버전은 1.0.0(프리뷰 태그는 낸 적 없어 바로 시작)으로 정하고, `dotnet pack` 으로 실제 빌드해
+nuspec 의존성(Transport → 코어 1.0.0)·양쪽 타깃(net8.0/netstandard2.1)·README/LICENSE 동봉을
+직접 확인했다. nuget.org 에 KcpCSharpR1/KcpCSharpR1.Transport 두 ID 모두 미등록임을 확인했다.
+P8-1 의 릴리스 자동화(태그 push → GitHub Actions)와 P8-2 의 CI·master 브랜치 보호는
+푸시 토큰에 workflow 스코프가 없는 문제 + 현재 직접 푸시 운영 방식과의 충돌 때문에
+사용자 결정으로 보류했다(로드맵에 사유 기록). CHANGELOG 를 1.0.0 릴리스 항목으로 정리했다.
+로드맵 45/47, M5 완료.
+
 ## 2026-08-25 14:09 KST — 프로젝트 이름 변경 (KcpProject → KcpCSharpR1)
 
 C# 네임스페이스·프로젝트·솔루션·패키지 이름을 KcpProject/KcpProject.Transport 에서

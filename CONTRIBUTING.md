@@ -46,6 +46,21 @@ dotnet test tests/KcpCSharpR1.SimTests -c Release \
 코어(`KcpCSharpR1`) 라인 커버리지 **85% 이상**이 기준입니다. 현재 93.4%입니다.
 PR 을 올리기 전에 로컬에서 직접 확인해 주세요.
 
+### 패키징(NuGet)
+
+`src/KcpCSharpR1`, `src/KcpCSharpR1.Transport` 만 패키지 대상입니다(`Directory.Build.props` 가
+기본값을 `IsPackable=false` 로 두고 이 두 곳에서만 켭니다). 패키지 메타데이터를 건드렸다면
+로컬에서 실제로 `pack` 해서 확인하세요.
+
+```bash
+dotnet pack -c Release -o artifacts/nupkg src/KcpCSharpR1/KcpCSharpR1.csproj
+dotnet pack -c Release -o artifacts/nupkg src/KcpCSharpR1.Transport/KcpCSharpR1.Transport.csproj
+```
+
+`artifacts/` 는 gitignore 대상입니다. `.nupkg` 를 열어 `README.md`·`LICENSE`·양쪽 타깃(`net8.0`,
+`netstandard2.1`)의 `.dll`/`.xml` 이 들어 있는지, `.nuspec` 의 `<dependencies>` 가 의도한 버전을
+가리키는지 확인하세요.
+
 ## 코드 규칙
 
 ### 지켜야 할 불변 원칙
