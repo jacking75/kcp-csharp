@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
 
@@ -16,12 +17,15 @@ namespace KcpProject;
 /// <para><b>스레딩 규약</b>: 인스턴스 1개는 소유 스레드 1개에서만 사용한다.</para>
 /// </remarks>
 [Obsolete("KcpProject.Transport.KcpClient 로 대체되었습니다. 다음 메이저 버전에서 제거됩니다.")]
+// 실소켓에 직접 묶여 있고 곧 제거될 레거시라 커버리지 게이트(P2-7) 대상에서 제외한다.
+// 대체재인 KcpClient 는 IUdpTransport 추상화 덕분에 가상 전송으로 전부 테스트된다.
+[ExcludeFromCodeCoverage]
 public class UDPSession
 {
     private Socket? mSocket;
     private Kcp? mKCP;
 
-    private readonly ByteBuffer mRecvBuffer = ByteBuffer.Allocate(1024 * 32);
+    private readonly PooledBuffer mRecvBuffer = new PooledBuffer(1024 * 32);
     private uint mNextUpdateTime;
 
     /// <summary>소켓이 열려 있고 연결된 상태인지 여부.</summary>
@@ -82,6 +86,7 @@ public class UDPSession
             mSocket.Close();
             mSocket = null;
             mRecvBuffer.Clear();
+            mKCP?.Release();
         }
     }
 
@@ -140,7 +145,7 @@ public class UDPSession
         if (mRecvBuffer.ReadableBytes > 0)
         {
             var recvBytes = Math.Min(mRecvBuffer.ReadableBytes, length);
-            Buffer.BlockCopy(mRecvBuffer.RawBuffer, mRecvBuffer.ReaderIndex, data, index, recvBytes);
+            Buffer.BlockCopy(mRecvBuffer.Raw, mRecvBuffer.ReaderIndex, data, index, recvBytes);
             mRecvBuffer.ReaderIndex += recvBytes;
             if (mRecvBuffer.ReaderIndex == mRecvBuffer.WriterIndex)
             {
@@ -160,7 +165,7 @@ public class UDPSession
         int rn;
         try
         {
-            rn = mSocket.Receive(mRecvBuffer.RawBuffer, mRecvBuffer.WriterIndex, mRecvBuffer.WritableBytes, SocketFlags.None);
+            rn = mSocket.Receive(mRecvBuffer.Raw, mRecvBuffer.WriterIndex, mRecvBuffer.WritableBytes, SocketFlags.None);
         }
         catch (SocketException ex)
         {
@@ -176,7 +181,7 @@ public class UDPSession
         }
         mRecvBuffer.WriterIndex += rn;
 
-        var inputN = mKCP.Input(mRecvBuffer.RawBuffer, mRecvBuffer.ReaderIndex, mRecvBuffer.ReadableBytes, true, AckNoDelay);
+        var inputN = mKCP.Input(mRecvBuffer.Readable, true, AckNoDelay);
         if (inputN < 0)
         {
             mRecvBuffer.Clear();
@@ -190,9 +195,9 @@ public class UDPSession
             var size = mKCP.PeekSize();
             if (size < 0) break;
 
-            mRecvBuffer.EnsureWritableBytes(size);
+            mRecvBuffer.EnsureWritable(size);
 
-            var n = mKCP.Recv(mRecvBuffer.RawBuffer, mRecvBuffer.WriterIndex, size);
+            var n = mKCP.Recv(mRecvBuffer.Raw, mRecvBuffer.WriterIndex, size);
             if (n > 0) mRecvBuffer.WriterIndex += n;
         }
 

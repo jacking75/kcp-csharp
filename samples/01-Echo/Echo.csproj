@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>KcpProject.Samples.Echo</RootNamespace>
+    <AssemblyName>Echo</AssemblyName>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\KcpProject\KcpProject.csproj" />
+    <ProjectReference Include="..\..\src\KcpProject.Transport\KcpProject.Transport.csproj" />
+  </ItemGroup>
+
+</Project>

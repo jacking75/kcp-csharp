@@ -53,8 +53,8 @@ jobs:
           -p:CollectCoverage=true
           -p:Include="[KcpProject]*"
           -p:MergeWith=${{ github.workspace }}/coverage/coverage.json
-          -p:CoverletOutputFormat="json,cobertura"
-          -p:CoverletOutput=${{ github.workspace }}/coverage/coverage
+          -p:CoverletOutputFormat=cobertura
+          -p:CoverletOutput=${{ github.workspace }}/coverage/coverage.cobertura.xml
           -p:Threshold=85
           -p:ThresholdType=line
 

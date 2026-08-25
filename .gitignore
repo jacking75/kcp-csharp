@@ -348,3 +348,16 @@ sysinfo.txt
 # IL2CPP
 SwitchIL2CPPCache
 SwitchIL2CPPStats
+# ---- kcp-csharp 프로젝트 규칙 (위쪽 Unity 템플릿 규칙을 덮어쓴다) ----
+# 이 저장소는 MonoGame/.NET SDK 프로젝트라 csproj/sln 이 소스의 일부다.
+!*.csproj
+!*.sln
+!Directory.Build.props
+
+# 테스트·벤치 산출물
+TestResults/
+BenchmarkDotNet.Artifacts/
+coverage/
+coverage.json
+coverage.*.json
+*.cobertura.xml

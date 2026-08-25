@@ -103,7 +103,7 @@ public class SoakTests
 
             if (now % 60_000 == 0)
             {
-                var pool = Kcp.Segment.PoolCount;
+                var pool = sender.SegmentPoolCount + receiver.SegmentPoolCount;
                 if (pool > maxPoolCount) maxPoolCount = pool;
             }
         }
@@ -136,8 +136,8 @@ public class SoakTests
         Assert.False(sender.IsDeadLink);
 
         // 풀은 상한을 넘지 않아야 한다(진단 B-08).
-        Assert.True(maxPoolCount <= Kcp.Segment.MaxPoolSize,
-            $"세그먼트 풀이 상한을 넘었다: {maxPoolCount} > {Kcp.Segment.MaxPoolSize}");
+        Assert.True(maxPoolCount <= Kcp.MaxSegmentPoolSize * 2,
+            $"세그먼트 풀이 상한을 넘었다: {maxPoolCount} > {Kcp.MaxSegmentPoolSize * 2}");
 
         // 통계 일관성: 재전송이 있었고, 송수신 세그먼트 수가 0 이 아니다.
         var s = sender.GetStats();
@@ -146,5 +146,11 @@ public class SoakTests
         Assert.True(s.RetransmitSegments + s.FastRetransmitSegments + s.EarlyRetransmitSegments > 0,
             "손실 5% 인데 재전송이 없었다.");
         Assert.True(s.BytesSent > 0 && r.BytesReceived > 0);
+
+        // P3-5: Release 후 재사용해도 예외가 없어야 한다.
+        sender.Release();
+        receiver.Release();
+        Assert.Equal(0, sender.Send(message));
+        sender.Release();
     }
 }

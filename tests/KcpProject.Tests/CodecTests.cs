@@ -132,13 +132,14 @@ public class CodecTests
         Assert.Equal(3u, len);
     }
 
-    /// <summary>Segment.encode 가 골든 헤더와 같은 바이트를 만든다(내부 구현 회귀 방지).</summary>
+    /// <summary>KcpSegment.Encode 가 골든 헤더와 같은 바이트를 만든다(내부 구현 회귀 방지).</summary>
     [Fact]
-    public void Segment_encode가_골든헤더와_일치한다()
+    public void Segment_Encode가_골든헤더와_일치한다()
     {
-        var seg = Kcp.Segment.Get(3);
+        var seg = new KcpSegment();
         try
         {
+            seg.Rent(3);
             seg.conv = 0x11223344;
             seg.cmd = Kcp.IKCP_CMD_PUSH;
             seg.frg = 2;
@@ -146,18 +147,50 @@ public class CodecTests
             seg.ts = 1000;
             seg.sn = 7;
             seg.una = 5;
-            seg.data.WriteBytes(new byte[] { 1, 2, 3 });
+            seg.Append(new byte[] { 1, 2, 3 });
 
             var buf = new byte[Kcp.IKCP_OVERHEAD];
-            var written = seg.encode(buf, 0);
+            var written = seg.Encode(buf);
 
             Assert.Equal(Kcp.IKCP_OVERHEAD, written);
             Assert.Equal(GoldenHeader, buf);
         }
         finally
         {
-            Kcp.Segment.Put(seg);
+            seg.Reset();
         }
+    }
+
+    /// <summary>Reset 은 멱등이어야 한다(ArrayPool 이중 반환 금지).</summary>
+    [Fact]
+    public void Segment_Reset은_여러번_불러도_안전하다()
+    {
+        var seg = new KcpSegment();
+        seg.Rent(128);
+        seg.Append(new byte[] { 1, 2, 3 });
+        Assert.Equal(3, seg.Len);
+
+        seg.Reset();
+        seg.Reset();
+        seg.Reset();
+
+        Assert.Equal(0, seg.Len);
+        Assert.Empty(seg.Data);
+    }
+
+    /// <summary>대여 배열은 요청보다 클 수 있으므로 유효 길이는 Len 으로만 판단해야 한다.</summary>
+    [Fact]
+    public void Segment_대여배열_길이가_아니라_Len이_유효길이다()
+    {
+        var seg = new KcpSegment();
+        seg.Rent(100);
+        seg.Append(new byte[] { 9, 9 });
+
+        Assert.True(seg.Data.Length >= 100);
+        Assert.Equal(2, seg.Len);
+        Assert.Equal(2, seg.Payload.Length);
+
+        seg.Reset();
     }
 
     /// <summary>

@@ -21,6 +21,7 @@ namespace KcpProject;
 /// 주기적으로 <see cref="Update"/> 를 호출하면 재전송·ACK 가 처리되며,
 /// 도착한 애플리케이션 메시지는 <see cref="Recv(byte[], int, int)"/> 로 꺼낸다.
 /// 다음 <see cref="Update"/> 호출 시각은 <see cref="Check"/> 로 알 수 있다.
+/// 세션이 끝나면 <see cref="Release"/> 로 빌린 버퍼를 돌려준다.
 /// </para>
 /// <para>
 /// 와이어 포맷(24바이트 헤더)은 원본 C kcp / kcp-go 와 바이트 단위로 호환된다.
@@ -97,6 +98,9 @@ public class Kcp
     /// <summary>데드링크 상태를 나타내는 <see cref="State"/> 값.</summary>
     public const uint IKCP_STATE_DEAD_LINK = 0xFFFFFFFF;
 
+    /// <summary>인스턴스별 세그먼트 풀의 상한. 초과분은 버려 GC 대상으로 둔다(진단 B-08).</summary>
+    internal const int MaxSegmentPoolSize = 4096;
+
     /// <summary>부호 없는 8비트 정수를 기록한다.</summary>
     /// <param name="p">대상 버퍼.</param>
     /// <param name="offset">기록 위치.</param>
@@ -104,7 +108,7 @@ public class Kcp
     /// <returns>기록한 바이트 수.</returns>
     public static int ikcp_encode8u(byte[] p, int offset, byte c)
     {
-        p[offset] = c;
+        KcpCodec.WriteU8(p.AsSpan(offset), c);
         return 1;
     }
 
@@ -115,7 +119,7 @@ public class Kcp
     /// <returns>읽은 바이트 수.</returns>
     public static int ikcp_decode8u(byte[] p, int offset, ref byte c)
     {
-        c = p[offset];
+        c = KcpCodec.ReadU8(p.AsSpan(offset));
         return 1;
     }
 
@@ -126,8 +130,7 @@ public class Kcp
     /// <returns>기록한 바이트 수.</returns>
     public static int ikcp_encode16u(byte[] p, int offset, ushort w)
     {
-        p[offset] = (byte)(w >> 0);
-        p[offset + 1] = (byte)(w >> 8);
+        KcpCodec.WriteU16(p.AsSpan(offset), w);
         return 2;
     }
 
@@ -138,10 +141,7 @@ public class Kcp
     /// <returns>읽은 바이트 수.</returns>
     public static int ikcp_decode16u(byte[] p, int offset, ref ushort c)
     {
-        ushort result = 0;
-        result |= p[offset];
-        result |= (ushort)(p[offset + 1] << 8);
-        c = result;
+        c = KcpCodec.ReadU16(p.AsSpan(offset));
         return 2;
     }
 
@@ -152,10 +152,7 @@ public class Kcp
     /// <returns>기록한 바이트 수.</returns>
     public static int ikcp_encode32u(byte[] p, int offset, uint l)
     {
-        p[offset] = (byte)(l >> 0);
-        p[offset + 1] = (byte)(l >> 8);
-        p[offset + 2] = (byte)(l >> 16);
-        p[offset + 3] = (byte)(l >> 24);
+        KcpCodec.WriteU32(p.AsSpan(offset), l);
         return 4;
     }
 
@@ -166,12 +163,7 @@ public class Kcp
     /// <returns>읽은 바이트 수.</returns>
     public static int ikcp_decode32u(byte[] p, int offset, ref uint c)
     {
-        uint result = 0;
-        result |= p[offset];
-        result |= (uint)(p[offset + 1] << 8);
-        result |= (uint)(p[offset + 2] << 16);
-        result |= (uint)(p[offset + 3] << 24);
-        c = result;
+        c = KcpCodec.ReadU32(p.AsSpan(offset));
         return 4;
     }
 
@@ -186,101 +178,6 @@ public class Kcp
     /// 반드시 이 함수를 써야 한다(진단 B-02).
     /// </summary>
     internal static int _itimediff(uint later, uint earlier) => (int)(later - earlier);
-
-    /// <summary>KCP 세그먼트(헤더 + 페이로드).</summary>
-    internal sealed class Segment
-    {
-        internal uint conv;
-        internal uint cmd;
-        internal uint frg;
-        internal uint wnd;
-        internal uint ts;
-        internal uint sn;
-        internal uint una;
-        internal uint rto;
-        internal uint xmit;
-        internal uint resendts;
-        internal uint fastack;
-        internal uint acked;
-        internal ByteBuffer data;
-
-        /// <summary>세그먼트 풀 상한. 초과분은 버려 GC 대상으로 둔다(진단 B-08).</summary>
-        internal const int MaxPoolSize = 4096;
-
-        private static readonly Stack<Segment> msSegmentPool = new Stack<Segment>(32);
-
-        internal static Segment Get(int size)
-        {
-            lock (msSegmentPool)
-            {
-                if (msSegmentPool.Count > 0)
-                {
-                    var seg = msSegmentPool.Pop();
-                    seg.data = ByteBuffer.Allocate(size, true);
-                    return seg;
-                }
-            }
-            return new Segment(size);
-        }
-
-        internal static void Put(Segment seg)
-        {
-            seg.reset();
-            lock (msSegmentPool)
-            {
-                if (msSegmentPool.Count < MaxPoolSize)
-                    msSegmentPool.Push(seg);
-            }
-        }
-
-        /// <summary>테스트 전용: 현재 풀에 보관 중인 세그먼트 수.</summary>
-        internal static int PoolCount
-        {
-            get { lock (msSegmentPool) { return msSegmentPool.Count; } }
-        }
-
-        private Segment(int size)
-        {
-            data = ByteBuffer.Allocate(size, true);
-        }
-
-        /// <summary>세그먼트 헤더 24바이트를 버퍼에 기록하고 기록한 바이트 수를 반환한다.</summary>
-        internal int encode(byte[] ptr, int offset)
-        {
-            var offset_ = offset;
-
-            offset += ikcp_encode32u(ptr, offset, conv);
-            offset += ikcp_encode8u(ptr, offset, (byte)cmd);
-            offset += ikcp_encode8u(ptr, offset, (byte)frg);
-            offset += ikcp_encode16u(ptr, offset, (ushort)wnd);
-            offset += ikcp_encode32u(ptr, offset, ts);
-            offset += ikcp_encode32u(ptr, offset, sn);
-            offset += ikcp_encode32u(ptr, offset, una);
-            offset += ikcp_encode32u(ptr, offset, (uint)data.ReadableBytes);
-
-            return offset - offset_;
-        }
-
-        internal void reset()
-        {
-            conv = 0;
-            cmd = 0;
-            frg = 0;
-            wnd = 0;
-            ts = 0;
-            sn = 0;
-            una = 0;
-            rto = 0;
-            xmit = 0;
-            resendts = 0;
-            fastack = 0;
-            acked = 0;
-
-            data.Clear();
-            data.Dispose();
-            data = null!;
-        }
-    }
 
     internal struct ackItem
     {
@@ -319,12 +216,16 @@ public class Kcp
     private int nocwnd;
     private int stream;
 
-    private readonly List<Segment> snd_queue = new List<Segment>(16);
-    private readonly List<Segment> rcv_queue = new List<Segment>(16);
-    private readonly List<Segment> snd_buf = new List<Segment>(16);
-    private readonly List<Segment> rcv_buf = new List<Segment>(16);
+    // 원형 덱: 앞에서 n개 제거가 O(1) 이다(진단 PF-04).
+    private readonly RingBuffer<KcpSegment> snd_queue = new RingBuffer<KcpSegment>(16);
+    private readonly RingBuffer<KcpSegment> rcv_queue = new RingBuffer<KcpSegment>(16);
+    private readonly RingBuffer<KcpSegment> snd_buf = new RingBuffer<KcpSegment>(16);
+    private readonly RingBuffer<KcpSegment> rcv_buf = new RingBuffer<KcpSegment>(16);
 
     private readonly List<ackItem> acklist = new List<ackItem>(16);
+
+    // 인스턴스 전용 세그먼트 풀. 소유 스레드 규약(2.3절) 덕분에 lock 이 필요 없다(진단 PF-06).
+    private readonly Stack<KcpSegment> segmentPool = new Stack<KcpSegment>(32);
 
     private byte[] buffer;
     private int reserved;
@@ -377,6 +278,9 @@ public class Kcp
 
     /// <summary>주입된 시계가 보고하는 현재 밀리초 시각.</summary>
     public uint CurrentMS => clock();
+
+    /// <summary>테스트 전용: 인스턴스 세그먼트 풀에 보관 중인 세그먼트 수.</summary>
+    internal int SegmentPoolCount => segmentPool.Count;
 
     private Action<string>? writelog;
 
@@ -449,23 +353,62 @@ public class Kcp
         clock = currentTimeMs ?? (() => KcpClock.NowMs);
     }
 
+    // ---- 세그먼트 풀(인스턴스 전용) ----
+
+    private KcpSegment RentSegment(int capacity)
+    {
+        var seg = segmentPool.Count > 0 ? segmentPool.Pop() : new KcpSegment();
+        seg.Rent(capacity);
+        return seg;
+    }
+
+    private void ReturnSegment(KcpSegment seg)
+    {
+        seg.Reset();
+        if (segmentPool.Count < MaxSegmentPoolSize)
+            segmentPool.Push(seg);
+    }
+
+    /// <summary>
+    /// 이 인스턴스가 들고 있는 모든 버퍼를 <see cref="System.Buffers.ArrayPool{T}"/> 에 돌려준다.
+    /// 세션 종료 시 호출한다. 호출 이후에도 다시 <see cref="Send(byte[])"/> 등을 쓸 수 있다.
+    /// </summary>
+    public void Release()
+    {
+        ReleaseQueue(snd_queue);
+        ReleaseQueue(rcv_queue);
+        ReleaseQueue(snd_buf);
+        ReleaseQueue(rcv_buf);
+        acklist.Clear();
+
+        while (segmentPool.Count > 0)
+            segmentPool.Pop().Reset();
+    }
+
+    private static void ReleaseQueue(RingBuffer<KcpSegment> queue)
+    {
+        for (var i = 0; i < queue.Count; i++)
+            queue.AtUnchecked(i).Reset();
+        queue.Clear();
+    }
+
     /// <summary>수신 대기열에 있는 다음 메시지의 크기를 확인한다.</summary>
     /// <returns>다음 메시지의 바이트 수. 완성된 메시지가 없으면 -1.</returns>
     public int PeekSize()
     {
         if (0 == rcv_queue.Count) return -1;
 
-        var seq = rcv_queue[0];
+        ref var seq = ref rcv_queue.PeekFront();
 
-        if (0 == seq.frg) return seq.data.ReadableBytes;
+        if (0 == seq.frg) return seq.Len;
 
         if (rcv_queue.Count < seq.frg + 1) return -1;
 
-        int length = 0;
-
-        foreach (var item in rcv_queue)
+        var length = 0;
+        for (var i = 0; i < rcv_queue.Count; i++)
         {
-            length += item.data.ReadableBytes;
+            var item = rcv_queue.AtUnchecked(i);
+            length += item.Len;
             if (0 == item.frg)
                 break;
         }
@@ -478,7 +421,7 @@ public class Kcp
     /// <returns>읽은 바이트 수. 읽을 데이터가 없으면 -1, 버퍼가 작으면 -2.</returns>
     public int Recv(byte[] buffer)
     {
-        return Recv(buffer, 0, buffer.Length);
+        return Recv(buffer.AsSpan());
     }
 
     /// <summary>수신 대기열에서 메시지 하나를 꺼낸다.</summary>
@@ -491,24 +434,34 @@ public class Kcp
     /// </returns>
     public int Recv(byte[] buffer, int index, int length)
     {
+        return Recv(buffer.AsSpan(index, length));
+    }
+
+    /// <summary>수신 대기열에서 메시지 하나를 꺼낸다(무할당 경로).</summary>
+    /// <param name="buffer">대상 버퍼.</param>
+    /// <returns>
+    /// 읽은 바이트 수. 읽을 수 있는 데이터가 없으면 -1,
+    /// 버퍼가 <see cref="PeekSize"/> 보다 작으면 -2.
+    /// </returns>
+    public int Recv(Span<byte> buffer)
+    {
         var peekSize = PeekSize();
         if (peekSize < 0)
             return -1;
 
-        if (peekSize > length)
+        if (peekSize > buffer.Length)
             return -2;
 
-        var fast_recover = false;
-        if (rcv_queue.Count >= rcv_wnd)
-            fast_recover = true;
+        var fast_recover = rcv_queue.Count >= rcv_wnd;
 
         // 조각을 이어 붙인다.
         var count = 0;
-        var n = index;
-        foreach (var seg in rcv_queue)
+        var written = 0;
+        for (var i = 0; i < rcv_queue.Count; i++)
         {
-            Buffer.BlockCopy(seg.data.RawBuffer, seg.data.ReaderIndex, buffer, n, seg.data.ReadableBytes);
-            n += seg.data.ReadableBytes;
+            var seg = rcv_queue.AtUnchecked(i);
+            seg.Payload.CopyTo(buffer.Slice(written));
+            written += seg.Len;
 
             count++;
             var fragment = seg.frg;
@@ -518,22 +471,23 @@ public class Kcp
                 ikcp_log($"recv sn={seg.sn.ToString()}");
             }
 
-            Segment.Put(seg);
+            ReturnSegment(seg);
             if (0 == fragment) break;
         }
 
         if (count > 0)
         {
-            rcv_queue.RemoveRange(0, count);
+            rcv_queue.RemoveFront(count);
         }
 
         // rcv_buf -> rcv_queue 로 이어지는 데이터를 옮긴다.
         count = 0;
-        foreach (var seg in rcv_buf)
+        for (var i = 0; i < rcv_buf.Count; i++)
         {
+            var seg = rcv_buf.AtUnchecked(i);
             if (seg.sn == rcv_nxt && rcv_queue.Count + count < rcv_wnd)
             {
-                rcv_queue.Add(seg);
+                rcv_queue.PushBack(seg);
                 rcv_nxt++;
                 count++;
             }
@@ -545,7 +499,7 @@ public class Kcp
 
         if (count > 0)
         {
-            rcv_buf.RemoveRange(0, count);
+            rcv_buf.RemoveFront(count);
         }
 
         // fast recover: 윈도가 다시 열렸음을 상대에게 알린다.
@@ -554,7 +508,7 @@ public class Kcp
             probe |= IKCP_ASK_TELL;
         }
 
-        return n - index;
+        return written;
     }
 
     /// <summary>애플리케이션 데이터를 송신 큐에 넣는다.</summary>
@@ -562,48 +516,52 @@ public class Kcp
     /// <returns>0 이면 성공. 음수는 오류.</returns>
     public int Send(byte[] buffer)
     {
-        return Send(buffer, 0, buffer.Length);
+        return Send(buffer.AsSpan());
     }
 
     /// <summary>애플리케이션 데이터를 송신 큐에 넣는다.</summary>
     /// <param name="buffer">보낼 데이터.</param>
     /// <param name="index">시작 위치.</param>
     /// <param name="length">길이.</param>
+    /// <returns>0 이면 성공. 음수는 오류(<see cref="Send(ReadOnlySpan{byte})"/> 참조).</returns>
+    public int Send(byte[] buffer, int index, int length)
+    {
+        return Send(buffer.AsSpan(index, length));
+    }
+
+    /// <summary>애플리케이션 데이터를 송신 큐에 넣는다(무할당 경로).</summary>
+    /// <param name="data">보낼 데이터.</param>
     /// <returns>
     /// <list type="table">
     /// <item><term>0</term><description>성공(송신 큐에 적재).</description></item>
-    /// <item><term>-1</term><description><paramref name="length"/> 가 0.</description></item>
+    /// <item><term>-1</term><description>길이가 0.</description></item>
     /// <item><term>-2</term><description>
     /// 조각 수가 수신 윈도 이상이라 상대가 절대 재조립할 수 없다. 메시지 모드에서 보낼 수 있는
     /// 최대 메시지 크기는 <c>(RcvWnd - 1) × Mss</c> 이다(진단 B-04).
     /// </description></item>
     /// </list>
     /// </returns>
-    public int Send(byte[] buffer, int index, int length)
+    public int Send(ReadOnlySpan<byte> data)
     {
-        if (0 == length) return -1;
+        if (0 == data.Length) return -1;
 
-        if (stream != 0)
+        if (stream != 0 && snd_queue.Count > 0)
         {
-            var n = snd_queue.Count;
-            if (n > 0)
+            // 스트림 모드: 마지막 세그먼트에 빈 자리가 있으면 이어 붙인다.
+            var last = snd_queue.AtUnchecked(snd_queue.Count - 1);
+            if (last.Len < mss)
             {
-                var seg = snd_queue[n - 1];
-                if (seg.data.ReadableBytes < mss)
-                {
-                    var capacity = (int)(mss - seg.data.ReadableBytes);
-                    var writen = Math.Min(capacity, length);
-                    seg.data.WriteBytes(buffer, index, writen);
-                    index += writen;
-                    length -= writen;
-                }
+                var capacity = (int)mss - last.Len;
+                var writen = Math.Min(capacity, data.Length);
+                last.Append(data.Slice(0, writen));
+                data = data.Slice(writen);
             }
         }
 
-        if (length == 0)
+        if (data.Length == 0)
             return 0;
 
-        var count = length <= mss ? 1 : (int)((length + mss - 1) / mss);
+        var count = data.Length <= mss ? 1 : (int)((data.Length + mss - 1) / mss);
 
         // 원본 ikcp.c 와 동일한 검사. 조각 수가 수신 윈도 이상이면 수신측 rcv_queue 가
         // 절대 채워지지 못해 영구 교착이 된다(진단 B-04).
@@ -613,15 +571,15 @@ public class Kcp
 
         for (var i = 0; i < count; i++)
         {
-            var size = Math.Min(length, (int)mss);
+            var size = Math.Min(data.Length, (int)mss);
 
-            var seg = Segment.Get(size);
-            seg.data.WriteBytes(buffer, index, size);
-            index += size;
-            length -= size;
+            // 스트림 모드는 뒤에 이어 붙일 수 있어야 하므로 항상 mss 용량으로 빌린다.
+            var seg = RentSegment(stream != 0 ? (int)mss : size);
+            seg.Append(data.Slice(0, size));
+            data = data.Slice(size);
 
-            seg.frg = stream == 0 ? (byte)(count - i - 1) : (byte)0;
-            snd_queue.Add(seg);
+            seg.frg = stream == 0 ? (uint)(count - i - 1) : 0u;
+            snd_queue.PushBack(seg);
         }
 
         return 0;
@@ -658,23 +616,37 @@ public class Kcp
 
     private void shrink_buf()
     {
-        snd_una = snd_buf.Count > 0 ? snd_buf[0].sn : snd_nxt;
+        snd_una = snd_buf.Count > 0 ? snd_buf.PeekFront().sn : snd_nxt;
+    }
+
+    /// <summary>
+    /// snd_buf 는 sn 오름차순이므로 이분 탐색으로 위치를 찾는다(진단 PF-05).
+    /// </summary>
+    /// <returns>sn 이 정확히 일치하는 인덱스, 없으면 삽입 위치의 보수(~index).</returns>
+    private int BinarySearchSn(uint sn)
+    {
+        var lo = 0;
+        var hi = snd_buf.Count - 1;
+        while (lo <= hi)
+        {
+            var mid = lo + ((hi - lo) >> 1);
+            var diff = _itimediff(sn, snd_buf.AtUnchecked(mid).sn);
+            if (diff == 0) return mid;
+            if (diff > 0) lo = mid + 1;
+            else hi = mid - 1;
+        }
+        return ~lo;
     }
 
     private void parse_ack(uint sn)
     {
         if (_itimediff(sn, snd_una) < 0 || _itimediff(sn, snd_nxt) >= 0) return;
 
-        foreach (var seg in snd_buf)
+        var index = BinarySearchSn(sn);
+        if (index >= 0)
         {
-            if (sn == seg.sn)
-            {
-                // 확인 표시만 하고 세그먼트는 남겨 둔다. una 가 지울 때까지 기다린다.
-                seg.acked = 1;
-                break;
-            }
-            if (_itimediff(sn, seg.sn) < 0)
-                break;
+            // 확인 표시만 하고 세그먼트는 남겨 둔다. una 가 지울 때까지 기다린다.
+            snd_buf.AtUnchecked(index).acked = 1;
         }
     }
 
@@ -683,11 +655,14 @@ public class Kcp
         if (_itimediff(sn, snd_una) < 0 || _itimediff(sn, snd_nxt) >= 0)
             return;
 
-        foreach (var seg in snd_buf)
+        // sn 미만 구간만 순회하면 되므로 상한을 이분 탐색으로 먼저 좁힌다.
+        var found = BinarySearchSn(sn);
+        var upper = found >= 0 ? found : ~found;
+
+        for (var i = 0; i < upper; i++)
         {
-            if (_itimediff(sn, seg.sn) < 0)
-                break;
-            else if (sn != seg.sn && _itimediff(seg.ts, ts) <= 0)
+            var seg = snd_buf.AtUnchecked(i);
+            if (_itimediff(seg.ts, ts) <= 0)
                 seg.fastack++;
         }
     }
@@ -695,19 +670,20 @@ public class Kcp
     private int parse_una(uint una)
     {
         var count = 0;
-        foreach (var seg in snd_buf)
+        for (var i = 0; i < snd_buf.Count; i++)
         {
+            var seg = snd_buf.AtUnchecked(i);
             if (_itimediff(una, seg.sn) > 0)
             {
                 count++;
-                Segment.Put(seg);
+                ReturnSegment(seg);
             }
             else
                 break;
         }
 
         if (count > 0)
-            snd_buf.RemoveRange(0, count);
+            snd_buf.RemoveFront(count);
         return count;
     }
 
@@ -717,7 +693,7 @@ public class Kcp
     }
 
     /// <summary>수신 세그먼트를 rcv_buf 에 순서대로 넣는다. 중복이면 true 를 반환한다.</summary>
-    private bool parse_data(Segment newseg)
+    private bool parse_data(KcpSegment newseg)
     {
         var sn = newseg.sn;
         if (_itimediff(sn, rcv_nxt + rcv_wnd) >= 0 || _itimediff(sn, rcv_nxt) < 0)
@@ -728,7 +704,7 @@ public class Kcp
         var repeat = false;
         for (var i = n; i >= 0; i--)
         {
-            var seg = rcv_buf[i];
+            var seg = rcv_buf.AtUnchecked(i);
             if (seg.sn == sn)
             {
                 repeat = true;
@@ -745,15 +721,16 @@ public class Kcp
         if (!repeat)
         {
             if (insert_idx == n + 1)
-                rcv_buf.Add(newseg);
+                rcv_buf.PushBack(newseg);
             else
                 rcv_buf.Insert(insert_idx, newseg);
         }
 
         // rcv_buf -> rcv_queue
         var count = 0;
-        foreach (var seg in rcv_buf)
+        for (var i = 0; i < rcv_buf.Count; i++)
         {
+            var seg = rcv_buf.AtUnchecked(i);
             if (seg.sn == rcv_nxt && rcv_queue.Count + count < rcv_wnd)
             {
                 rcv_nxt++;
@@ -768,8 +745,8 @@ public class Kcp
         if (count > 0)
         {
             for (var i = 0; i < count; i++)
-                rcv_queue.Add(rcv_buf[i]);
-            rcv_buf.RemoveRange(0, count);
+                rcv_queue.PushBack(rcv_buf.AtUnchecked(i));
+            rcv_buf.RemoveFront(count);
         }
         return repeat;
     }
@@ -780,6 +757,16 @@ public class Kcp
     /// <param name="size">길이.</param>
     /// <param name="regular">FEC 복원 패킷이 아닌 실제 수신 패킷이면 true. 윈도·RTT 갱신에 쓰인다.</param>
     /// <param name="ackNoDelay">true 면 ACK 를 즉시 내보낸다. 지연은 줄지만 대역폭 효율은 떨어진다.</param>
+    /// <returns>0 이면 정상. 음수 오류 코드는 <see cref="Input(ReadOnlySpan{byte}, bool, bool)"/> 참조.</returns>
+    public int Input(byte[] data, int index, int size, bool regular, bool ackNoDelay)
+    {
+        return Input(data.AsSpan(index, size), regular, ackNoDelay);
+    }
+
+    /// <summary>하위 계층에서 받은 패킷을 입력한다(무할당 경로).</summary>
+    /// <param name="data">패킷.</param>
+    /// <param name="regular">FEC 복원 패킷이 아닌 실제 수신 패킷이면 true.</param>
+    /// <param name="ackNoDelay">true 면 ACK 를 즉시 내보낸다.</param>
     /// <returns>
     /// <list type="table">
     /// <item><term>0</term><description>정상 처리.</description></item>
@@ -790,19 +777,20 @@ public class Kcp
     /// 오류를 반환해도 <b>그 앞까지 해석한 세그먼트의 상태 변경은 이미 적용된 상태</b>다.
     /// 원본 ikcp.c 와 같은 동작이며, 상호운용 검증을 위해 그대로 유지한다(진단 S-06).
     /// </returns>
-    public int Input(byte[] data, int index, int size, bool regular, bool ackNoDelay)
+    public int Input(ReadOnlySpan<byte> data, bool regular, bool ackNoDelay)
     {
         var s_una = snd_una;
+        var size = data.Length;
         if (size < IKCP_OVERHEAD) return -1;
 
-        int offset = index;
+        var offset = 0;
         uint latest = 0;
-        int flag = 0;
+        var flag = 0;
         ulong inSegs = 0;
-        bool windowSlides = false;
+        var windowSlides = false;
 
         // 핫루프 밖에서 시계를 1회만 읽는다(진단 PF-01).
-        uint current = clock();
+        var current = clock();
 
         stats.BytesReceived += (ulong)size;
 
@@ -813,31 +801,24 @@ public class Kcp
 
         while (true)
         {
-            uint ts = 0;
-            uint sn = 0;
-            uint length = 0;
-            uint una = 0;
-            uint conv_ = 0;
+            if (size - offset < IKCP_OVERHEAD) break;
 
-            ushort wnd = 0;
-            byte cmd = 0;
-            byte frg = 0;
-
-            if (size - (offset - index) < IKCP_OVERHEAD) break;
-
-            offset += ikcp_decode32u(data, offset, ref conv_);
+            var header = data.Slice(offset);
+            var conv_ = KcpCodec.ReadU32(header);
 
             if (conv != conv_) return -1;
 
-            offset += ikcp_decode8u(data, offset, ref cmd);
-            offset += ikcp_decode8u(data, offset, ref frg);
-            offset += ikcp_decode16u(data, offset, ref wnd);
-            offset += ikcp_decode32u(data, offset, ref ts);
-            offset += ikcp_decode32u(data, offset, ref sn);
-            offset += ikcp_decode32u(data, offset, ref una);
-            offset += ikcp_decode32u(data, offset, ref length);
+            var cmd = KcpCodec.ReadU8(header.Slice(4));
+            var frg = KcpCodec.ReadU8(header.Slice(5));
+            var wnd = KcpCodec.ReadU16(header.Slice(6));
+            var ts = KcpCodec.ReadU32(header.Slice(8));
+            var sn = KcpCodec.ReadU32(header.Slice(12));
+            var una = KcpCodec.ReadU32(header.Slice(16));
+            var length = KcpCodec.ReadU32(header.Slice(20));
 
-            if (size - (offset - index) < length) return -2;
+            offset += IKCP_OVERHEAD;
+
+            if ((uint)(size - offset) < length) return -2;
 
             switch (cmd)
             {
@@ -887,7 +868,7 @@ public class Kcp
                     ack_push(sn, ts);
                     if (_itimediff(sn, rcv_nxt) >= 0)
                     {
-                        var seg = Segment.Get((int)length);
+                        var seg = RentSegment((int)length);
                         seg.conv = conv_;
                         seg.cmd = cmd;
                         seg.frg = frg;
@@ -895,12 +876,12 @@ public class Kcp
                         seg.ts = ts;
                         seg.sn = sn;
                         seg.una = una;
-                        seg.data.WriteBytes(data, offset, (int)length);
+                        seg.Append(data.Slice(offset, (int)length));
                         if (parse_data(seg))
                         {
-                            // 이미 rcv_buf 에 있는 sn 이다. 새로 만든 세그먼트는 버린다.
+                            // 이미 rcv_buf 에 있는 sn 이다. 새로 만든 세그먼트는 풀에 돌려준다.
                             stats.RepeatSegments++;
-                            Segment.Put(seg);
+                            ReturnSegment(seg);
                         }
                     }
                     else
@@ -1036,7 +1017,7 @@ public class Kcp
     /// <returns>다음 재전송까지 남은 최소 시간(ms).</returns>
     public uint Flush(bool ackOnly)
     {
-        var seg = Segment.Get(32);
+        var seg = RentSegment(0);
         seg.conv = conv;
         seg.cmd = IKCP_CMD_ACK;
         seg.wnd = wnd_unused();
@@ -1053,7 +1034,7 @@ public class Kcp
             {
                 seg.sn = ack.sn;
                 seg.ts = ack.ts;
-                writeIndex += seg.encode(buffer, writeIndex);
+                writeIndex += seg.Encode(buffer.AsSpan(writeIndex));
                 stats.SegmentsSent++;
 
                 if (ikcp_canlog(IKCP_LOG_OUT_ACK))
@@ -1067,12 +1048,12 @@ public class Kcp
         if (ackOnly)
         {
             flushBuffer(writeIndex);
-            Segment.Put(seg);
+            ReturnSegment(seg);
             return interval;
         }
 
         // 진입 시 1회만 시계를 읽는다(진단 PF-01).
-        uint current = clock();
+        var current = clock();
 
         // 상대 윈도가 0 이면 윈도 크기를 물어본다.
         if (0 == rmt_wnd)
@@ -1106,7 +1087,7 @@ public class Kcp
         {
             seg.cmd = IKCP_CMD_WASK;
             writeIndex = makeSpace(IKCP_OVERHEAD, writeIndex);
-            writeIndex += seg.encode(buffer, writeIndex);
+            writeIndex += seg.Encode(buffer.AsSpan(writeIndex));
             stats.SegmentsSent++;
         }
 
@@ -1114,7 +1095,7 @@ public class Kcp
         {
             seg.cmd = IKCP_CMD_WINS;
             writeIndex = makeSpace(IKCP_OVERHEAD, writeIndex);
-            writeIndex += seg.encode(buffer, writeIndex);
+            writeIndex += seg.Encode(buffer.AsSpan(writeIndex));
             stats.SegmentsSent++;
         }
 
@@ -1132,18 +1113,18 @@ public class Kcp
             if (_itimediff(snd_nxt, snd_una + cwnd_) >= 0)
                 break;
 
-            var newseg = snd_queue[k];
+            var newseg = snd_queue.AtUnchecked(k);
             newseg.conv = conv;
             newseg.cmd = IKCP_CMD_PUSH;
             newseg.sn = snd_nxt;
-            snd_buf.Add(newseg);
+            snd_buf.PushBack(newseg);
             snd_nxt++;
             newSegsCount++;
         }
 
         if (newSegsCount > 0)
         {
-            snd_queue.RemoveRange(0, newSegsCount);
+            snd_queue.RemoveFront(newSegsCount);
         }
 
         // 빠른 재전송 임계값
@@ -1156,9 +1137,12 @@ public class Kcp
         ulong earlyRetransSegs = 0;
         var minrto = (int)interval;
 
-        for (var k = 0; k < snd_buf.Count; k++)
+        // 이 루프는 snd_buf 를 수정하지 않으므로 스냅숏 뷰로 순회한다(원소당 필드 재로드 제거).
+        var sndBufView = snd_buf.CreateView();
+        var sndBufCount = snd_buf.Count;
+        for (var k = 0; k < sndBufCount; k++)
         {
-            var segment = snd_buf[k];
+            var segment = sndBufView[k];
             var needsend = false;
             if (segment.acked == 1)
                 continue;
@@ -1205,11 +1189,11 @@ public class Kcp
                 segment.wnd = seg.wnd;
                 segment.una = seg.una;
 
-                var need = IKCP_OVERHEAD + segment.data.ReadableBytes;
+                var need = IKCP_OVERHEAD + segment.Len;
                 writeIndex = makeSpace(need, writeIndex);
-                writeIndex += segment.encode(buffer, writeIndex);
-                Buffer.BlockCopy(segment.data.RawBuffer, segment.data.ReaderIndex, buffer, writeIndex, segment.data.ReadableBytes);
-                writeIndex += segment.data.ReadableBytes;
+                writeIndex += segment.Encode(buffer.AsSpan(writeIndex));
+                segment.Payload.CopyTo(buffer.AsSpan(writeIndex));
+                writeIndex += segment.Len;
                 stats.SegmentsSent++;
 
                 if (segment.xmit >= dead_link)
@@ -1268,7 +1252,7 @@ public class Kcp
             }
         }
 
-        Segment.Put(seg);
+        ReturnSegment(seg);
         return (uint)minrto;
     }
 
@@ -1315,9 +1299,7 @@ public class Kcp
         var current = clock();
 
         var ts_flush_ = ts_flush;
-        var tm_flush_ = 0x7fffffff;
         var tm_packet = 0x7fffffff;
-        var minimal = 0;
 
         if (updated == 0)
             return current;
@@ -1328,18 +1310,20 @@ public class Kcp
         if (_itimediff(current, ts_flush_) >= 0)
             return current;
 
-        tm_flush_ = _itimediff(ts_flush_, current);
+        var tm_flush_ = _itimediff(ts_flush_, current);
 
-        foreach (var seg in snd_buf)
+        var view = snd_buf.CreateView();
+        var count = snd_buf.Count;
+        for (var i = 0; i < count; i++)
         {
-            var diff = _itimediff(seg.resendts, current);
+            var diff = _itimediff(view[i].resendts, current);
             if (diff <= 0)
                 return current;
             if (diff < tm_packet)
                 tm_packet = diff;
         }
 
-        minimal = tm_packet;
+        var minimal = tm_packet;
         if (tm_packet >= tm_flush_)
             minimal = tm_flush_;
         if (minimal >= interval)

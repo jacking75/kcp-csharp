@@ -13,6 +13,8 @@
     <NeutralLanguage>ko-KR</NeutralLanguage>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest-minimum</AnalysisLevel>
+    <!-- CA1510(ArgumentNullException.ThrowIfNull)은 .NET 6+ 전용이라 netstandard2.1 타깃에서 쓸 수 없다. -->
+    <NoWarn>$(NoWarn);CA1510</NoWarn>
   </PropertyGroup>
 
 </Project>
