@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
 using Gomoku.Shared;
-using KcpProject.Transport;
+using KcpCSharpR1.Transport;
 
 namespace Gomoku.Client;
 

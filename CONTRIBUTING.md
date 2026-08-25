@@ -24,8 +24,8 @@ dotnet test  -c Release --filter "Category=Soak"     # 가상 24시간 소크만
 ### 벤치마크
 
 ```bash
-dotnet run -c Release --project benchmarks/KcpProject.Benchmarks -- --filter '*'
-dotnet run -c Release --project benchmarks/KcpProject.Benchmarks -- --filter '*SendRecvRoundtrip*'
+dotnet run -c Release --project benchmarks/KcpCSharpR1.Benchmarks -- --filter '*'
+dotnet run -c Release --project benchmarks/KcpCSharpR1.Benchmarks -- --filter '*SendRecvRoundtrip*'
 ```
 
 **반드시 `-c Release`** 입니다. Debug 수치는 의미가 없습니다.
@@ -33,17 +33,17 @@ dotnet run -c Release --project benchmarks/KcpProject.Benchmarks -- --filter '*S
 ### 커버리지
 
 ```bash
-dotnet test tests/KcpProject.Tests -c Release \
-  -p:CollectCoverage=true -p:Include="[KcpProject]*" \
+dotnet test tests/KcpCSharpR1.Tests -c Release \
+  -p:CollectCoverage=true -p:Include="[KcpCSharpR1]*" \
   -p:CoverletOutputFormat=json -p:CoverletOutput=./coverage/coverage.json
 
-dotnet test tests/KcpProject.SimTests -c Release \
-  -p:CollectCoverage=true -p:Include="[KcpProject]*" \
+dotnet test tests/KcpCSharpR1.SimTests -c Release \
+  -p:CollectCoverage=true -p:Include="[KcpCSharpR1]*" \
   -p:MergeWith=./coverage/coverage.json \
   -p:Threshold=85 -p:ThresholdType=line
 ```
 
-코어(`KcpProject`) 라인 커버리지 **85% 이상**이 기준입니다. 현재 93.4%입니다.
+코어(`KcpCSharpR1`) 라인 커버리지 **85% 이상**이 기준입니다. 현재 93.4%입니다.
 PR 을 올리기 전에 로컬에서 직접 확인해 주세요.
 
 ## 코드 규칙
@@ -83,7 +83,7 @@ PR 을 올리기 전에 로컬에서 직접 확인해 주세요.
 이 저장소에는 가상 시간 하네스가 있어 네트워크 상황을 결정적으로 재현할 수 있습니다.
 
 ```csharp
-// tests/KcpProject.SimTests/KcpPair.cs
+// tests/KcpCSharpR1.SimTests/KcpPair.cs
 var pair = KcpPair.Create(seed: 42, loss: 0.20, delayMs: 50);
 pair.AckNoDelay = true;
 
@@ -96,7 +96,7 @@ Assert.True(pair.RunUntil(() => pair.ReceivedB.Length == payload.Length, maxMs: 
 전송 계층 문제라면 가상 망을 씁니다.
 
 ```csharp
-// tests/KcpProject.SimTests/VirtualNetwork.cs
+// tests/KcpCSharpR1.SimTests/VirtualNetwork.cs
 var network = new VirtualNetwork(seed) { DelayMs = 20, LossRate = 0.1 };
 network.DropFilter = (from, to, data) => Framing.PeekType(data) == FrameType.SynAck;  // 특정 프레임만 떨어뜨리기
 ```
@@ -112,7 +112,7 @@ network.DropFilter = (from, to, data) => Framing.PeekType(data) == FrameType.Syn
 
 ### 시나리오 테스트
 
-`tests/KcpProject.SimTests/ScenarioTests.cs` 를 참고하세요. 각 테스트는
+`tests/KcpCSharpR1.SimTests/ScenarioTests.cs` 를 참고하세요. 각 테스트는
 `KcpPair` 옵션만 다르게 주는 **20줄 내외**여야 합니다. 그보다 길어지면 하네스를 보강할 때입니다.
 
 **끝 조건에 주의하세요.** "마지막 바이트가 도착했다"로 끝내면 ACK 왕복 전에 멈춥니다.

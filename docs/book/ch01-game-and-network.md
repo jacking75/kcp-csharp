@@ -144,7 +144,7 @@ flowchart TB
 |---|---|---|
 | [skywind3000/kcp](https://github.com/skywind3000/kcp) | C | 원본. `ikcp.c` 한 파일 |
 | [xtaci/kcp-go](https://github.com/xtaci/kcp-go) | Go | 가장 널리 쓰이는 서버 구현. FEC·암호화 포함 |
-| **kcp-csharp**(이 책) | C# | kcp-go 포팅 기반. 코어는 원본과 바이트 호환 |
+| **KcpCSharpR1**(이 책) | C# | kcp-go 포팅 기반. 코어는 원본과 바이트 호환 |
 
 **와이어 호환**이 중요합니다. 24바이트 헤더가 원본과 같으므로,
 C# 클라이언트가 Go 서버에 붙을 수 있습니다(부록 C).

@@ -1,5 +1,15 @@
 # 작업 로그
 
+## 2026-08-25 14:09 KST — 프로젝트 이름 변경 (KcpProject → KcpCSharpR1)
+
+C# 네임스페이스·프로젝트·솔루션·패키지 이름을 KcpProject/KcpProject.Transport 에서
+KcpCSharpR1/KcpCSharpR1.Transport 로 전체 변경했다. 100개 파일(cs 59·md 24·csproj 16·sln 1)에서
+KcpProject 문자열을 치환하고, 솔루션 파일과 7개 프로젝트 폴더·csproj 를 git mv 로 함께 옮겼다.
+README/샘플 창 제목/채팅 Motd/문서 등 표시용 이름도 KcpCSharpR1 로 맞추되, 실제 GitHub 저장소
+슬러그(jacking75/kcp-csharp)와 로드맵 문서 파일명(docs/kcp-csharp-roadmap.md)은 그대로 두었다.
+README 에 원출처(skywind3000/kcp → xtaci/kcp-go → KcpCSharpR1) 절을 추가했다.
+빌드 경고 0 · 테스트 207개 전량 통과.
+
 ## 2026-08-25 13:52 KST — CI 워크플로 제거
 
 `.github/workflows/ci.yml` 을 삭제했다. 푸시에 쓰는 토큰에 `workflow` 스코프가 없어

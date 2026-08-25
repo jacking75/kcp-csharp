@@ -1,6 +1,9 @@
-# kcp-csharp
+# KcpCSharpR1
 
 **A C# library that adds exactly as much reliability as you need on top of UDP.** A KCP implementation for real-time games.
+
+> Ports and rebuilds [skywind3000/kcp](https://github.com/skywind3000/kcp) (C) via
+> [xtaci/kcp-go](https://github.com/xtaci/kcp-go) (Go). See [Lineage](#lineage) below.
 
 ![net8.0](https://img.shields.io/badge/net-8.0-512BD4)
 ![netstandard2.1](https://img.shields.io/badge/netstandard-2.1-512BD4)
@@ -109,8 +112,8 @@ Client and server running on the same machine. Reproduction commands are in [doc
 ## Install
 
 ```bash
-dotnet add package KcpProject
-dotnet add package KcpProject.Transport
+dotnet add package KcpCSharpR1
+dotnet add package KcpCSharpR1.Transport
 ```
 
 Targets `net8.0` and `netstandard2.1`.
@@ -120,15 +123,26 @@ Targets `net8.0` and `netstandard2.1`.
 ```bash
 dotnet build -c Release
 dotnet test  -c Release
-dotnet run   -c Release --project benchmarks/KcpProject.Benchmarks -- --filter '*'
+dotnet run   -c Release --project benchmarks/KcpCSharpR1.Benchmarks -- --filter '*'
 ```
 
 ## Lineage
 
-[skywind3000/kcp](https://github.com/skywind3000/kcp) (C) →
-[xtaci/kcp-go](https://github.com/xtaci/kcp-go) (Go) → **kcp-csharp** (C#).
+This is not a straight copy — it's a port and rebuild along the following lineage.
 
-The 24-byte core header is byte-for-byte compatible with the original.
+[skywind3000/kcp](https://github.com/skywind3000/kcp) (C, MIT) →
+[xtaci/kcp-go](https://github.com/xtaci/kcp-go) (Go, MIT) → **KcpCSharpR1** (C#, this repo).
+
+| Carried over | Built new here |
+|---|---|
+| Protocol logic (ARQ, sliding window, RTO, congestion control) — ported from kcp-go | Transport layer (handshake, session lifetime, scheduler) |
+| Core 24-byte header — **byte-for-byte compatible** with the original | AES-256-GCM encryption, Reed-Solomon FEC |
+| | 5 samples + the LoadTest tool |
+| | The 17-chapter online book |
+
+The protocol logic was rewritten in idiomatic C# (`Span<byte>`, `ArrayPool`, event-driven sessions, an
+injectable clock) but the wire format was kept intact. Turn on `RawMode` to talk directly to an original
+kcp / kcp-go server.
 
 ## License
 

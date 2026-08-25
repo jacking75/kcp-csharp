@@ -8,7 +8,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <ImplicitUsings>disable</ImplicitUsings>
     <Authors>jacking75</Authors>
-    <Product>kcp-csharp</Product>
+    <Product>KcpCSharpR1</Product>
     <Copyright>Copyright (c) jacking75</Copyright>
     <NeutralLanguage>ko-KR</NeutralLanguage>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>

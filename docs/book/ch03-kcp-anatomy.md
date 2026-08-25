@@ -36,7 +36,7 @@
 ts=1000, sn=7, una=5, len=3` 을 인코딩하면 이렇게 됩니다.
 
 ```csharp
-// tests/KcpProject.Tests/CodecTests.cs
+// tests/KcpCSharpR1.Tests/CodecTests.cs
 private static readonly byte[] GoldenHeader =
 {
     0x44, 0x33, 0x22, 0x11,   // conv = 0x11223344
@@ -60,7 +60,7 @@ UDP는 연결이 없으므로, 같은 포트로 아무 패킷이나 들어올 �
 `conv` 가 다르면 즉시 버립니다.
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 var conv_ = KcpCodec.ReadU32(header);
 
 if (conv != conv_) return -1;
@@ -106,7 +106,7 @@ sequenceDiagram
 `una` 를 받으면 그 미만의 세그먼트를 **송신 버퍼에서 지웁니다.**
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 private int parse_una(uint una)
 {
     var count = 0;
@@ -131,7 +131,7 @@ private int parse_una(uint una)
 `sn` 개별 ACK는 **표시만** 하고 지우지 않습니다.
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 // 확인 표시만 하고 세그먼트는 남겨 둔다. una 가 지울 때까지 기다린다.
 snd_buf.AtUnchecked(index).acked = 1;
 ```
@@ -148,7 +148,7 @@ snd_buf.AtUnchecked(index).acked = 1;
 `Flush()` 안의 이 분기가 KCP의 심장입니다.
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 if (segment.acked == 1)
     continue;                                        // 이미 확인됨 — 건너뜀
 
@@ -208,7 +208,7 @@ var total = s.RetransmitSegments + s.FastRetransmitSegments + s.EarlyRetransmitS
 수신측이 `Recv` 를 안 하면 `rcv_queue` 가 차고, 통지 윈도가 0이 됩니다.
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 private ushort wnd_unused()
 {
     if (rcv_queue.Count < rcv_wnd)
@@ -223,7 +223,7 @@ private ushort wnd_unused()
 그래서 **송신측이 주기적으로 물어봅니다.**
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 // 상대 윈도가 0 이면 윈도 크기를 물어본다.
 if (0 == rmt_wnd)
 {
@@ -254,7 +254,7 @@ if (0 == rmt_wnd)
 시나리오 테스트가 이 동작을 지킵니다.
 
 ```csharp
-// tests/KcpProject.SimTests/ScenarioTests.cs
+// tests/KcpCSharpR1.SimTests/ScenarioTests.cs
 /// <summary>#6 수신측이 Recv 를 멈추면 송신이 멈추고, 재개하면 다시 흐른다(윈도 프로브).</summary>
 [Fact]
 public void S06_수신윈도_0에서_송신정지_후_재개된다()
@@ -265,7 +265,7 @@ public void S06_수신윈도_0에서_송신정지_후_재개된다()
 `nc=0`(기본)이면 TCP와 비슷한 혼잡 제어가 돕니다.
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 // rate halving, RFC 6937
 if (change > 0)
 {
@@ -298,7 +298,7 @@ if (lostSegs > 0)
 MTU보다 큰 메시지는 쪼갭니다. `frg` 에 **남은 조각 수**를 넣습니다.
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 for (var i = 0; i < count; i++)
 {
     var size = Math.Min(data.Length, (int)mss);
@@ -315,7 +315,7 @@ for (var i = 0; i < count; i++)
 3조각이면 `frg` 가 **2, 1, 0** 순입니다. 수신측은 `frg == 0` 을 만날 때까지 모읍니다.
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 public int PeekSize()
 {
     if (0 == rcv_queue.Count) return -1;
@@ -345,7 +345,7 @@ public int PeekSize()
 `frg` 는 1바이트라 최대 255입니다. 그런데 진짜 한계는 그것이 아닙니다.
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 // 원본 ikcp.c 와 동일한 검사. 조각 수가 수신 윈도 이상이면 수신측 rcv_queue 가
 // 절대 채워지지 못해 영구 교착이 된다(진단 B-04).
 if (count >= rcv_wnd) return -2;
@@ -359,7 +359,7 @@ if (count >= rcv_wnd) return -2;
 지금은 시나리오 테스트가 지킵니다.
 
 ```csharp
-// tests/KcpProject.SimTests/ScenarioTests.cs
+// tests/KcpCSharpR1.SimTests/ScenarioTests.cs
 // 조각 수가 수신 윈도 이상이면 영구 교착 대신 -2 를 반환해야 한다.
 var tooBig = new byte[rcvWnd * mss];
 Assert.Equal(-2, pair.A.Send(tooBig));
@@ -376,7 +376,7 @@ Assert.Equal(-2, pair.A.Send(tooBig));
 | 마지막 세그먼트 | 새로 만듦 | **빈 자리가 있으면 이어 붙임** |
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 if (stream != 0 && snd_queue.Count > 0)
 {
     // 스트림 모드: 마지막 세그먼트에 빈 자리가 있으면 이어 붙인다.
@@ -427,7 +427,7 @@ output psh: sn=5 ts=1260 resendts=1290 rto=30 fastack=2, xmit=2   ← 빠른 재
 `fastack=2` 에 주목하세요. sn=6, 7의 ACK가 오면서 sn=5의 카운터가 2가 되었고,
 임계값에 도달해 재전송했습니다. `xmit=2` 는 두 번째 전송이라는 뜻입니다.
 
-가상 링크로 재현하려면 `tests/KcpProject.SimTests/ScenarioTests.cs` 의
+가상 링크로 재현하려면 `tests/KcpCSharpR1.SimTests/ScenarioTests.cs` 의
 `S02_손실환경에서_전량_도달하고_재전송이_발생한다` 를 참고하세요.
 
 ## 요약

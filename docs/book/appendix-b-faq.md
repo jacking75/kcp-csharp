@@ -71,8 +71,8 @@ if (Kcp.Itimediff(now, next) >= 0) { ... }   // ✅
 `netstandard2.1` 타깃이 있으므로 **원리적으로는 가능**합니다.
 
 ```bash
-dotnet build -c Release src/KcpProject
-# bin/Release/netstandard2.1/KcpProject.dll 을 Unity 의 Assets/Plugins 에 복사
+dotnet build -c Release src/KcpCSharpR1
+# bin/Release/netstandard2.1/KcpCSharpR1.dll 을 Unity 의 Assets/Plugins 에 복사
 ```
 
 다만 이 저장소는 **Unity를 공식 지원 대상으로 삼지 않습니다.**
@@ -228,7 +228,7 @@ var options = new KcpSessionOptions
 ### Q20. 버그를 발견했습니다
 
 재현 가능한 테스트를 함께 주시면 가장 좋습니다.
-이 저장소의 시뮬레이션 하네스(`tests/KcpProject.SimTests/KcpPair.cs`)를 쓰면
+이 저장소의 시뮬레이션 하네스(`tests/KcpCSharpR1.SimTests/KcpPair.cs`)를 쓰면
 **가상 시간으로 결정적인 재현**이 가능합니다.
 
 ```csharp

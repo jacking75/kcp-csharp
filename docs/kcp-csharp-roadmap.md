@@ -128,7 +128,7 @@
 | `KCP/ByteBuffer.cs` | ~910 | 범용 바이트 버퍼 + 자체 풀 | `internal` |
 | `KCP/UDPSession.cs` | ~175 | 클라이언트 전용 UDP 세션 래퍼 | `internal` |
 | `Sample/Main.cs` | ~68 | 클라이언트 에코 샘플 (서버 없음) | — |
-| `KcpProject.csproj` | — | net8.0 **Exe** 단일 프로젝트 (라이브러리 아님) | — |
+| `KcpCSharpR1.csproj` | — | net8.0 **Exe** 단일 프로젝트 (라이브러리 아님) | — |
 
 핵심 진단: **프로토콜 코어는 kcp-go를 충실히 따르고 있으나, "라이브러리"가 아니라 "샘플이 붙은 소스 모음" 상태다.** 서버 구현이 없고, 테스트가 0개이며, 실행 파일 프로젝트라 NuGet 참조도 불가능하다.
 
@@ -150,7 +150,7 @@
 | B-12 | 낮음 | `UDPSession.cs:82` | 루프에서 `mKCP.Send(...)` 반환값(오류 코드) 무시 |
 | B-13 | 낮음 | `UDPSession.cs:122` | 라이브러리 코드가 `Console.WriteLine(ex)` 직접 출력 |
 | B-14 | 낮음 | `ByteBuffer.cs:891` | `Dispose()` 메서드가 있는데 `IDisposable` 미구현. Dispose 후 사용 시 NRE |
-| B-15 | 낮음 | `KcpProject.csproj` | `System.Data.DataSetExtensions` 불필요 참조, `Company=Microsoft` 등 잘못된 메타데이터, Exe 출력 |
+| B-15 | 낮음 | `KcpCSharpR1.csproj` | `System.Data.DataSetExtensions` 불필요 참조, `Company=Microsoft` 등 잘못된 메타데이터, Exe 출력 |
 
 ### 1.3 성능 문제
 
@@ -194,14 +194,14 @@
 ```
 kcp-csharp/
 ├─ src/
-│  ├─ KcpProject/                  # [코어] 프로토콜만. 의존성 0
+│  ├─ KcpCSharpR1/                  # [코어] 프로토콜만. 의존성 0
 │  │  ├─ Kcp.cs                    # KCP.cs 개명·리팩터링
 │  │  ├─ KcpSegment.cs             # Segment 분리
 │  │  ├─ KcpCodec.cs               # 인코딩/디코딩 (BinaryPrimitives)
 │  │  ├─ KcpClock.cs               # Stopwatch 기반 단조 시계
 │  │  ├─ KcpStats.cs               # 통계 구조체
 │  │  └─ RingBuffer.cs             # Segment 큐용 원형 덱
-│  └─ KcpProject.Transport/        # [전송] 소켓·세션·핸드셰이크
+│  └─ KcpCSharpR1.Transport/        # [전송] 소켓·세션·핸드셰이크
 │     ├─ KcpClient.cs
 │     ├─ KcpServer.cs
 │     ├─ KcpSession.cs             # 클라/서버 공용 세션 상태 머신
@@ -217,17 +217,17 @@ kcp-csharp/
 │  ├─ 05-TankBattle/               #   ★5  MonoGame    UDP 27005
 │  └─ tools/LoadTest/              #   부하 측정 도구   UDP 27010
 ├─ tests/
-│  ├─ KcpProject.Tests/            # 단위 테스트 (xUnit)
-│  └─ KcpProject.SimTests/         # 가상 네트워크 시뮬레이션 테스트
+│  ├─ KcpCSharpR1.Tests/            # 단위 테스트 (xUnit)
+│  └─ KcpCSharpR1.SimTests/         # 가상 네트워크 시뮬레이션 테스트
 ├─ benchmarks/
-│  └─ KcpProject.Benchmarks/       # BenchmarkDotNet
+│  └─ KcpCSharpR1.Benchmarks/       # BenchmarkDotNet
 ├─ docs/                           # 온라인 책 (docsify + GitHub Pages, 9장)
 │  ├─ index.html  _sidebar.md  README.md
 │  ├─ book/ch01-*.md ... 부록
 │  └─ benchmarks.md
 ├─ .github/workflows/ci.yml
 ├─ Directory.Build.props
-└─ KcpProject.sln
+└─ KcpCSharpR1.sln
 ```
 
 ### 2.2 계층 책임
@@ -236,12 +236,12 @@ kcp-csharp/
 ┌───────────────────────────────────────────────┐
 │ 게임 코드 (샘플 5종이 시연)                       │
 ├───────────────────────────────────────────────┤
-│ KcpProject.Transport                          │
+│ KcpCSharpR1.Transport                          │
 │  - 소켓 I/O, 세션 수명(핸드셰이크/keepalive/종료)  │
 │  - 프레이밍(신뢰 KCP / 비신뢰 raw / 제어 패킷)     │
 │  - (선택) 암호화, FEC                           │
 ├───────────────────────────────────────────────┤
-│ KcpProject (코어)                              │
+│ KcpCSharpR1 (코어)                              │
 │  - ARQ 상태 머신만. 소켓·스레드·실시간 시계 무지     │
 │  - 입력: Input(bytes) / Send(bytes) / Update() │
 │  - 출력: output 콜백                            │
@@ -259,7 +259,7 @@ kcp-csharp/
 
 | 항목 | 결정 |
 |---|---|
-| 네임스페이스 | `KcpProject` 유지, 전송 계층은 `KcpProject.Transport` |
+| 네임스페이스 | `KcpCSharpR1` 유지, 전송 계층은 `KcpCSharpR1.Transport` |
 | 타깃 프레임워크 | `netstandard2.1;net8.0` 멀티타깃. **MonoGame(3.8.2+)은 net8.0 타깃을 그대로 사용**하므로 별도 대응 불필요. netstandard2.1은 Godot C#·구형 런타임 호환용으로 유지 |
 | 클래스명 | `KCP` → `Kcp` 개명, `[Obsolete]` 별칭 `KCP` 파생 클래스를 1개 버전 동안 유지 |
 | 와이어 호환 | 코어는 원본 kcp와 완전 호환. Transport 프레이밍은 자체 포맷이며 **RawMode 옵션**으로 kcp-go 서버와 직접 통신 가능 |
@@ -358,12 +358,12 @@ kcp-csharp/
 
 ```
 mkdir src, tests, benchmarks, samples
-git mv KCP src/KcpProject
+git mv KCP src/KcpCSharpR1
 git mv Sample samples/01-Echo        # Phase 7에서 재작성하지만 위치는 지금 옮긴다
-git rm Properties/AssemblyInfo.cs KcpProject.csproj
+git rm Properties/AssemblyInfo.cs KcpCSharpR1.csproj
 ```
 
-2. `src/KcpProject/KcpProject.csproj` 신규 작성:
+2. `src/KcpCSharpR1/KcpCSharpR1.csproj` 신규 작성:
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -387,11 +387,11 @@ git rm Properties/AssemblyInfo.cs KcpProject.csproj
 </Project>
 ```
 
-4. `src/KcpProject.Transport/` 빈 프로젝트 생성(코어 참조만 걸어 둔다), 솔루션 재구성:
+4. `src/KcpCSharpR1.Transport/` 빈 프로젝트 생성(코어 참조만 걸어 둔다), 솔루션 재구성:
 
 ```
-dotnet new classlib -o src/KcpProject.Transport
-dotnet sln KcpProject.sln add src/KcpProject src/KcpProject.Transport
+dotnet new classlib -o src/KcpCSharpR1.Transport
+dotnet sln KcpCSharpR1.sln add src/KcpCSharpR1 src/KcpCSharpR1.Transport
 ```
 
 5. `samples/01-Echo`는 임시로 Exe 프로젝트를 만들어 기존 Main.cs가 빌드만 되게 유지.
@@ -437,7 +437,7 @@ public uint Interval => interval;
 ```csharp
 using System.Diagnostics;
 
-namespace KcpProject;
+namespace KcpCSharpR1;
 
 /// <summary>Stopwatch 기반 단조(monotonic) 밀리초 시계. OS 시계 변경에 영향받지 않는다.</summary>
 public static class KcpClock
@@ -585,18 +585,18 @@ jobs:
 ### P2-1. 테스트 프로젝트 셋업 `필수`
 
 ```
-dotnet new xunit -o tests/KcpProject.Tests
-dotnet new xunit -o tests/KcpProject.SimTests
-dotnet sln add tests/KcpProject.Tests tests/KcpProject.SimTests
-dotnet add tests/KcpProject.Tests reference src/KcpProject
+dotnet new xunit -o tests/KcpCSharpR1.Tests
+dotnet new xunit -o tests/KcpCSharpR1.SimTests
+dotnet sln add tests/KcpCSharpR1.Tests tests/KcpCSharpR1.SimTests
+dotnet add tests/KcpCSharpR1.Tests reference src/KcpCSharpR1
 ```
 
 코어 csproj에 내부 상태 검증용:
 
 ```xml
 <ItemGroup>
-  <InternalsVisibleTo Include="KcpProject.Tests" />
-  <InternalsVisibleTo Include="KcpProject.SimTests" />
+  <InternalsVisibleTo Include="KcpCSharpR1.Tests" />
+  <InternalsVisibleTo Include="KcpCSharpR1.SimTests" />
 </ItemGroup>
 ```
 
@@ -714,7 +714,7 @@ public void Loss20_AllDataDelivered_InOrder()
 
 ### P2-7. 커버리지 게이트 `권장`
 
-coverlet로 코어(`src/KcpProject`) 라인 커버리지 **85% 이상**을 CI 게이트로. `dotnet test /p:Threshold=85 /p:ThresholdType=line /p:Include="[KcpProject]*"`.
+coverlet로 코어(`src/KcpCSharpR1`) 라인 커버리지 **85% 이상**을 CI 게이트로. `dotnet test /p:Threshold=85 /p:ThresholdType=line /p:Include="[KcpCSharpR1]*"`.
 
 ---
 
@@ -726,8 +726,8 @@ coverlet로 코어(`src/KcpProject`) 라인 커버리지 **85% 이상**을 CI �
 ### P3-1. 벤치마크 기준선 확보 `필수(이 페이즈 내)`
 
 ```
-dotnet new console -o benchmarks/KcpProject.Benchmarks
-dotnet add benchmarks/KcpProject.Benchmarks package BenchmarkDotNet
+dotnet new console -o benchmarks/KcpCSharpR1.Benchmarks
+dotnet add benchmarks/KcpCSharpR1.Benchmarks package BenchmarkDotNet
 ```
 
 | 벤치마크 | 내용 | 지표 |
@@ -1298,11 +1298,11 @@ while (!ct.IsCancellationRequested)
 
 ### P8-1. NuGet 패키징 `권장`
 
-- 패키지 2개: `KcpCsharp`(코어), `KcpCsharp.Transport`. (ID 선점 시 대안: `Jacking75.KcpCsharp`.)
+- 패키지 2개: `KcpCSharpR1`(코어), `KcpCSharpR1.Transport`. (ID 선점 시 대안: `Jacking75.KcpCSharpR1`.)
 
 ```xml
 <PropertyGroup>
-  <PackageId>KcpCsharp</PackageId>
+  <PackageId>KcpCSharpR1</PackageId>
   <Version>1.0.0</Version>
   <PackageLicenseExpression>MIT</PackageLicenseExpression>
   <PackageProjectUrl>https://github.com/jacking75/kcp-csharp</PackageProjectUrl>

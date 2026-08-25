@@ -12,7 +12,7 @@
 ## 코어는 아무것도 모른다
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 /// <para>
 /// 이 클래스는 <b>순수한 프로토콜 상태 머신</b>이다. 소켓·스레드·실시간 시계·로깅 구현을 알지 못하며
 /// 전부 주입받는다. 실제 패킷 송신은 생성자에 넘긴 output 콜백이 담당한다.
@@ -23,7 +23,7 @@ public class Kcp
 생성자는 세 가지를 받습니다.
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 public Kcp(uint conv_, Action<byte[], int> output_, Func<uint>? currentTimeMs = null)
 ```
 
@@ -37,7 +37,7 @@ public Kcp(uint conv_, Action<byte[], int> output_, Func<uint>? currentTimeMs = 
 **가상 시계를 주입하면 "2분짜리 시나리오"를 수십 밀리초 만에 돌릴 수 있습니다.**
 
 ```csharp
-// tests/KcpProject.SimTests/KcpPair.cs
+// tests/KcpCSharpR1.SimTests/KcpPair.cs
 pair.A = new Kcp(conv, (buf, len) => pair.AtoB.Send(buf, len), () => pair.Now);
 pair.B = new Kcp(conv, (buf, len) => pair.BtoA.Send(buf, len), () => pair.Now);
 ```
@@ -75,7 +75,7 @@ flowchart TB
 ### `Send`
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 public int Send(ReadOnlySpan<byte> data)
 ```
 
@@ -94,7 +94,7 @@ public int Send(ReadOnlySpan<byte> data)
 ### `Input`
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 public int Input(ReadOnlySpan<byte> data, bool regular, bool ackNoDelay)
 ```
 
@@ -115,7 +115,7 @@ public int Input(ReadOnlySpan<byte> data, bool regular, bool ackNoDelay)
 ### `Recv`
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 public int Recv(Span<byte> buffer)
 ```
 
@@ -177,7 +177,7 @@ kcp.Send(new byte[] { 4, 5 });
 기본값(`RcvWnd = 32`, `Mss = 1376`)이면 **약 42KB** 입니다.
 
 ```csharp
-// tests/KcpProject.SimTests/ScenarioTests.cs
+// tests/KcpCSharpR1.SimTests/ScenarioTests.cs
 var mss = (int)pair.A.Mss;
 var rcvWnd = (int)pair.A.RcvWnd;
 
@@ -199,7 +199,7 @@ Assert.Equal(-2, pair.A.Send(tooBig));
 대부분은 할 일이 없습니다.
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 /// <remarks>
 /// 반환값과 현재 시각의 비교는 반드시 <c>(int)(now - check) &gt;= 0</c> 처럼 부호 있는 차이로 해야 한다.
 /// 단순 크기 비교는 약 49.7일 후 랩어라운드에서 영원히 갱신되지 않는 정지를 만든다(진단 B-02).
@@ -223,7 +223,7 @@ if (Kcp.Itimediff(now, next) >= 0)   // ← 반드시 이렇게 비교합니다
 `now >= next` 로 비교하면 그 순간 영원히 거짓이 되어 **서버가 조용히 멈춥니다.**
 
 ```csharp
-// tests/KcpProject.Tests/CodecTests.cs
+// tests/KcpCSharpR1.Tests/CodecTests.cs
 // 0x10 은 0xFFFF_FFF0 보다 32ms '뒤'다.
 Assert.Equal(32, Kcp._itimediff(0x10, 0xFFFFFFF0));
 
@@ -240,7 +240,7 @@ Assert.True(Kcp._itimediff(0x10, 0xFFFFFFF0) > 0);
 ## 통계로 회선 진단하기
 
 ```csharp
-// src/KcpProject/KcpStats.cs
+// src/KcpCSharpR1/KcpStats.cs
 public struct KcpStats
 {
     public ulong BytesSent, BytesReceived;
@@ -275,7 +275,7 @@ var rate = s.SegmentsSent == 0 ? 0 : retransmit * 100.0 / s.SegmentsSent;
 ## 스레딩 규약
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 /// <para>
 /// <b>스레딩 규약</b>: 인스턴스 1개는 소유 스레드 1개에서만 사용한다. 내부에 lock 이 없으므로
 /// 여러 스레드에서 동시에 호출하면 상태가 깨진다.
@@ -293,7 +293,7 @@ var rate = s.SegmentsSent == 0 ? 0 : retransmit * 100.0 / s.SegmentsSent;
 ## 자원 해제
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 /// <summary>
 /// 이 인스턴스가 들고 있는 모든 버퍼를 <see cref="System.Buffers.ArrayPool{T}"/> 에 돌려준다.
 /// 세션 종료 시 호출한다. 호출 이후에도 다시 <see cref="Send(byte[])"/> 등을 쓸 수 있다.
@@ -316,7 +316,7 @@ public void Release()
 
 1. **소켓 없이 왕복** — `Kcp` 두 개를 만들고 서로의 `output` 을 상대의 `Input` 에 직접 연결해
    보세요. 소켓 없이 KCP가 도는 것을 확인하면 이 클래스의 성격이 분명해집니다.
-   (`tests/KcpProject.SimTests/KcpPair.cs` 가 정확히 그것을 합니다.)
+   (`tests/KcpCSharpR1.SimTests/KcpPair.cs` 가 정확히 그것을 합니다.)
 2. **-2 재현하기** — `(RcvWnd) × Mss` 크기 메시지를 보내 `-2` 를 받아 보세요.
    그다음 `WndSize(256, 256)` 으로 키우면 얼마까지 보낼 수 있나요?
 3. **랩어라운드 버그 만들기** — 가상 시계를 `0xFFFF_FF00` 에서 시작시키고,

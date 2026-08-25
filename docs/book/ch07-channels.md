@@ -112,7 +112,7 @@ RAW 프레임에 `conv` 가 들어가는 이유는 **세션 확인**입니다.
 ### 비신뢰 채널의 크기 제한
 
 ```csharp
-// src/KcpProject.Transport/KcpSession.cs
+// src/KcpCSharpR1.Transport/KcpSession.cs
 var overhead = Framing.RawHeaderSize + (cipher?.Overhead ?? 0);
 if (data.Length + overhead > options.Mtu)
     return KcpSendResult.TooLarge;

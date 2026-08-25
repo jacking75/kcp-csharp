@@ -1,6 +1,9 @@
-# kcp-csharp
+# KcpCSharpR1
 
 **UDP 위에 필요한 만큼의 신뢰성을 얹는 C# 라이브러리.** 실시간 게임을 위한 KCP 구현입니다.
+
+> [skywind3000/kcp](https://github.com/skywind3000/kcp)(C) → [xtaci/kcp-go](https://github.com/xtaci/kcp-go)(Go) 를 잇는
+> C# 이식·재구성 프로젝트입니다. 자세한 계보는 [원출처](#원출처) 절을 보세요.
 
 ![net8.0](https://img.shields.io/badge/net-8.0-512BD4)
 ![netstandard2.1](https://img.shields.io/badge/netstandard-2.1-512BD4)
@@ -38,7 +41,7 @@ dotnet run --project samples/01-Echo/Client     # 터미널 2
 ### 서버
 
 ```csharp
-using KcpProject.Transport;
+using KcpCSharpR1.Transport;
 
 using var server = new KcpServer(27001);
 
@@ -130,12 +133,12 @@ while (true)          // 게임 루프에서 매 프레임
 
 ```bash
 # NuGet (배포 후)
-dotnet add package KcpProject
-dotnet add package KcpProject.Transport
+dotnet add package KcpCSharpR1
+dotnet add package KcpCSharpR1.Transport
 
 # 소스 참조
-dotnet add reference path/to/kcp-csharp/src/KcpProject/KcpProject.csproj
-dotnet add reference path/to/kcp-csharp/src/KcpProject.Transport/KcpProject.Transport.csproj
+dotnet add reference path/to/kcp-csharp/src/KcpCSharpR1/KcpCSharpR1.csproj
+dotnet add reference path/to/kcp-csharp/src/KcpCSharpR1.Transport/KcpCSharpR1.Transport.csproj
 ```
 
 | 타깃 | 용도 |
@@ -147,11 +150,11 @@ dotnet add reference path/to/kcp-csharp/src/KcpProject.Transport/KcpProject.Tran
 
 ```
 src/
-  KcpProject/            프로토콜 코어(의존성 0)
-  KcpProject.Transport/  소켓·세션·핸드셰이크·암호화·FEC
+  KcpCSharpR1/            프로토콜 코어(의존성 0)
+  KcpCSharpR1.Transport/  소켓·세션·핸드셰이크·암호화·FEC
 tests/
-  KcpProject.Tests/      단위 테스트
-  KcpProject.SimTests/   가상 네트워크 시나리오 + 실소켓 통합
+  KcpCSharpR1.Tests/      단위 테스트
+  KcpCSharpR1.SimTests/   가상 네트워크 시나리오 + 실소켓 통합
 benchmarks/              BenchmarkDotNet
 samples/                 샘플 5종 + LoadTest
 docs/                    온라인 책 + 벤치마크 기록 + 로드맵
@@ -163,22 +166,32 @@ docs/                    온라인 책 + 벤치마크 기록 + 로드맵
 dotnet build -c Release              # 경고 0 유지
 dotnet test  -c Release              # 207개
 dotnet test  -c Release --filter "Category!=Soak"   # 장시간 테스트 제외
-dotnet run   -c Release --project benchmarks/KcpProject.Benchmarks -- --filter '*'
+dotnet run   -c Release --project benchmarks/KcpCSharpR1.Benchmarks -- --filter '*'
 ```
 
-## 계보
+## 원출처
 
-[skywind3000/kcp](https://github.com/skywind3000/kcp)(C) →
-[xtaci/kcp-go](https://github.com/xtaci/kcp-go)(Go) → **kcp-csharp**(C#).
+이 저장소는 원본을 그대로 가져온 것이 아니라, 아래 계보를 따라 **C# 로 이식·재구성**한 결과물입니다.
 
-코어의 24바이트 헤더는 원본과 **바이트 단위로 호환**됩니다.
-`RawMode` 를 켜면 원본 kcp / kcp-go 서버와 직접 통신할 수 있습니다([부록 C](docs/book/appendix-c-interop.md)).
+[skywind3000/kcp](https://github.com/skywind3000/kcp)(C, MIT) →
+[xtaci/kcp-go](https://github.com/xtaci/kcp-go)(Go, MIT) → **KcpCSharpR1**(C#, 이 저장소).
+
+| 이어받은 것 | 새로 만든 것 |
+|---|---|
+| 프로토콜 로직(ARQ, 슬라이딩 윈도, RTO 계산, 혼잡 제어) — kcp-go 포팅 기반 | 전송 계층(핸드셰이크, 세션 수명, 스케줄러) |
+| 코어 24바이트 헤더 — **원본과 바이트 단위로 호환** | AES-256-GCM 암호화, Reed-Solomon FEC |
+| | 샘플 5종 + LoadTest 도구 |
+| | 온라인 책 17장 + 부록 5종 |
+
+프로토콜 로직은 C# 관용구(`Span<byte>`, `ArrayPool`, 이벤트 기반 세션, 주입 가능한 시계)로 재작성했지만
+와이어 포맷은 그대로 유지했습니다. `RawMode` 를 켜면 원본 kcp / kcp-go 서버와 직접 통신할 수 있습니다
+([부록 C](docs/book/appendix-c-interop.md)).
 
 ## 기여
 
 [CONTRIBUTING.md](CONTRIBUTING.md)를 봐 주세요.
 버그 리포트에는 재현 가능한 테스트를 함께 주시면 가장 좋습니다 —
-가상 시간 하네스(`tests/KcpProject.SimTests/KcpPair.cs`)로 결정적인 재현이 가능합니다.
+가상 시간 하네스(`tests/KcpCSharpR1.SimTests/KcpPair.cs`)로 결정적인 재현이 가능합니다.
 
 ## 라이선스
 

@@ -74,5 +74,5 @@ public static class ChatLimits
     public const int MaxMessageBytes = 4096;
 
     /// <summary>서버 접속 환영 문구.</summary>
-    public const string Motd = "kcp-csharp 채팅 샘플에 오신 것을 환영합니다. /help 로 명령을 볼 수 있습니다.";
+    public const string Motd = "KcpCSharpR1 채팅 샘플에 오신 것을 환영합니다. /help 로 명령을 볼 수 있습니다.";
 }

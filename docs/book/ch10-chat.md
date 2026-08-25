@@ -316,7 +316,7 @@ dotnet run --project samples/02-Chat/Client -- 127.0.0.1 철수
 ```
 
 ```
-* kcp-csharp 채팅 샘플에 오신 것을 환영합니다. /help 로 명령을 볼 수 있습니다.
+* KcpCSharpR1 채팅 샘플에 오신 것을 환영합니다. /help 로 명령을 볼 수 있습니다.
 * 접속자 1명: alice
 alice: 안녕하세요
 * 오류[TargetNotFound] 'bob' 은(는) 접속해 있지 않습니다.

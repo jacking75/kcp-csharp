@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.1;net8.0</TargetFrameworks>
+    <RootNamespace>KcpCSharpR1</RootNamespace>
+    <AssemblyName>KcpCSharpR1</AssemblyName>
+    <Description>KCP(신뢰성 UDP ARQ 프로토콜) C# 코어 구현. 외부 의존성 0.</Description>
+  </PropertyGroup>
+
+  <!-- 테스트에서 내부 상태(Segment 큐, RingBuffer 등)를 직접 검증한다. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="KcpCSharpR1.Tests" />
+    <InternalsVisibleTo Include="KcpCSharpR1.SimTests" />
+    <InternalsVisibleTo Include="KcpCSharpR1.Transport" />
+    <InternalsVisibleTo Include="KcpCSharpR1.Benchmarks" />
+  </ItemGroup>
+
+</Project>

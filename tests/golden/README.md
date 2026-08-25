@@ -1,7 +1,7 @@
 # 골든 패킷 벡터 (P2-5 상호운용 테스트)
 
 이 디렉터리의 `*.bin` 은 **KCP 와이어 포맷 그대로의 UDP 페이로드**다.
-`KcpProject.Tests/InteropTests.cs` 가 이 바이트를 `Kcp.Input` 에 그대로 흘려 넣어,
+`KcpCSharpR1.Tests/InteropTests.cs` 가 이 바이트를 `Kcp.Input` 에 그대로 흘려 넣어,
 애플리케이션 데이터가 동일하게 복원되는지 검증한다. 코어 리팩터링(Phase 3)에서
 와이어 호환이 깨지면 이 테스트가 먼저 깨진다.
 

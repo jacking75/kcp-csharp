@@ -66,7 +66,7 @@ FEC의 대표적인 방식입니다. 원리를 한 문단으로 줄이면:
 이 라이브러리는 반데르몬드 행렬을 조직 부호(systematic code)로 만들어 씁니다.
 
 ```csharp
-// src/KcpProject.Transport/Fec/ReedSolomon.cs
+// src/KcpCSharpR1.Transport/Fec/ReedSolomon.cs
 /// <para>
 /// 부호화 행렬은 반데르몬드 행렬을 상단 정사각 부분의 역행렬로 곱해 조직 부호(systematic code)로 만든 것이다.
 /// 즉 상단 k×k 가 단위행렬이라 데이터 샤드는 그대로 나가고 패리티만 계산된다.
@@ -82,7 +82,7 @@ FEC의 대표적인 방식입니다. 원리를 한 문단으로 줄이면:
 **유한체 GF(2^8)** 를 씁니다.
 
 ```csharp
-// src/KcpProject.Transport/Fec/GaloisField.cs
+// src/KcpCSharpR1.Transport/Fec/GaloisField.cs
 /// <remarks>
 /// 기약 다항식은 <c>x^8 + x^4 + x^3 + x^2 + 1</c>(0x11D), 생성원은 2 다.
 /// klauspost/reedsolomon 및 kcp-go 와 같은 설정이라 산출 바이트가 호환된다.
@@ -99,7 +99,7 @@ internal static class GaloisField
 덧셈이 XOR이라는 점이 재미있습니다. **더한 것을 다시 더하면 원래대로** 돌아옵니다.
 
 ```csharp
-// src/KcpProject.Transport/Fec/GaloisField.cs
+// src/KcpCSharpR1.Transport/Fec/GaloisField.cs
 public static byte Multiply(byte a, byte b)
 {
     if (a == 0 || b == 0) return 0;
@@ -120,7 +120,7 @@ for (var i = 255; i < 512; i++)
 살아남은 k개 샤드에 대응하는 행렬 부분을 뽑아 역행렬을 구하고, 곱합니다.
 
 ```csharp
-// src/KcpProject.Transport/Fec/ReedSolomon.cs
+// src/KcpCSharpR1.Transport/Fec/ReedSolomon.cs
 // 살아 있는 샤드 k 개를 골라 부분 행렬을 만든다.
 var subMatrix = new byte[DataShards][];
 var subShards = new byte[DataShards][];
@@ -157,7 +157,7 @@ kcp-go 와 같은 헤더를 씁니다.
 | `0xF2` | 패리티 샤드 |
 
 ```csharp
-// src/KcpProject.Transport/Fec/FecCodec.cs
+// src/KcpCSharpR1.Transport/Fec/FecCodec.cs
 /// <remarks>
 /// 헤더: <c>[seqid u32][flag u16]</c> (6바이트). 데이터 샤드는 그 뒤에 <c>[size u16]</c> 를 더 붙이고
 /// 실제 페이로드가 온다. <c>size</c> 는 <b>size 필드 자신을 포함한</b> 길이다(kcp-go 와 동일).
@@ -173,7 +173,7 @@ kcp-go 와 같은 헤더를 씁니다.
 `seqid` 하나로 그룹과 위치를 다 압니다.
 
 ```csharp
-// src/KcpProject.Transport/Fec/FecCodec.cs
+// src/KcpCSharpR1.Transport/Fec/FecCodec.cs
 var groupIndex = seq / (uint)rs.TotalShards;
 var position = (int)(seq % (uint)rs.TotalShards);
 
@@ -201,7 +201,7 @@ flowchart TB
 복원된 샤드는 `regular: false` 로 KCP에 넣습니다.
 
 ```csharp
-// src/KcpProject.Transport/KcpSession.cs
+// src/KcpCSharpR1.Transport/KcpSession.cs
 if (fecDecoder != null)
 {
     // 데이터 샤드면 payload 가 원본 KCP 패킷, 복원된 샤드는 콜백으로 온다.
@@ -281,7 +281,7 @@ var options = new KcpSessionOptions
 이 버전에서는 **FEC와 암호화를 함께 켤 수 없습니다.**
 
 ```csharp
-// src/KcpProject.Transport/KcpSessionOptions.cs
+// src/KcpCSharpR1.Transport/KcpSessionOptions.cs
 if (Fec != null && (EncryptionKey != null || Cipher != null))
     throw new ArgumentException("이 버전에서는 FEC 와 암호화를 함께 켤 수 없습니다(로드맵 P5-2 참조).", nameof(Fec));
 ```

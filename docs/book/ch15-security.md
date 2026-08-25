@@ -41,7 +41,7 @@ DNS나 NTP 증폭이 유명합니다. 60바이트 요청으로 4000바이트 응
 **증폭이 없습니다.** 특히 두 번째가 중요합니다.
 
 ```csharp
-// src/KcpProject.Transport/KcpServer.cs
+// src/KcpCSharpR1.Transport/KcpServer.cs
 if (Framing.PeekType(frame) == FrameType.Syn)
 {
     HandleSyn(frame, remote, now);
@@ -68,7 +68,7 @@ if (Framing.PeekType(frame) == FrameType.Syn)
 회선 앞단의 DDoS 방어 서비스가 함께 필요합니다.
 
 ```csharp
-// src/KcpProject.Transport/KcpServer.cs
+// src/KcpCSharpR1.Transport/KcpServer.cs
 // 쿠키 검증 통과 → 이제서야 세션을 만든다.
 if (sessions.Count >= options.MaxSessions)
     return;   // 상한 초과는 무응답 폐기
@@ -80,7 +80,7 @@ if (sessions.Count >= options.MaxSessions)
 프레임 타입 바이트는 평문으로 남습니다(수신측이 복호화 전에 종류를 알아야 하므로).
 
 ```csharp
-// src/KcpProject.Transport/KcpSessionOptions.cs
+// src/KcpCSharpR1.Transport/KcpSessionOptions.cs
 /// <summary>
 /// AES-256-GCM 세션 키(32바이트). 지정하면 KCP·RAW 프레임의 페이로드를 암호화한다(P5-1).
 /// </summary>
@@ -105,7 +105,7 @@ using var client = new KcpClient(options);
 태그가 맞지 않으면 **한 비트라도 바뀐 것**입니다. 복호화 결과를 아예 내주지 않습니다.
 
 ```csharp
-// src/KcpProject.Transport/AesGcmPacketCipher.cs
+// src/KcpCSharpR1.Transport/AesGcmPacketCipher.cs
 try
 {
     aes.Decrypt(nonce, body, tag, destination.Slice(0, payloadLength));
@@ -133,7 +133,7 @@ nonce(12B) = conv(4B) ‖ counter(8B)
 ```
 
 ```csharp
-// src/KcpProject.Transport/AesGcmPacketCipher.cs
+// src/KcpCSharpR1.Transport/AesGcmPacketCipher.cs
 private void BuildNonce(Span<byte> nonce, ulong counter)
 {
     BinaryPrimitives.WriteUInt32LittleEndian(nonce, conv);
@@ -152,7 +152,7 @@ private void BuildNonce(Span<byte> nonce, ulong counter)
 **같은 nonce가 생깁니다.** 그래서 방향마다 시작점을 다르게 합니다.
 
 ```csharp
-// src/KcpProject.Transport/AesGcmPacketCipher.cs
+// src/KcpCSharpR1.Transport/AesGcmPacketCipher.cs
 // 방향마다 카운터 공간을 나눠 nonce 재사용을 원천 차단한다.
 sendCounter = serverDirection ? 1UL << 63 : 0UL;
 ```
@@ -163,7 +163,7 @@ sendCounter = serverDirection ? 1UL << 63 : 0UL;
 수신측은 방향까지 검사합니다.
 
 ```csharp
-// src/KcpProject.Transport/AesGcmPacketCipher.cs
+// src/KcpCSharpR1.Transport/AesGcmPacketCipher.cs
 // 상대 방향의 카운터 공간이 아니면 거부한다.
 var expectServerHighBit = !serverDirection;
 var hasHighBit = (counter & (1UL << 63)) != 0;
@@ -181,7 +181,7 @@ if (hasHighBit != expectServerHighBit) return true;   // 리플레이로 취급
 그래서 **64비트 비트마스크**를 씁니다.
 
 ```csharp
-// src/KcpProject.Transport/AesGcmPacketCipher.cs
+// src/KcpCSharpR1.Transport/AesGcmPacketCipher.cs
 private bool IsReplay(ulong counter)
 {
     ...
@@ -220,7 +220,7 @@ private void MarkSeen(ulong counter)
 IPsec의 anti-replay 윈도와 같은 방식입니다. 테스트로 못 박습니다.
 
 ```csharp
-// tests/KcpProject.Tests/CryptoTests.cs
+// tests/KcpCSharpR1.Tests/CryptoTests.cs
 [Fact]
 public void 윈도_안에서_순서가_뒤바뀐_패킷은_받아준다()
 {
@@ -241,7 +241,7 @@ public void 윈도_안에서_순서가_뒤바뀐_패킷은_받아준다()
 **이 라이브러리는 키 합의를 하지 않습니다.** 의도적인 선택입니다.
 
 ```csharp
-// src/KcpProject.Transport/AesGcmPacketCipher.cs
+// src/KcpCSharpR1.Transport/AesGcmPacketCipher.cs
 /// <para>
 /// <b>키 교부는 라이브러리의 일이 아니다.</b> 게임은 보통 TLS 웹 API 로그인에서 세션 키를 받아 오므로,
 /// 그 32바이트를 <see cref="KcpSessionOptions.EncryptionKey"/> 에 넣어 주면 된다.

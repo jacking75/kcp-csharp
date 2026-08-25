@@ -8,13 +8,13 @@
 
 | 네임스페이스 | 어셈블리 | 내용 |
 |---|---|---|
-| `KcpProject` | `KcpProject` | 프로토콜 코어. **의존성 0** |
-| `KcpProject.Transport` | `KcpProject.Transport` | 소켓·세션·핸드셰이크 |
-| `KcpProject.Transport.Fec` | `KcpProject.Transport` | FEC(리드-솔로몬) |
+| `KcpCSharpR1` | `KcpCSharpR1` | 프로토콜 코어. **의존성 0** |
+| `KcpCSharpR1.Transport` | `KcpCSharpR1.Transport` | 소켓·세션·핸드셰이크 |
+| `KcpCSharpR1.Transport.Fec` | `KcpCSharpR1.Transport` | FEC(리드-솔로몬) |
 
 ---
 
-## `KcpProject.Kcp` — 프로토콜 코어
+## `KcpCSharpR1.Kcp` — 프로토콜 코어
 
 → [5장](ch05-core-api.md)
 
@@ -103,7 +103,7 @@ public Kcp(uint conv_, Action<byte[], int> output_, Func<uint>? currentTimeMs = 
 
 ---
 
-## `KcpProject.KcpStats`
+## `KcpCSharpR1.KcpStats`
 
 → [5장](ch05-core-api.md)
 
@@ -120,7 +120,7 @@ public Kcp(uint conv_, Action<byte[], int> output_, Func<uint>? currentTimeMs = 
 
 ---
 
-## `KcpProject.KcpClock`
+## `KcpCSharpR1.KcpClock`
 
 | 멤버 | 설명 |
 |---|---|
@@ -128,7 +128,7 @@ public Kcp(uint conv_, Action<byte[], int> output_, Func<uint>? currentTimeMs = 
 
 ---
 
-## `KcpProject.Transport.KcpClient`
+## `KcpCSharpR1.Transport.KcpClient`
 
 → [4장](ch04-getting-started.md), [6장](ch06-session.md)
 
@@ -154,7 +154,7 @@ public KcpClient(KcpSessionOptions? options = null, Func<uint>? clock = null)
 
 ---
 
-## `KcpProject.Transport.KcpServer`
+## `KcpCSharpR1.Transport.KcpServer`
 
 → [6장](ch06-session.md), [17장](ch17-operations.md)
 
@@ -180,7 +180,7 @@ public KcpServer(int port, KcpServerOptions? options = null, Func<uint>? clock =
 
 ---
 
-## `KcpProject.Transport.KcpSession`
+## `KcpCSharpR1.Transport.KcpSession`
 
 → [6장](ch06-session.md)
 
@@ -226,7 +226,7 @@ public KcpServer(int port, KcpServerOptions? options = null, Func<uint>? clock =
 
 ---
 
-## `KcpProject.Transport.KcpSessionOptions`
+## `KcpCSharpR1.Transport.KcpSessionOptions`
 
 → [6장](ch06-session.md), [8장](ch08-tuning.md)
 
@@ -249,7 +249,7 @@ public KcpServer(int port, KcpServerOptions? options = null, Func<uint>? clock =
 | `Cipher` | null(`IPacketCipher`) |
 | `Fec` | null(`FecOptions`) |
 
-## `KcpProject.Transport.KcpServerOptions`
+## `KcpCSharpR1.Transport.KcpServerOptions`
 
 | 속성 | 기본값 |
 |---|---|
@@ -262,7 +262,7 @@ public KcpServer(int port, KcpServerOptions? options = null, Func<uint>? clock =
 
 ---
 
-## `KcpProject.Transport.Framing`
+## `KcpCSharpR1.Transport.Framing`
 
 → [부록 C](appendix-c-interop.md)
 
@@ -271,7 +271,7 @@ public KcpServer(int port, KcpServerOptions? options = null, Func<uint>? clock =
 
 전부 정적 `Write*` / `TryRead*` 쌍입니다.
 
-## `KcpProject.Transport.HandshakeCookie`
+## `KcpCSharpR1.Transport.HandshakeCookie`
 
 → [6장](ch06-session.md), [15장](ch15-security.md)
 
@@ -283,7 +283,7 @@ public KcpServer(int port, KcpServerOptions? options = null, Func<uint>? clock =
 | `bool Validate(AddressKey remote, uint cookie, long unixSeconds)` | 현재·직전 버킷 허용 |
 | `const int BucketSeconds` | 30 |
 
-## `KcpProject.Transport.AesGcmPacketCipher`
+## `KcpCSharpR1.Transport.AesGcmPacketCipher`
 
 → [15장](ch15-security.md)
 
@@ -297,7 +297,7 @@ public KcpServer(int port, KcpServerOptions? options = null, Func<uint>? clock =
 
 > netstandard2.1 런타임에는 `AesGcm` 이 없습니다. `IPacketCipher` 를 직접 구현해 주입하세요.
 
-## `KcpProject.Transport.IUdpTransport`
+## `KcpCSharpR1.Transport.IUdpTransport`
 
 | 멤버 | 설명 |
 |---|---|
@@ -307,9 +307,9 @@ public KcpServer(int port, KcpServerOptions? options = null, Func<uint>? clock =
 | `bool WaitForData(int microseconds)` | |
 | `IPEndPoint? LocalEndPoint` | |
 
-구현: `UdpSocketTransport`(실소켓). 테스트용 가상 구현은 `tests/KcpProject.SimTests/VirtualNetwork.cs`.
+구현: `UdpSocketTransport`(실소켓). 테스트용 가상 구현은 `tests/KcpCSharpR1.SimTests/VirtualNetwork.cs`.
 
-## `KcpProject.Transport.Fec.FecOptions`
+## `KcpCSharpR1.Transport.Fec.FecOptions`
 
 → [16장](ch16-fec.md)
 
@@ -318,7 +318,7 @@ public KcpServer(int port, KcpServerOptions? options = null, Func<uint>? clock =
 | `DataShards` | 10 |
 | `ParityShards` | 3 |
 
-## `KcpProject.Transport.KcpServerMetrics`
+## `KcpCSharpR1.Transport.KcpServerMetrics`
 
 → [17장](ch17-operations.md)
 
@@ -332,7 +332,7 @@ public KcpServer(int port, KcpServerOptions? options = null, Func<uint>? clock =
 
 | 타입 | 상태 |
 |---|---|
-| `KcpProject.KCP` | `[Obsolete]` — `Kcp` 로 이름 변경 |
-| `KcpProject.UDPSession` | `[Obsolete]` — `KcpClient` 로 대체 |
+| `KcpCSharpR1.KCP` | `[Obsolete]` — `Kcp` 로 이름 변경 |
+| `KcpCSharpR1.UDPSession` | `[Obsolete]` — `KcpClient` 로 대체 |
 
 다음 메이저 버전에서 제거됩니다.

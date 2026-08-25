@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Threading.Tasks;
-using KcpProject.Transport;
+using KcpCSharpR1.Transport;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -120,7 +120,7 @@ internal sealed class TankBattleGame : Game
     /// <inheritdoc/>
     protected override void Initialize()
     {
-        Window.Title = "kcp-csharp 샘플 5 - TankBattle";
+        Window.Title = "KcpCSharpR1 샘플 5 - TankBattle";
 
         client.ReliableReceived += (_, data) => HandleReliable(data.Span);
         client.UnreliableReceived += (_, data) => HandleSnapshot(data.Span);

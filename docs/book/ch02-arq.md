@@ -91,7 +91,7 @@ stop-and-wait의 **32배**입니다. 윈도를 키우면 더 늘어납니다.
 실제로 보낼 수 있는 양은 **셋 중 가장 작은 값**입니다.
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 // 윈도 크기 계산
 var cwnd_ = _imin_(snd_wnd, rmt_wnd);
 if (0 == nocwnd)
@@ -162,7 +162,7 @@ sequenceDiagram
 덕분에 무엇을 다시 보낼지 정확히 압니다.
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 private void parse_ack(uint sn)
 {
     if (_itimediff(sn, snd_una) < 0 || _itimediff(sn, snd_nxt) >= 0) return;
@@ -189,7 +189,7 @@ private void parse_ack(uint sn)
 **평활(smoothing)** 을 합니다.
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 private void update_ack(int rtt)
 {
     if (0 == rx_srtt)
@@ -236,7 +236,7 @@ RTO가 RTT에 가까워 빠르게 복구하고, 불안정하면 여유를 둡니
 재전송했는데도 안 오면 회선이 나쁜 것입니다. 기다리는 시간을 늘립니다.
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 else if (_itimediff(current, segment.resendts) >= 0) // RTO 만료
 {
     needsend = true;
@@ -261,7 +261,7 @@ RTO를 기다리는 것은 느립니다. **더 빨리 알 방법**이 있습니�
 송신측에서 보면 **"#3보다 뒤엣것들의 ACK가 계속 오는데 #3의 ACK만 안 온다"** 는 신호입니다.
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 private void parse_fastack(uint sn, uint ts)
 {
     if (_itimediff(sn, snd_una) < 0 || _itimediff(sn, snd_nxt) >= 0)
@@ -283,7 +283,7 @@ private void parse_fastack(uint sn, uint ts)
 이 카운터가 임계값(보통 2)에 도달하면 RTO를 기다리지 않고 보냅니다.
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 else if (segment.fastack >= resent) // 빠른 재전송
 {
     needsend = true;
@@ -302,7 +302,7 @@ RTO(수십~수백 ms) 대신 **한 RTT 안에** 복구합니다.
 KCP에는 한 가지가 더 있습니다.
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 else if (segment.fastack > 0 && newSegsCount == 0) // 조기 재전송
 {
     needsend = true;
@@ -321,7 +321,7 @@ else if (segment.fastack > 0 && newSegsCount == 0) // 조기 재전송
 3장을 이해하는 발판이 됩니다.
 
 ```csharp
-// 설명용 코드입니다. tests/KcpProject.SimTests/SimulatedLink.cs 를 그대로 쓸 수 있습니다.
+// 설명용 코드입니다. tests/KcpCSharpR1.SimTests/SimulatedLink.cs 를 그대로 쓸 수 있습니다.
 var link = new SimulatedLink(seed: 1) { DelayMs = 50, LossRate = 0.2 };
 
 uint now = 0;

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Gomoku.Shared;
-using KcpProject.Transport;
+using KcpCSharpR1.Transport;
 
 namespace Gomoku.Server;
 

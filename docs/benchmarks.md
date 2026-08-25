@@ -7,13 +7,13 @@ Phase 3(성능 최적화)의 기준선과 개선 결과를 기록한다. 로드�
 
 ```bash
 # 전체
-dotnet run -c Release --project benchmarks/KcpProject.Benchmarks -- --filter '*'
+dotnet run -c Release --project benchmarks/KcpCSharpR1.Benchmarks -- --filter '*'
 
 # 개별
-dotnet run -c Release --project benchmarks/KcpProject.Benchmarks -- --filter '*SendRecvRoundtrip*'
-dotnet run -c Release --project benchmarks/KcpProject.Benchmarks -- --filter '*InputAckBatch*'
-dotnet run -c Release --project benchmarks/KcpProject.Benchmarks -- --filter '*FlushLargeWindow*'
-dotnet run -c Release --project benchmarks/KcpProject.Benchmarks -- --filter '*FragmentationLarge*'
+dotnet run -c Release --project benchmarks/KcpCSharpR1.Benchmarks -- --filter '*SendRecvRoundtrip*'
+dotnet run -c Release --project benchmarks/KcpCSharpR1.Benchmarks -- --filter '*InputAckBatch*'
+dotnet run -c Release --project benchmarks/KcpCSharpR1.Benchmarks -- --filter '*FlushLargeWindow*'
+dotnet run -c Release --project benchmarks/KcpCSharpR1.Benchmarks -- --filter '*FragmentationLarge*'
 ```
 
 모든 벤치마크에 `[MemoryDiagnoser]` 가 붙어 있어 할당(B/op)이 함께 나온다.

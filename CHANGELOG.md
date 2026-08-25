@@ -9,7 +9,7 @@
 
 ### 추가됨
 
-- **전송 계층** `KcpProject.Transport`
+- **전송 계층** `KcpCSharpR1.Transport`
   - `KcpClient` / `KcpServer` / `KcpSession` — 핸드셰이크·keepalive·정상 종료를 포함한 세션 관리
   - 무상태 SYN 쿠키 핸드셰이크(HMAC-SHA256, 30초 타임버킷) — 상태 고갈 공격 방어
   - 신뢰(KCP) / 비신뢰(RAW) 두 채널

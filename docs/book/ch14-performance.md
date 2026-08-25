@@ -43,7 +43,7 @@ flowchart LR
 ### ① ArrayPool 로 세그먼트 페이로드 빌리기
 
 ```csharp
-// src/KcpProject/KcpSegment.cs
+// src/KcpCSharpR1/KcpSegment.cs
 /// <para>
 /// 페이로드는 <see cref="ArrayPool{T}.Shared"/> 에서 빌린 배열이다. 대여 배열은 요청보다 클 수 있으므로
 /// <b>유효 길이는 반드시 <see cref="Len"/> 으로 관리</b>하며 <c>Data.Length</c> 를 길이로 쓰지 않는다.
@@ -72,7 +72,7 @@ internal void Rent(int capacity)
 **서로 다른 두 곳이 같은 메모리를 쓰게 됩니다.** 재현이 거의 불가능한 버그가 됩니다.
 
 ```csharp
-// src/KcpProject/KcpSegment.cs
+// src/KcpCSharpR1/KcpSegment.cs
 private void ReturnBuffer()
 {
     if (Data.Length > 0)
@@ -87,7 +87,7 @@ private void ReturnBuffer()
 테스트로 못 박습니다.
 
 ```csharp
-// tests/KcpProject.Tests/CodecTests.cs
+// tests/KcpCSharpR1.Tests/CodecTests.cs
 [Fact]
 public void Segment_Reset은_여러번_불러도_안전하다()
 {
@@ -109,7 +109,7 @@ public void Segment_Reset은_여러번_불러도_안전하다()
 `BinaryPrimitives` 를 쓰면 임시 배열 없이 바이트를 읽고 씁니다.
 
 ```csharp
-// src/KcpProject/KcpCodec.cs
+// src/KcpCSharpR1/KcpCodec.cs
 public static int WriteHeader(Span<byte> p, uint conv, byte cmd, byte frg, ushort wnd, uint ts, uint sn, uint una, uint len)
 {
     WriteU32(p, conv);
@@ -138,7 +138,7 @@ KCP의 네 큐는 **"앞에서 n개 제거"** 가 잦습니다.
 `List<T>.RemoveRange(0, n)` 은 매번 나머지를 앞으로 당깁니다 — O(n)입니다.
 
 ```csharp
-// src/KcpProject/RingBuffer.cs
+// src/KcpCSharpR1/RingBuffer.cs
 /// <remarks>
 /// KCP 의 네 큐(snd_queue, rcv_queue, snd_buf, rcv_buf)는 "앞에서 n개 제거"가 잦다.
 /// <see cref="System.Collections.Generic.List{T}"/> 의 <c>RemoveRange(0, n)</c> 는 매번 O(n) 이동이 발생하지만
@@ -169,7 +169,7 @@ public void RemoveFront(int n)
 세그먼트 풀이 전역 static이면 세션이 늘수록 **모든 세션이 같은 락을 두드립니다.**
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 // 인스턴스 전용 세그먼트 풀. 소유 스레드 규약(2.3절) 덕분에 lock 이 필요 없다(진단 PF-06).
 private readonly Stack<KcpSegment> segmentPool = new Stack<KcpSegment>(32);
 ```
@@ -225,8 +225,8 @@ private readonly Stack<KcpSegment> segmentPool = new Stack<KcpSegment>(32);
 ### 재현하기
 
 ```bash
-dotnet run -c Release --project benchmarks/KcpProject.Benchmarks -- --filter '*'
-dotnet run -c Release --project benchmarks/KcpProject.Benchmarks -- --filter '*SendRecvRoundtrip*'
+dotnet run -c Release --project benchmarks/KcpCSharpR1.Benchmarks -- --filter '*'
+dotnet run -c Release --project benchmarks/KcpCSharpR1.Benchmarks -- --filter '*SendRecvRoundtrip*'
 ```
 
 **반드시 `-c Release`** 입니다. Debug 빌드 수치는 의미가 없습니다.
@@ -243,7 +243,7 @@ dotnet run -c Release --project benchmarks/KcpProject.Benchmarks -- --filter '*S
 WINS 패킷을 하나 넣어 윈도를 열어 준 뒤에야 제대로 잴 수 있었습니다.
 
 ```csharp
-// benchmarks/KcpProject.Benchmarks/KcpBenchmarks.cs
+// benchmarks/KcpCSharpR1.Benchmarks/KcpBenchmarks.cs
 // 상대가 큰 윈도를 통지해야 snd_buf 가 실제로 WindowSize 만큼 찬다(rmt_wnd 기본값은 32).
 var wins = new byte[Kcp.IKCP_OVERHEAD];
 ...
@@ -265,7 +265,7 @@ kcp.Input(wins, 0, wins.Length, true, false);
 순회 구간에서 배열·head·mask를 지역에 붙잡는 **스냅숏 뷰**를 도입해 기준선보다 빠르게 되돌렸습니다.
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 // 이 루프는 snd_buf 를 수정하지 않으므로 스냅숏 뷰로 순회한다(원소당 필드 재로드 제거).
 var sndBufView = snd_buf.CreateView();
 var sndBufCount = snd_buf.Count;

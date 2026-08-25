@@ -1,7 +1,7 @@
 # 4장. 시작하기
 
 > **학습 목표**
-> 1. kcp-csharp 를 프로젝트에 넣고 에코 서버와 클라이언트를 직접 돌릴 수 있습니다.
+> 1. KcpCSharpR1 를 프로젝트에 넣고 에코 서버와 클라이언트를 직접 돌릴 수 있습니다.
 > 2. `Update()` 루프가 왜 필요한지, 부르지 않으면 어떤 증상이 나는지 설명할 수 있습니다.
 > 3. 처음 만나는 세 가지 실수(Update 누락, 방화벽, 포트 충돌)를 스스로 진단할 수 있습니다.
 
@@ -10,19 +10,19 @@
 ### NuGet (배포 후)
 
 ```bash
-dotnet add package KcpProject
-dotnet add package KcpProject.Transport
+dotnet add package KcpCSharpR1
+dotnet add package KcpCSharpR1.Transport
 ```
 
-`KcpProject` 는 프로토콜 코어(의존성 0), `KcpProject.Transport` 는 소켓·세션 계층입니다.
+`KcpCSharpR1` 는 프로토콜 코어(의존성 0), `KcpCSharpR1.Transport` 는 소켓·세션 계층입니다.
 직접 소켓을 다루겠다면 코어만 참조해도 됩니다.
 
 ### 소스 참조 (지금 방식)
 
 ```bash
 git clone https://github.com/jacking75/kcp-csharp
-dotnet add reference ../kcp-csharp/src/KcpProject/KcpProject.csproj
-dotnet add reference ../kcp-csharp/src/KcpProject.Transport/KcpProject.Transport.csproj
+dotnet add reference ../kcp-csharp/src/KcpCSharpR1/KcpCSharpR1.csproj
+dotnet add reference ../kcp-csharp/src/KcpCSharpR1.Transport/KcpCSharpR1.Transport.csproj
 ```
 
 ### 지원 플랫폼
@@ -200,7 +200,7 @@ protected override void Update(GameTime gameTime)
 임시로 확인하려면 관리자 PowerShell에서
 
 ```powershell
-New-NetFirewallRule -DisplayName "kcp-csharp dev" -Direction Inbound -Protocol UDP -LocalPort 27001-27199 -Action Allow
+New-NetFirewallRule -DisplayName "KcpCSharpR1 dev" -Direction Inbound -Protocol UDP -LocalPort 27001-27199 -Action Allow
 ```
 
 **주의**: 개발용 임시 규칙입니다. 끝나면 지우세요.
@@ -227,7 +227,7 @@ Get-NetUDPEndpoint -LocalPort 27001 | Select-Object -Property LocalAddress,Local
 ```csharp
 using System.Net;
 using System.Text;
-using KcpProject.Transport;
+using KcpCSharpR1.Transport;
 
 using var server = new KcpServer(27001);
 server.ReliableReceived += (session, data) => session.Send(data.Span);
@@ -242,7 +242,7 @@ Thread.Sleep(Timeout.Infinite);
 ```csharp
 using System.Net;
 using System.Text;
-using KcpProject.Transport;
+using KcpCSharpR1.Transport;
 
 using var client = new KcpClient();
 client.ReliableReceived += (_, data) =>

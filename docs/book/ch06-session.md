@@ -54,7 +54,7 @@ TCP의 SYN 플러드와 같은 공격이며, TCP는 SYN 쿠키로 막습니다. 
 ### 쿠키는 상태를 저장하지 않는다
 
 ```csharp
-// src/KcpProject.Transport/HandshakeCookie.cs
+// src/KcpCSharpR1.Transport/HandshakeCookie.cs
 /// <para>
 /// 서버는 SYN 을 받아도 <b>세션을 만들지 않는다</b>. 대신
 /// <c>cookie = HMAC-SHA256(serverSecret, 클라IP‖포트‖타임버킷)</c> 의 앞 4바이트를 돌려주고 잊는다.
@@ -66,7 +66,7 @@ TCP의 SYN 플러드와 같은 공격이며, TCP는 SYN 쿠키로 막습니다. 
 쿠키는 클라이언트 주소와 시각으로부터 계산되므로, 다시 받았을 때 같은 식으로 계산해 비교하면 됩니다.
 
 ```csharp
-// src/KcpProject.Transport/HandshakeCookie.cs
+// src/KcpCSharpR1.Transport/HandshakeCookie.cs
 private uint ComputeForBucket(AddressKey remote, long bucket)
 {
     Span<byte> message = stackalloc byte[AddressKey.SerializedSize + sizeof(long)];
@@ -90,7 +90,7 @@ private uint ComputeForBucket(AddressKey remote, long bucket)
 그래서 30초 단위 버킷을 씁니다.
 
 ```csharp
-// src/KcpProject.Transport/HandshakeCookie.cs
+// src/KcpCSharpR1.Transport/HandshakeCookie.cs
 public bool Validate(AddressKey remote, uint cookie, long unixSeconds)
 {
     if (cookie == 0) return false;
@@ -115,7 +115,7 @@ public bool Validate(AddressKey remote, uint cookie, long unixSeconds)
 지금은 서버가 단조 증가 카운터로 할당합니다(0은 예약).
 
 ```csharp
-// src/KcpProject.Transport/KcpServer.cs
+// src/KcpCSharpR1.Transport/KcpServer.cs
 var conv = nextConv++;
 if (nextConv == 0) nextConv = 1;   // 0 은 예약
 ```
@@ -158,7 +158,7 @@ stateDiagram-v2
 그러면 상대는 "아직 살아 있네"라고 판단해 **영원히 타임아웃되지 않았습니다.**
 
 ```csharp
-// src/KcpProject.Transport/KcpSession.cs
+// src/KcpCSharpR1.Transport/KcpSession.cs
 public void OnFrame(ReadOnlySpan<byte> frame, uint now)
 {
     // 이미 끝난 세션은 어떤 프레임에도 반응하지 않는다.
@@ -175,7 +175,7 @@ public void OnFrame(ReadOnlySpan<byte> frame, uint now)
 ## 수명 파라미터
 
 ```csharp
-// src/KcpProject.Transport/KcpSessionOptions.cs
+// src/KcpCSharpR1.Transport/KcpSessionOptions.cs
 public int HandshakeTimeoutMs { get; set; } = 5_000;
 public int HandshakeRetryIntervalMs { get; set; } = 1_000;
 public int HandshakeMaxRetries { get; set; } = 3;
@@ -209,7 +209,7 @@ public int MaxSendBacklog { get; set; } = 1024;
 ## 백프레셔
 
 ```csharp
-// src/KcpProject.Transport/KcpSession.cs
+// src/KcpCSharpR1.Transport/KcpSession.cs
 public KcpSendResult Send(ReadOnlySpan<byte> data)
 {
     if (state != KcpSessionState.Connected || kcp == null)
@@ -247,7 +247,7 @@ public KcpSendResult Send(ReadOnlySpan<byte> data)
 서버 쪽이 특히 중요합니다.
 
 ```csharp
-// src/KcpProject.Transport/KcpServer.cs
+// src/KcpCSharpR1.Transport/KcpServer.cs
 /// <para>
 /// <b>이벤트는 수신 루프 스레드에서 발화한다.</b> 게임 로직은 별도 스레드에서 돌리고,
 /// 이벤트 핸들러에서는 큐에 넣기만 하는 것이 정석이다.
@@ -305,7 +305,7 @@ lock (players)
 원본 kcp나 kcp-go 서버에는 그런 것이 없습니다.
 
 ```csharp
-// src/KcpProject.Transport/KcpSessionOptions.cs
+// src/KcpCSharpR1.Transport/KcpSessionOptions.cs
 /// <summary>
 /// true 면 프레이밍 없이 순수 KCP 패킷만 주고받는다(kcp-go 등과 상호운용).
 /// 이 경우 핸드셰이크·PING·FIN 이 없으므로 conv 를 직접 지정해야 한다.

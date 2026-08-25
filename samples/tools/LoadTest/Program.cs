@@ -6,8 +6,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using KcpProject;
-using KcpProject.Transport;
+using KcpCSharpR1;
+using KcpCSharpR1.Transport;
 
 namespace LoadTest;
 

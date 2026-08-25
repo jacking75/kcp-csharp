@@ -32,5 +32,5 @@ dotnet test  -c Release     # tests/ 생성(P2-1) 이후
 ## 컨벤션
 
 - 대화·주석·XML 문서·커밋 메시지: 한국어. 커밋은 `P1-3: 요약` 형식(작업 ID 접두사).
-- 네임스페이스 `KcpProject` / `KcpProject.Transport` 유지. `#nullable enable`, 공개 API PascalCase.
+- 네임스페이스 `KcpCSharpR1` / `KcpCSharpR1.Transport` 유지. `#nullable enable`, 공개 API PascalCase.
 

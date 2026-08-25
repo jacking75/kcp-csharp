@@ -10,8 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\KcpProject\KcpProject.csproj" />
-    <ProjectReference Include="..\..\..\src\KcpProject.Transport\KcpProject.Transport.csproj" />
+    <ProjectReference Include="..\..\..\src\KcpCSharpR1\KcpCSharpR1.csproj" />
+    <ProjectReference Include="..\..\..\src\KcpCSharpR1.Transport\KcpCSharpR1.Transport.csproj" />
   </ItemGroup>
 
 </Project>

@@ -8,7 +8,7 @@
 ## `NoDelay(nodelay, interval, resend, nc)`
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 /// <param name="nodelay_">0: 비활성(기본), 1: 활성.</param>
 /// <param name="interval_">내부 갱신 간격(ms). 기본 100.</param>
 /// <param name="resend_">0: 빠른 재전송 끔(기본), n: 중복 ACK n회에 재전송.</param>
@@ -21,7 +21,7 @@ public int NoDelay(int nodelay_, int interval_, int resend_, int nc_)
 RTO(재전송 대기 시간)가 만료되면 다시 보내고, RTO를 늘립니다. 얼마나 늘리느냐가 다릅니다.
 
 ```csharp
-// src/KcpProject/Kcp.cs
+// src/KcpCSharpR1/Kcp.cs
 else if (_itimediff(current, segment.resendts) >= 0) // RTO 만료
 {
     needsend = true;

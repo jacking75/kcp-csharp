@@ -35,8 +35,8 @@ dotnet new mgdesktopgl -o MyGame
 
   <ItemGroup>
     <ProjectReference Include="..\Shared\Gomoku.Shared.csproj" />
-    <ProjectReference Include="..\..\..\src\KcpProject\KcpProject.csproj" />
-    <ProjectReference Include="..\..\..\src\KcpProject.Transport\KcpProject.Transport.csproj" />
+    <ProjectReference Include="..\..\..\src\KcpCSharpR1\KcpCSharpR1.csproj" />
+    <ProjectReference Include="..\..\..\src\KcpCSharpR1.Transport\KcpCSharpR1.Transport.csproj" />
   </ItemGroup>
 
 </Project>
@@ -105,7 +105,7 @@ public void Poll() => client.Update();
 // samples/03-Gomoku/Client/GomokuGame.cs
 protected override void Initialize()
 {
-    Window.Title = "kcp-csharp 샘플 3 - Gomoku";
+    Window.Title = "KcpCSharpR1 샘플 3 - Gomoku";
     _ = network.ConnectAsync(host, reconnectToken);   // await 하지 않는다
     base.Initialize();
 }

@@ -31,7 +31,7 @@ using var client = new KcpClient(options);
 ```
 
 ```csharp
-// src/KcpProject.Transport/KcpSessionOptions.cs
+// src/KcpCSharpR1.Transport/KcpSessionOptions.cs
 /// <summary>
 /// true 면 프레이밍 없이 순수 KCP 패킷만 주고받는다(kcp-go 등과 상호운용).
 /// 이 경우 핸드셰이크·PING·FIN 이 없으므로 conv 를 직접 지정해야 한다.
@@ -95,7 +95,7 @@ C 코드를 포팅한다면 `ikcp_update(kcp, t)` → `clock = () => t; kcp.Upda
 공통 헤더: `conv = 0x11223344`, `wnd = 32`.
 
 ```csharp
-// tests/KcpProject.Tests/InteropTests.cs
+// tests/KcpCSharpR1.Tests/InteropTests.cs
 [Fact]
 public void 골든_조각패킷이_원본_메시지로_복원된다()
 {

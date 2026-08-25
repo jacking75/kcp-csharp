@@ -24,7 +24,7 @@ var pair = KcpPair.Create(seed: 42, loss: 0.20, delayMs: 50);
 pair.A.Send(payload);
 Assert.True(pair.RunUntil(() => pair.ReceivedB.Length == payload.Length, maxMs: 60_000));
 
-전송 계층 문제라면 tests/KcpProject.SimTests/VirtualNetwork.cs 를 참고하세요.
+전송 계층 문제라면 tests/KcpCSharpR1.SimTests/VirtualNetwork.cs 를 참고하세요.
 -->
 
 1.

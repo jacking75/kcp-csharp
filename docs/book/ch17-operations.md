@@ -10,7 +10,7 @@
 이 라이브러리는 서버 상태를 주기적으로 알려 줍니다.
 
 ```csharp
-// src/KcpProject.Transport/ServerMetrics.cs
+// src/KcpCSharpR1.Transport/ServerMetrics.cs
 public readonly struct KcpServerMetrics
 {
     public uint TimestampMs { get; init; }
@@ -288,7 +288,7 @@ sudo sysctl -w net.core.wmem_max=8388608
 ## Windows 특유의 함정
 
 ```csharp
-// src/KcpProject.Transport/UdpSocketTransport.cs
+// src/KcpCSharpR1.Transport/UdpSocketTransport.cs
 // Windows: ICMP Port Unreachable 로 인한 수신 예외를 막는다.
 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 {
