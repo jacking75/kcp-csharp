@@ -146,6 +146,67 @@ dotnet add reference path/to/kcp-csharp/src/KcpCSharpR1.Transport/KcpCSharpR1.Tr
 | `net8.0` | 서버, MonoGame 클라이언트 |
 | `netstandard2.1` | Godot C#, 구형 런타임 |
 
+## NuGet 배포 (관리자용)
+
+새 버전을 nuget.org 에 올리는 절차입니다. 패키지 대상은 `src/KcpCSharpR1`,
+`src/KcpCSharpR1.Transport` 두 곳뿐입니다(`Directory.Build.props` 가 기본값을
+`IsPackable=false` 로 두고 이 둘에서만 켭니다).
+
+### 1. 버전 올리기
+
+`Directory.Build.props` 의 `<Version>` 을 바꿉니다. SemVer 두 자리(예: `0.11`)를 넣어도
+NuGet 이 자동으로 세 자리(`0.11.0`)로 정규화합니다.
+
+```xml
+<Version>0.11.0</Version>
+```
+
+### 2. 빌드·테스트 확인
+
+```bash
+dotnet build -c Release      # 경고 0
+dotnet test  -c Release      # 전체 통과
+```
+
+### 3. 패키징
+
+```bash
+dotnet pack -c Release -o artifacts/nupkg src/KcpCSharpR1/KcpCSharpR1.csproj
+dotnet pack -c Release -o artifacts/nupkg src/KcpCSharpR1.Transport/KcpCSharpR1.Transport.csproj
+```
+
+`artifacts/` 는 gitignore 대상입니다. `.nupkg` 를 열어 두 타깃(`net8.0`/`netstandard2.1`)의
+dll·xml, `README.md`, `LICENSE` 가 들어 있는지, `.nuspec` 의 `<dependencies>` 가
+의도한 버전을 가리키는지 확인하는 습관을 들이세요.
+
+### 4. API 키 (최초 1회)
+
+[nuget.org 프로필](https://www.nuget.org/profiles/jacking75) → **API Keys** → **Create**.
+
+- Select Scopes: **Push (new package & package version)**
+- Glob Pattern: `KcpCSharpR1*` — 이 두 패키지에만 쓰이도록 범위를 좁혀 둡니다
+- Expiration: 최대 365일, 만료되면 재발급
+
+키를 로컬에 한 번 등록해 두면 이후엔 `--api-key` 없이 push 할 수 있습니다
+(Windows 는 DPAPI 로 암호화되어 `%APPDATA%\NuGet\NuGet.Config` 에 저장됩니다).
+
+```bash
+dotnet nuget setapikey <발급받은_키> --source https://api.nuget.org/v3/index.json
+```
+
+### 5. Push — 코어 먼저, Transport 나중
+
+Transport 가 코어에 의존하므로 순서를 지킵니다. `.snupkg`(심볼 패키지)는 같은 명령이
+자동으로 함께 올립니다.
+
+```bash
+dotnet nuget push artifacts/nupkg/KcpCSharpR1.<버전>.nupkg           --source https://api.nuget.org/v3/index.json
+dotnet nuget push artifacts/nupkg/KcpCSharpR1.Transport.<버전>.nupkg --source https://api.nuget.org/v3/index.json
+```
+
+**한 번 올린 버전 번호는 되돌릴 수 없습니다**(unlist는 가능해도 삭제·재사용은 불가). push 전에
+`artifacts/nupkg/` 안의 파일이 방금 만든 것이 맞는지 다시 확인하세요.
+
 ## 저장소 구조
 
 ```
