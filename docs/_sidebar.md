@@ -33,6 +33,6 @@
   - [E. 용어집](book/appendix-e-glossary.md)
 
 - **저장소 문서**
-  - [벤치마크 기록](benchmarks.md)
+  - [벤치마크 기록](benchmarks_kr.md)
   - [개선 로드맵](kcp-csharp-roadmap.md)
   - [집필 규약](book/_writing-guide.md)

@@ -1,5 +1,17 @@
 # 작업 로그
 
+## 2026-08-25 17:23 KST — README·벤치마크 문서 한/영 이중화
+
+README.md 를 영어로 전면 번역하고, 기존 한국어 내용은 README_kr.md 로 옮겼다(상호 언어
+전환 링크 추가). 오래되어 있던 짧은 영어 요약본 README.en.md 는 이제 중복이라 삭제했다.
+docs/ 문서 중 "개발자가 봐야 하는 문서"의 범위는 사용자와 상의해 온라인 책(docs/book)은
+제외하고 docs/benchmarks.md 로 한정했다 — benchmarks.md 를 영어로 번역하고 한국어 원문은
+docs/benchmarks_kr.md 로 분리했다. 책은 한국어 전용으로 유지하므로 책 내부 링크
+(docs/_sidebar.md, docs/README.md)는 benchmarks_kr.md 를 가리키도록 고쳐 책의 언어
+일관성을 지켰다. 로드맵(kcp-csharp-roadmap.md)과 성능 개선 제안서는 내부 관리용 문서로
+보고 번역 대상에서 제외했다. 번역하면서 README 의 테스트 개수(207 -> 238)도 최신화했다.
+NuGet 패키징이 README.md 를 PackageReadmeFile 로 쓰므로 영어화가 패키지 배포에도 유리하다.
+
 ## 2026-08-25 17:05 KST — 동시 접속 용량 산정 내용을 문서화
 
 "1,000명을 받을 수 있는 구조인가"에 대한 분석을 책·README·벤치마크 문서에 반영했다.

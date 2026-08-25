@@ -1,58 +1,63 @@
 # KcpCSharpR1
 
-**UDP 위에 필요한 만큼의 신뢰성을 얹는 C# 라이브러리.** 실시간 게임을 위한 KCP 구현입니다.
+🌐 **English** | [한국어](README_kr.md)
 
-> [skywind3000/kcp](https://github.com/skywind3000/kcp)(C) → [xtaci/kcp-go](https://github.com/xtaci/kcp-go)(Go) 를 잇는
-> C# 이식·재구성 프로젝트입니다. 자세한 계보는 [원출처](#원출처) 절을 보세요.
+**A C# library that adds exactly as much reliability as you need on top of UDP.** A KCP implementation for real-time games.
+
+> A C# port and rebuild that continues the lineage from [skywind3000/kcp](https://github.com/skywind3000/kcp) (C)
+> through [xtaci/kcp-go](https://github.com/xtaci/kcp-go) (Go). See [Lineage](#lineage) below for details.
 
 ![net8.0](https://img.shields.io/badge/net-8.0-512BD4)
 ![netstandard2.1](https://img.shields.io/badge/netstandard-2.1-512BD4)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
-📖 **[온라인 책: C#과 KCP로 배우는 실시간 게임 네트워킹](https://jacking75.github.io/kcp-csharp/)**
+📖 **[Online book (Korean): C#과 KCP로 배우는 실시간 게임 네트워킹](https://jacking75.github.io/kcp-csharp/)**
 
 ---
 
-## KCP 란
+## What Is KCP
 
-TCP는 모든 바이트가 **순서대로** 도착함을 보장합니다. 파일 전송에는 완벽하지만,
-게임에서는 이 보장이 문제가 됩니다. 패킷 하나가 사라지면 **그 뒤에 도착한 최신 데이터까지 막힙니다**
-(head-of-line 블로킹). 캐릭터가 0.25초 멈췄다가 순간이동하는 이유입니다.
+TCP guarantees that every byte arrives **in order**. That's perfect for file transfer, but
+it becomes a problem in games. When one packet is lost, **every newer packet that already
+arrived is held back too** (head-of-line blocking). That's why a character freezes for
+0.25 seconds and then teleports.
 
-KCP는 UDP 위에서 **필요한 곳에만** 신뢰성을 얹습니다.
+KCP puts reliability on top of UDP **only where you need it**.
 
-| 채널 | 보장 | 쓰는 곳 |
+| Channel | Guarantees | Use for |
 |---|---|---|
-| **신뢰**(`Send`) | 도착 + 순서 | 채팅, 아이템, 피격 판정 |
-| **비신뢰**(`SendUnreliable`) | 없음 | 위치 스냅숏, 입력 |
+| **Reliable** (`Send`) | delivery + ordering | chat, inventory, hit results |
+| **Unreliable** (`SendUnreliable`) | none | position snapshots, input |
 
-그리고 TCP보다 공격적으로 복구합니다 — RTO 백오프 1.5배(TCP는 2배), 최소 RTO 30ms(TCP는 200ms+),
-빠른 재전송 + 조기 재전송. **대역폭을 조금 더 쓰고 지연을 얻는 거래**입니다.
+It also recovers more aggressively than TCP — 1.5× RTO backoff (TCP uses 2×), 30 ms minimum RTO
+(TCP is 200 ms+), fast retransmit plus early retransmit. **A trade: spend a bit more bandwidth,
+buy back latency.**
 
-## 30초 시작
+## 30-Second Quick Start
 
 ```bash
 git clone https://github.com/jacking75/kcp-csharp
 cd kcp-csharp
-dotnet run --project samples/01-Echo/Server     # 터미널 1
-dotnet run --project samples/01-Echo/Client     # 터미널 2
+dotnet run --project samples/01-Echo/Server     # terminal 1
+dotnet run --project samples/01-Echo/Client     # terminal 2
 ```
 
-### 서버
+### Server
 
 ```csharp
 using KcpCSharpR1.Transport;
 
 using var server = new KcpServer(27001);
 
-server.SessionConnected += s => Console.WriteLine($"접속 {s.RemoteEndPoint}");
-server.ReliableReceived += (s, data) => s.Send(data.Span);            // 에코
-server.SessionDisconnected += (s, why) => Console.WriteLine($"종료 {why}");
+server.SessionConnected += s => Console.WriteLine($"connected {s.RemoteEndPoint}");
+server.ReliableReceived += (s, data) => s.Send(data.Span);            // echo
+server.SessionDisconnected += (s, why) => Console.WriteLine($"closed {why}");
 
 server.Start();
-Console.WriteLine("UDP 27001 에서 대기 중입니다. Ctrl+C 로 종료합니다.");
+Console.WriteLine("Listening on UDP 27001. Press Ctrl+C to stop.");
 
-// Start() 는 배경 스레드를 띄우고 바로 반환한다. 여기서 붙잡아 두지 않으면 프로그램이 끝난다.
+// Start() spins up a background thread and returns immediately.
+// Without something blocking here, the program would just exit.
 using var quit = new ManualResetEventSlim(false);
 Console.CancelKeyPress += (_, e) => { e.Cancel = true; quit.Set(); };
 quit.Wait();
@@ -60,9 +65,9 @@ quit.Wait();
 server.Stop();
 ```
 
-전체 코드는 [samples/01-Echo/Server/Program.cs](samples/01-Echo/Server/Program.cs) 에 있습니다.
+Full code: [samples/01-Echo/Server/Program.cs](samples/01-Echo/Server/Program.cs).
 
-### 클라이언트
+### Client
 
 ```csharp
 using var client = new KcpClient();
@@ -71,86 +76,111 @@ client.ReliableReceived += (_, data) => Console.WriteLine(Encoding.UTF8.GetStrin
 var session = await client.ConnectAsync(new IPEndPoint(IPAddress.Loopback, 27001));
 session.Send(Encoding.UTF8.GetBytes("Hello KCP"));
 
-while (true)          // 게임 루프에서 매 프레임
+while (true)          // every frame, in your game loop
 {
-    client.Update();  // ★ 이것을 안 부르면 아무 일도 일어나지 않습니다
+    client.Update();  // ★ nothing happens unless you call this
     await Task.Delay(10);
 }
 ```
 
-## 기능
+## Features
 
 | | |
 |---|---|
-| **신뢰 / 비신뢰 두 채널** | 데이터마다 골라 쓰는 것이 이 라이브러리의 핵심 |
-| **무상태 쿠키 핸드셰이크** | HMAC 기반. SYN 홍수로 서버 메모리를 채울 수 없음 |
-| **세션 수명 관리** | keepalive(PING/PONG), 타임아웃, FIN 정상 종료, 데드링크 감지 |
-| **AES-256-GCM 암호화** | 인증 암호화 + 64비트 리플레이 윈도 |
-| **Reed-Solomon FEC** | kcp-go 호환. 손실 20%에서 재전송 −70% |
-| **무할당 설계** | 정상 상태 송수신 경로 **0 B/op**(벤치마크로 확인) |
-| **무복사 수신** | `ReliableReceivedSpan` 으로 KCP 세그먼트를 복사 없이 그대로 전달 |
-| **스레드 경계 API** | 게임 스레드용 송신 아웃박스 + 수신 이벤트 큐 |
-| **최소 힙 스케줄러** | 세션 1만 개에서도 기한이 된 것만 갱신 |
-| **관측성** | 세션 수·재전송률·RTT p50/p95/p99 주기 스냅숏 |
-| **외부 의존성 0** | 코어·전송 계층 모두. 샘플의 MonoGame 만 예외 |
-| **원본 kcp 와 와이어 호환** | RawMode 로 kcp-go 서버와 직접 통신 |
+| **Two channels: reliable / unreliable** | Choosing per message is the core of this library |
+| **Stateless cookie handshake** | HMAC-based. A SYN flood can't fill up server memory |
+| **Session lifecycle management** | keepalive (PING/PONG), timeouts, graceful FIN close, dead-link detection |
+| **AES-256-GCM encryption** | Authenticated encryption + a 64-bit replay window |
+| **Reed-Solomon FEC** | kcp-go compatible. −70% retransmits at 20% loss |
+| **Allocation-free design** | **0 B/op** on the steady-state send/receive path (verified by benchmark) |
+| **Zero-copy receive** | `ReliableReceivedSpan` hands you the KCP segment directly, no copy |
+| **Thread-boundary APIs** | A send outbox for game threads + a receive event queue |
+| **Min-heap scheduler** | Only updates sessions that are actually due, even with 10,000 sessions |
+| **Observability** | Periodic snapshots of session count, retransmit rate, RTT p50/p95/p99 |
+| **Zero external dependencies** | Both core and transport layer. MonoGame in the samples is the only exception |
+| **Wire-compatible with original kcp** | `RawMode` talks directly to a kcp-go server |
 
-## 성능
+## Performance
 
-같은 PC에서 클라·서버를 함께 돌린 실측입니다. 재현 명령어는 [docs/benchmarks.md](docs/benchmarks.md)에 있습니다.
+Measured with client and server running together on the same PC. Reproduction commands are in
+[docs/benchmarks.md](docs/benchmarks.md).
 
-| 항목 | 수치 |
+| Metric | Value |
 |---|---|
-| 1KB × 1,000 왕복 | **321 µs** (개선 전 441 µs, −27%) |
-| 정상 상태 할당 | **0 B/op** |
-| 1,000 세션 · 60초 | 970,627건 **전량 왕복**, 불일치 0, 재전송 1.13% |
-| 300 세션 · 60초 | 재전송 **0.00%**, RTT p99 **48.5ms**, Gen2 **0회** |
-| 암호화 비용 | 패킷당 **0.36 µs** (1,376B 기준) |
+| 1KB × 1,000 round trips | **321 µs** (441 µs before optimization, −27%) |
+| Steady-state allocation | **0 B/op** |
+| 1,000 sessions · 60s | 970,627 messages **all round-tripped**, 0 mismatches, 1.13% retransmit |
+| 300 sessions · 60s | **0.00%** retransmit, RTT p99 **48.5ms**, **0** Gen2 collections |
+| Encryption cost | **0.36 µs** per packet (at 1,376B) |
 
-## 샘플
+> The 1,000-session numbers above were measured with **client and server on the same PC**.
+> They are not a standalone server capacity figure.
 
-난이도 순서대로 다섯 개 + 도구 하나. 각 샘플에 자체 README가 있습니다.
+### How Many Clients Can It Handle
 
-| 샘플 | 난이도 | 배우는 것 |
+The receive loop is a single thread, so the ceiling is set by "what else you put on that thread."
+
+| Setup | Recommended per process |
+|---|---:|
+| Plain KCP + game logic on a separate thread (`EnableEventQueue`) | 2,000–3,000 |
+| Plain KCP + game logic run inside the event handler | 500–1,000 |
+| Add AES-GCM | 10–15% less than the above |
+| FEC on | 300–500 |
+
+Session lookup is O(1) and the timer is an O(log n) min-heap, so the data structures were
+designed with 10,000 sessions in mind. In practice, what you hit first is **memory**
+(`MaxSendBacklog` × 2KB) and **game logic riding on the receive thread**. Sizing methodology
+and the scale-out order are in [Chapter 14](https://jacking75.github.io/kcp-csharp/#/book/ch14-performance)
+and [Chapter 17](https://jacking75.github.io/kcp-csharp/#/book/ch17-operations) of the book
+(Korean only).
+
+## Samples
+
+Five samples in increasing difficulty, plus one tool. Each sample has its own README.
+
+| Sample | Difficulty | What you learn |
 |---|---|---|
-| [01-Echo](samples/01-Echo) | ★1 | 연결·송수신·종료의 최소 사이클 |
-| [02-Chat](samples/02-Chat) | ★2 | 애플리케이션 프로토콜 설계, 서버 측 검증 |
-| [03-Gomoku](samples/03-Gomoku) | ★3 | 권위 서버, 재접속, MonoGame 입문 |
-| [04-MoveSync](samples/04-MoveSync) | ★4 | 고정 틱, 채널 분리, 스냅숏 보간 |
-| [05-TankBattle](samples/05-TankBattle) | ★5 | 클라 예측·서버 보정, 지연 보상 |
-| [tools/LoadTest](samples/tools/LoadTest) | — | 부하 측정(처리량·재전송률·RTT·GC) |
+| [01-Echo](samples/01-Echo) | ★1 | The minimal cycle: connect, send/receive, close |
+| [02-Chat](samples/02-Chat) | ★2 | Designing an application protocol, server-side validation |
+| [03-Gomoku](samples/03-Gomoku) | ★3 | Authoritative server, reconnection, intro to MonoGame |
+| [04-MoveSync](samples/04-MoveSync) | ★4 | Fixed tick rate, channel separation, snapshot interpolation |
+| [05-TankBattle](samples/05-TankBattle) | ★5 | Client prediction / server reconciliation, lag compensation |
+| [tools/LoadTest](samples/tools/LoadTest) | — | Load measurement (throughput, retransmit rate, RTT, GC) |
 
-## 온라인 책
+## Online Book
 
-**[C#과 KCP로 배우는 실시간 게임 네트워킹](https://jacking75.github.io/kcp-csharp/)** — 17장 + 부록 5종.
+**[Learning Real-Time Game Networking with C# and KCP](https://jacking75.github.io/kcp-csharp/)**
+— 17 chapters + 5 appendices. (The book itself is available in Korean only.)
 
-- **1부 원리** — 게임과 네트워크, ARQ, KCP 프로토콜 해부
-- **2부 사용법** — 시작하기, 코어 API, 세션, 채널 선택, 파라미터 튜닝
-- **3부 실전** — 위 샘플 5종과 1:1 대응
-- **4부 심화** — 무할당 성능, 보안, FEC, 운영
+- **Part 1, Principles** — games and networking, ARQ, anatomy of the KCP protocol
+- **Part 2, Usage** — getting started, the core API, sessions, choosing a channel, tuning
+- **Part 3, Practice** — a 1:1 match with the five samples above
+- **Part 4, Depth** — allocation-free performance, security, FEC, operations
 
-책의 모든 코드는 `samples/` 의 실제 코드에서 발췌했고, **원본 경로가 코드 블록마다 적혀 있습니다.**
+Every code snippet in the book is lifted straight from the code in `samples/`, and
+**the original file path is noted with every code block.**
 
-## 설치
+## Installation
 
 ```bash
-# NuGet (배포 후)
+# NuGet (after publishing)
 dotnet add package KcpCSharpR1
 dotnet add package KcpCSharpR1.Transport
 
-# 소스 참조
+# Source reference
 dotnet add reference path/to/kcp-csharp/src/KcpCSharpR1/KcpCSharpR1.csproj
 dotnet add reference path/to/kcp-csharp/src/KcpCSharpR1.Transport/KcpCSharpR1.Transport.csproj
 ```
 
-| 타깃 | 용도 |
+| Target | Use for |
 |---|---|
-| `net8.0` | 서버, MonoGame 클라이언트 |
-| `netstandard2.1` | Godot C#, 구형 런타임 |
+| `net8.0` | Servers, MonoGame clients |
+| `netstandard2.1` | Godot C#, older runtimes |
 
-### 호스트 권장 설정
+### Recommended Host Settings
 
-라이브러리가 무할당이어도 **호스트 GC 설정이 나쁘면 일시정지는 남습니다.** 서버 앱 csproj에 넣으세요.
+Even an allocation-free library will still show GC pauses **if the host's GC settings are wrong.**
+Add this to your server app's csproj.
 
 ```xml
 <PropertyGroup>
@@ -160,117 +190,122 @@ dotnet add reference path/to/kcp-csharp/src/KcpCSharpR1.Transport/KcpCSharpR1.Tr
 </PropertyGroup>
 ```
 
-클라이언트(MonoGame)는 워크스테이션 GC를 그대로 두고, 대신 무복사 수신(`ReliableReceivedSpan`)을 쓰세요.
-자세한 내용은 책 [17장 운영](https://jacking75.github.io/kcp-csharp/#/book/ch17-operations)에 있습니다.
+For a client (MonoGame), leave workstation GC as-is and rely on zero-copy receive
+(`ReliableReceivedSpan`) instead. Details are in
+[Chapter 17, Operations](https://jacking75.github.io/kcp-csharp/#/book/ch17-operations) of the
+book (Korean only).
 
-## NuGet 배포 (관리자용)
+## NuGet Publishing (For Maintainers)
 
-새 버전을 nuget.org 에 올리는 절차입니다. 패키지 대상은 `src/KcpCSharpR1`,
-`src/KcpCSharpR1.Transport` 두 곳뿐입니다(`Directory.Build.props` 가 기본값을
-`IsPackable=false` 로 두고 이 둘에서만 켭니다).
+The procedure for pushing a new version to nuget.org. Only two projects are packable —
+`src/KcpCSharpR1` and `src/KcpCSharpR1.Transport` (`Directory.Build.props` defaults
+`IsPackable=false` and turns it on only for these two).
 
-### 1. 버전 올리기
+### 1. Bump the Version
 
-`Directory.Build.props` 의 `<Version>` 을 바꿉니다. SemVer 두 자리(예: `0.11`)를 넣어도
-NuGet 이 자동으로 세 자리(`0.11.0`)로 정규화합니다.
+Change `<Version>` in `Directory.Build.props`. A two-part SemVer (e.g. `0.11`) is fine —
+NuGet normalizes it to three parts (`0.11.0`) automatically.
 
 ```xml
 <Version>0.11.0</Version>
 ```
 
-### 2. 빌드·테스트 확인
+### 2. Verify Build and Tests
 
 ```bash
-dotnet build -c Release      # 경고 0
-dotnet test  -c Release      # 전체 통과
+dotnet build -c Release      # 0 warnings
+dotnet test  -c Release      # all passing
 ```
 
-### 3. 패키징
+### 3. Pack
 
 ```bash
 dotnet pack -c Release -o artifacts/nupkg src/KcpCSharpR1/KcpCSharpR1.csproj
 dotnet pack -c Release -o artifacts/nupkg src/KcpCSharpR1.Transport/KcpCSharpR1.Transport.csproj
 ```
 
-`artifacts/` 는 gitignore 대상입니다. `.nupkg` 를 열어 두 타깃(`net8.0`/`netstandard2.1`)의
-dll·xml, `README.md`, `LICENSE` 가 들어 있는지, `.nuspec` 의 `<dependencies>` 가
-의도한 버전을 가리키는지 확인하는 습관을 들이세요.
+`artifacts/` is gitignored. Make it a habit to open the `.nupkg` and check that both targets'
+(`net8.0`/`netstandard2.1`) dlls and xml docs are there, along with `README.md` and `LICENSE`,
+and that the `.nuspec`'s `<dependencies>` points at the version you intended.
 
-### 4. API 키 (최초 1회)
+### 4. API Key (One-Time Setup)
 
-[nuget.org 프로필](https://www.nuget.org/profiles/jacking75) → **API Keys** → **Create**.
+[nuget.org profile](https://www.nuget.org/profiles/jacking75) → **API Keys** → **Create**.
 
 - Select Scopes: **Push (new package & package version)**
-- Glob Pattern: `KcpCSharpR1*` — 이 두 패키지에만 쓰이도록 범위를 좁혀 둡니다
-- Expiration: 최대 365일, 만료되면 재발급
+- Glob Pattern: `KcpCSharpR1*` — scope it to just these two packages
+- Expiration: up to 365 days; reissue when it expires
 
-키를 로컬에 한 번 등록해 두면 이후엔 `--api-key` 없이 push 할 수 있습니다
-(Windows 는 DPAPI 로 암호화되어 `%APPDATA%\NuGet\NuGet.Config` 에 저장됩니다).
-
-```bash
-dotnet nuget setapikey <발급받은_키> --source https://api.nuget.org/v3/index.json
-```
-
-### 5. Push — 코어 먼저, Transport 나중
-
-Transport 가 코어에 의존하므로 순서를 지킵니다. `.snupkg`(심볼 패키지)는 같은 명령이
-자동으로 함께 올립니다.
+Once you register the key locally, you can push without `--api-key` afterward
+(on Windows it's encrypted with DPAPI and stored at `%APPDATA%\NuGet\NuGet.Config`).
 
 ```bash
-dotnet nuget push artifacts/nupkg/KcpCSharpR1.<버전>.nupkg           --source https://api.nuget.org/v3/index.json
-dotnet nuget push artifacts/nupkg/KcpCSharpR1.Transport.<버전>.nupkg --source https://api.nuget.org/v3/index.json
+dotnet nuget setapikey <your_key> --source https://api.nuget.org/v3/index.json
 ```
 
-**한 번 올린 버전 번호는 되돌릴 수 없습니다**(unlist는 가능해도 삭제·재사용은 불가). push 전에
-`artifacts/nupkg/` 안의 파일이 방금 만든 것이 맞는지 다시 확인하세요.
+### 5. Push — Core First, Transport Second
 
-## 저장소 구조
+Push in this order since Transport depends on the core. The `.snupkg` (symbol package) is
+pushed automatically by the same command.
+
+```bash
+dotnet nuget push artifacts/nupkg/KcpCSharpR1.<version>.nupkg           --source https://api.nuget.org/v3/index.json
+dotnet nuget push artifacts/nupkg/KcpCSharpR1.Transport.<version>.nupkg --source https://api.nuget.org/v3/index.json
+```
+
+**A version number, once pushed, cannot be undone** (you can unlist it, but not delete or
+reuse it). Before pushing, double-check that the files in `artifacts/nupkg/` are the ones you
+just built.
+
+## Repository Structure
 
 ```
 src/
-  KcpCSharpR1/            프로토콜 코어(의존성 0)
-  KcpCSharpR1.Transport/  소켓·세션·핸드셰이크·암호화·FEC
+  KcpCSharpR1/            Protocol core (zero dependencies)
+  KcpCSharpR1.Transport/  Sockets, sessions, handshake, encryption, FEC
 tests/
-  KcpCSharpR1.Tests/      단위 테스트
-  KcpCSharpR1.SimTests/   가상 네트워크 시나리오 + 실소켓 통합
+  KcpCSharpR1.Tests/      Unit tests
+  KcpCSharpR1.SimTests/   Virtual-network scenarios + real-socket integration
 benchmarks/              BenchmarkDotNet
-samples/                 샘플 5종 + LoadTest
-docs/                    온라인 책 + 벤치마크 기록 + 로드맵
+samples/                 5 samples + LoadTest
+docs/                    Online book + benchmark log + roadmap
 ```
 
-## 빌드와 테스트
+## Build and Test
 
 ```bash
-dotnet build -c Release              # 경고 0 유지
-dotnet test  -c Release              # 207개
-dotnet test  -c Release --filter "Category!=Soak"   # 장시간 테스트 제외
+dotnet build -c Release              # keep it at 0 warnings
+dotnet test  -c Release              # 238 tests
+dotnet test  -c Release --filter "Category!=Soak"   # skip long-running tests
 dotnet run   -c Release --project benchmarks/KcpCSharpR1.Benchmarks -- --filter '*'
 ```
 
-## 원출처
+## Lineage
 
-이 저장소는 원본을 그대로 가져온 것이 아니라, 아래 계보를 따라 **C# 로 이식·재구성**한 결과물입니다.
+This repository isn't a straight copy of the original — it's a **port and rebuild in C#**
+that follows the lineage below.
 
-[skywind3000/kcp](https://github.com/skywind3000/kcp)(C, MIT) →
-[xtaci/kcp-go](https://github.com/xtaci/kcp-go)(Go, MIT) → **KcpCSharpR1**(C#, 이 저장소).
+[skywind3000/kcp](https://github.com/skywind3000/kcp) (C, MIT) →
+[xtaci/kcp-go](https://github.com/xtaci/kcp-go) (Go, MIT) → **KcpCSharpR1** (C#, this repository).
 
-| 이어받은 것 | 새로 만든 것 |
+| Carried over | Newly built |
 |---|---|
-| 프로토콜 로직(ARQ, 슬라이딩 윈도, RTO 계산, 혼잡 제어) — kcp-go 포팅 기반 | 전송 계층(핸드셰이크, 세션 수명, 스케줄러) |
-| 코어 24바이트 헤더 — **원본과 바이트 단위로 호환** | AES-256-GCM 암호화, Reed-Solomon FEC |
-| | 샘플 5종 + LoadTest 도구 |
-| | 온라인 책 17장 + 부록 5종 |
+| Protocol logic (ARQ, sliding window, RTO calculation, congestion control) — ported from kcp-go | Transport layer (handshake, session lifecycle, scheduler) |
+| The core 24-byte header — **byte-for-byte compatible with the original** | AES-256-GCM encryption, Reed-Solomon FEC |
+| | 5 samples + the LoadTest tool |
+| | The 17-chapter online book + 5 appendices |
 
-프로토콜 로직은 C# 관용구(`Span<byte>`, `ArrayPool`, 이벤트 기반 세션, 주입 가능한 시계)로 재작성했지만
-와이어 포맷은 그대로 유지했습니다. `RawMode` 를 켜면 원본 kcp / kcp-go 서버와 직접 통신할 수 있습니다
-([부록 C](docs/book/appendix-c-interop.md)).
+The protocol logic was rewritten using C# idioms (`Span<byte>`, `ArrayPool`, event-based
+sessions, an injectable clock), but the wire format was kept as-is. Turning on `RawMode` lets
+you talk directly to an original kcp / kcp-go server
+([Appendix C](docs/book/appendix-c-interop.md), Korean only).
 
-## 기여
+## Contributing
 
-[CONTRIBUTING.md](CONTRIBUTING.md)를 봐 주세요.
-버그 리포트에는 재현 가능한 테스트를 함께 주시면 가장 좋습니다 —
-가상 시간 하네스(`tests/KcpCSharpR1.SimTests/KcpPair.cs`)로 결정적인 재현이 가능합니다.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+Bug reports are most useful when they come with a reproducible test — the virtual-time
+harness (`tests/KcpCSharpR1.SimTests/KcpPair.cs`) makes deterministic repro possible.
 
-## 라이선스
+## License
 
-MIT. [LICENSE](LICENSE)를 보세요.
+MIT. See [LICENSE](LICENSE).

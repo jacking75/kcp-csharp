@@ -1,210 +1,255 @@
-# 벤치마크 기록
+# Benchmark Log
 
-Phase 3(성능 최적화)의 기준선과 개선 결과를 기록한다. 로드맵 §6 의 공통 절차대로
-**① 기준선 측정 → ② 변경 → ③ 재측정 → ④ 전/후 표 첨부** 순으로 진행했다.
+🌐 **English** | [한국어](benchmarks_kr.md)
 
-## 재현 방법
+This records the baseline and improvement results from Phase 3 (performance optimization).
+Following the common procedure in roadmap §6: **① measure baseline → ② change → ③ re-measure
+→ ④ attach before/after table.**
+
+## How to Reproduce
 
 ```bash
-# 전체
+# all of them
 dotnet run -c Release --project benchmarks/KcpCSharpR1.Benchmarks -- --filter '*'
 
-# 개별
+# individually
 dotnet run -c Release --project benchmarks/KcpCSharpR1.Benchmarks -- --filter '*SendRecvRoundtrip*'
 dotnet run -c Release --project benchmarks/KcpCSharpR1.Benchmarks -- --filter '*InputAckBatch*'
 dotnet run -c Release --project benchmarks/KcpCSharpR1.Benchmarks -- --filter '*FlushLargeWindow*'
 dotnet run -c Release --project benchmarks/KcpCSharpR1.Benchmarks -- --filter '*FragmentationLarge*'
 ```
 
-모든 벤치마크에 `[MemoryDiagnoser]` 가 붙어 있어 할당(B/op)이 함께 나온다.
-`[SimpleJob(RuntimeMoniker.Net80, warmupCount: 3, iterationCount: 5)]` 로 짧게 돌도록 맞춰 두었다.
+Every benchmark carries `[MemoryDiagnoser]`, so allocation (B/op) is reported alongside timing.
+`[SimpleJob(RuntimeMoniker.Net80, warmupCount: 3, iterationCount: 5)]` keeps runs short.
 
-## 측정 환경
+## Measurement Environment
 
-| 항목 | 값 |
+| Item | Value |
 |---|---|
-| 측정일 | 2026-08-25 |
+| Date | 2026-08-25 |
 | OS | Windows 11 (10.0.26200) |
-| 런타임 | .NET 8.0.29 (X64 RyuJIT AVX2) |
+| Runtime | .NET 8.0.29 (X64 RyuJIT AVX2) |
 | SDK | .NET SDK 10.0.302 |
 | BenchmarkDotNet | 0.13.12 |
 
-> 절대 수치는 기계에 따라 달라진다. **비교는 같은 기계에서 같은 벤치마크 코드로 잰 전/후 값끼리만** 한다.
-> 아래 표의 '기준선'과 '개선 후'는 같은 커밋의 벤치마크 코드를 각각 Phase 2 코어와 Phase 3 코어에
-> 대해 실행해 얻었다(코어만 갈아 끼워 측정).
+> Absolute numbers vary by machine. **Only compare before/after values measured on the same
+> machine with the same benchmark code.** The "baseline" and "after" columns below were obtained
+> by running the same commit's benchmark code against the Phase 2 core and the Phase 3 core in
+> turn (swapping only the core).
 
-## 벤치마크 항목
+## Benchmark Items
 
-| 벤치마크 | 내용 | 무엇을 보는가 |
+| Benchmark | What it does | What it measures |
 |---|---|---|
-| `SendRecvRoundtrip` | 무손실 루프백, 1KB × 1,000 메시지 왕복 | 정상 상태 송수신 경로의 종합 비용 |
-| `InputAckBatch` | ACK 64개가 한 패킷에 묶여 들어오는 파싱 | `parse_ack`/`parse_fastack` 탐색 비용 (PF-05) |
-| `FlushLargeWindow` | snd_buf 1,024 세그먼트 상태의 Flush 순회 | 큐 자료구조 순회 비용 (PF-04) |
-| `FragmentationLarge` | 32KB 메시지 조각화 → 재조립 왕복 | 조각화/버퍼 관리 비용 (PF-02, PF-03) |
+| `SendRecvRoundtrip` | Lossless loopback, 1,000 round trips of 1KB messages | Overall cost of the steady-state send/receive path |
+| `InputAckBatch` | Parsing 64 ACKs bundled into one packet | `parse_ack`/`parse_fastack` lookup cost (PF-05) |
+| `FlushLargeWindow` | Flush traversal with 1,024 segments in snd_buf | Queue data structure traversal cost (PF-04) |
+| `FragmentationLarge` | Round trip of a 32KB message: fragment → reassemble | Fragmentation/buffer management cost (PF-02, PF-03) |
 
-## 결과 (Phase 3 전 → 후)
+## Results (Phase 3 Before → After)
 
-| 벤치마크 | 기준선 (Phase 2 코어) | 개선 후 (Phase 3 코어) | 변화 |
+| Benchmark | Baseline (Phase 2 core) | After (Phase 3 core) | Change |
 |---|---:|---:|---:|
 | `SendRecvRoundtrip` (1000 × 1KB) | 441.3 µs | **321.3 µs** | **−27.2%** |
 | `InputAckBatch` (64 ACK) | 1.428 µs | **1.318 µs** | **−7.7%** |
-| `FlushLargeWindow` (윈도 1024) | 1.921 µs | **1.642 µs** | **−14.5%** |
+| `FlushLargeWindow` (window 1024) | 1.921 µs | **1.642 µs** | **−14.5%** |
 | `FragmentationLarge` (32KB) | 8.252 µs | **6.882 µs** | **−16.6%** |
-| 정상 상태 관리 힙 할당 | 0 B/op | **0 B/op** | 유지 |
+| Steady-state managed-heap allocation | 0 B/op | **0 B/op** | unchanged |
 
-### 할당 0 B/op 에 대해
+### On the 0 B/op Allocation
 
-Phase 2 코어도 이미 정상 상태 할당이 0 B/op 였다(자체 `ByteBuffer` 풀 + `Segment` 풀이
-워밍업 이후 재사용되기 때문). Phase 3 의 성과는 **할당을 0으로 만든 것이 아니라,
-0을 유지하면서 아래를 없앤 것**이다.
+The Phase 2 core was already at 0 B/op in steady state (its own `ByteBuffer` pool and `Segment`
+pool are reused after warmup). Phase 3's win isn't "getting allocation to zero" — it's
+**removing the following while keeping it at zero:**
 
-- 전역 static 풀에 걸려 있던 `lock` (세션이 늘수록 경합) → 인스턴스 전용 풀 (PF-06)
-- 풀에서 임의 크기 버퍼가 나오던 문제 → `ArrayPool<byte>` 대여 + 유효 길이 분리 (B-07 근본 해결)
-- `List<Segment>.RemoveRange(0, n)` 의 O(n) 이동 → `RingBuffer` head 이동 O(1) (PF-04)
-- `ByteBuffer.Get()/Read()` 의 호출당 임시 배열 → Span 경로로 제거 (PF-02, PF-03)
+- A `lock` on a global static pool (more contention as sessions grow) → per-instance pools (PF-06)
+- The pool handing back arbitrarily-sized buffers → `ArrayPool<byte>` rental + a separate valid-length field (fundamental fix for B-07)
+- O(n) shifting from `List<Segment>.RemoveRange(0, n)` → O(1) head movement in `RingBuffer` (PF-04)
+- A temporary array allocated on every call to `ByteBuffer.Get()`/`Read()` → removed via the Span path (PF-02, PF-03)
 
-## 적용한 변경
+## Changes Applied
 
-| 작업 | 내용 |
+| Task | What it did |
 |---|---|
-| P3-2 | `KcpCodec`(BinaryPrimitives) 신설, 공개 API 에 `Span` 오버로드 추가(`Send`/`Input`/`Recv`) |
-| P3-3 | `Segment.data` 를 `ByteBuffer` → `ArrayPool<byte>` 대여 배열 + 유효 길이(`Len`)로 교체, 코어에서 `ByteBuffer` 삭제 |
-| P3-4 | 네 큐를 `List<Segment>` → `RingBuffer<KcpSegment>` 로 교체 |
-| P3-5 | 세그먼트 풀을 전역 static(lock) → 인스턴스 필드(lock 없음)로, `Kcp.Release()` 추가 |
-| P3-6 | `parse_ack`/`parse_fastack` 을 이분 탐색으로 |
+| P3-2 | Introduced `KcpCodec` (BinaryPrimitives), added `Span` overloads to the public API (`Send`/`Input`/`Recv`) |
+| P3-3 | Replaced `Segment.data`'s `ByteBuffer` with an `ArrayPool<byte>`-rented array plus a valid-length field (`Len`); removed `ByteBuffer` from the core |
+| P3-4 | Replaced all four queues, `List<Segment>` → `RingBuffer<KcpSegment>` |
+| P3-5 | Moved the segment pool from global static (locked) → an instance field (lock-free); added `Kcp.Release()` |
+| P3-6 | Switched `parse_ack`/`parse_fastack` to binary search |
 
-## 측정 중에 배운 것 (함정 기록)
+## What We Learned While Measuring (Pitfall Log)
 
-1. **`FlushLargeWindow` 초기 설계 오류** — 상대 윈도(`rmt_wnd`)의 기본값이 32라
-   `WndSize(1024, 1024)` 만으로는 snd_buf 가 32개밖에 차지 않았다. WINS 패킷을 하나 넣어
-   윈도를 열어 준 뒤에야 1,024개가 찬 상태를 잴 수 있었다.
-2. **시계를 진행시키면 측정이 흔들린다** — 벤치마크 안에서 가상 시각을 1ms 씩 올렸더니
-   200회쯤부터 RTO 가 만료돼 1,024개 전량 재전송이 섞였다. 호출 횟수에 따라 평균이 달라지므로
-   지금은 시각을 고정해 **순수 순회 비용**만 잰다.
-3. **`RingBuffer` 도입 직후 오히려 15% 느려졌다** — 원소 접근마다 `items`/`head`/`Length` 를
-   다시 읽는 비용 때문이다. 순회 구간에서 배열·head·mask 를 지역에 붙잡는 스냅숏 뷰
-   (`RingBuffer<T>.CreateView()`)를 도입해 기준선보다 빠르게 되돌렸다. 이 과정이 없었다면
-   "자료구조를 바꿨으니 빨라졌겠지"라고 넘어갔을 것이다 — 측정이 먼저인 이유.
+1. **An initial design bug in `FlushLargeWindow`** — the remote window (`rmt_wnd`) defaults to
+   32, so `WndSize(1024, 1024)` alone only filled snd_buf to 32 entries. Only after sending a
+   WINS packet to open up the window could we measure the state with 1,024 entries filled.
+2. **Advancing the clock made the measurement noisy** — advancing the virtual clock by 1ms
+   inside the benchmark caused RTOs to expire around iteration 200, mixing in a full retransmit
+   of all 1,024 segments. Since the average then depends on the call count, we now hold the
+   clock fixed and measure **pure traversal cost** only.
+3. **Introducing `RingBuffer` made things 15% slower at first** — the cost of re-reading
+   `items`/`head`/`Length` on every element access. Introducing a snapshot view
+   (`RingBuffer<T>.CreateView()`) that pins the array, head, and mask locally for the traversal
+   section brought it back below baseline. Without this step, we would have simply concluded
+   "we changed the data structure, so it must be faster" — which is exactly why measurement
+   comes first.
 
-## Phase 5 — 암호화(P5-1)
+## Phase 5 — Encryption (P5-1)
 
-`--filter '*PacketCrypto*'` 로 재현한다. 패킷 크기 1,376바이트(MTU 1400 기준 KCP 페이로드).
+Reproduce with `--filter '*PacketCrypto*'`. Packet size is 1,376 bytes (the KCP payload at
+MTU 1400).
 
-| 항목 | 시간 | 기준선 대비 | 할당 |
+| Item | Time | vs. baseline | Allocation |
 |---|---:|---:|---:|
-| `PlainCopy` (암호화 없음, 복사만) | 13.41 ns | 1.00× | 0 B |
+| `PlainCopy` (no encryption, copy only) | 13.41 ns | 1.00× | 0 B |
 | `Encrypt` (AES-256-GCM) | 357.7 ns | 26.7× | 0 B |
-| `Decrypt` (인증 + 리플레이 검사 포함) | 351.3 ns | 26.2× | 0 B |
+| `Decrypt` (including authentication + replay check) | 351.3 ns | 26.2× | 0 B |
 
-읽는 법: 암호화를 켜면 패킷당 약 **0.36µs** 가 더 든다. 1,000 세션이 각각 초당 30패킷을 주고받으면
-30,000 패킷/초 × 0.36µs ≈ **11ms/초**, 즉 코어 하나의 약 1.1% 다. 게임 서버에서 감당할 만한 비용이다.
-오버헤드는 패킷당 24바이트(카운터 8 + 태그 16)다.
+How to read this: turning on encryption costs about **0.36µs** more per packet. If 1,000
+sessions each exchange 30 packets/sec, that's 30,000 packets/sec × 0.36µs ≈ **11ms/sec**, roughly
+1.1% of a single core — an affordable cost for a game server. The overhead is 24 bytes per
+packet (8-byte counter + 16-byte tag).
 
-> `Decrypt` 측정 주의: 리플레이 윈도 때문에 같은 패킷을 두 번 복호화할 수 없다.
-> 카운터가 다른 패킷 256개를 미리 만들어 두고, 반복마다 새 수신기로 한 묶음씩 처리해
-> 리플레이 검사에 걸려 조기 반환되는 일이 없도록 했다(처음엔 이 함정에 빠져 3ns 라는 가짜 수치가 나왔다).
+> Note on the `Decrypt` measurement: because of the replay window, the same packet can't be
+> decrypted twice. We pre-generate 256 packets with distinct counters and process them in
+> batches with a fresh receiver each round, so none get short-circuited by the replay check
+> (we fell into this trap once and got a bogus 3ns reading).
 
-## Phase 5 — FEC(P5-2)
+## Phase 5 — FEC (P5-2)
 
-### 부호화 비용 (`--filter '*FecCoding*'`, 10+3 그룹, 샤드 1,376바이트)
+### Encoding Cost (`--filter '*FecCoding*'`, 10+3 group, 1,376-byte shards)
 
-| 항목 | 시간 | 할당 |
+| Item | Time | Allocation |
 |---|---:|---:|
-| `Encode` (패리티 3개 생성) | 30.05 µs | 0 B |
-| `Reconstruct` (데이터 3개 복원) | 31.53 µs | 5,896 B → **0 B** (G-4 반영 후) |
+| `Encode` (generate 3 parity shards) | 30.05 µs | 0 B |
+| `Reconstruct` (recover 3 data shards) | 31.53 µs | 5,896 B → **0 B** (after G-4) |
 
-그룹당 30µs 는 데이터 패킷 10개마다 한 번이므로 패킷당 약 3µs 다. 암호화보다 훨씬 비싸므로
-**손실이 실제로 문제가 되는 회선에서만** 켜는 것이 맞다.
+30µs per group happens once every 10 data packets, so roughly 3µs per packet — much more
+expensive than encryption, which is why it's meant to be turned on **only on links where loss is
+actually a problem.**
 
-### 손실 20% 환경의 재전송 감소 (P5-2 ③)
+### Retransmit Reduction at 20% Loss (P5-2 ③)
 
-`Phase5IntegrationTests.FEC가_손실_환경의_재전송을_줄인다` 가 검증하는 수치다.
-100KB 를 보내면서 클라이언트가 내보내는 KCP 프레임 5개마다 1개(20%)를 결정적으로 떨어뜨렸다.
+The figures verified by `Phase5IntegrationTests.FEC가_손실_환경의_재전송을_줄인다`
+("FEC reduces retransmits in a lossy environment"). While sending 100KB, we deterministically
+dropped 1 in every 5 (20%) of the KCP frames the client sent out.
 
-| 설정 | KCP 재전송 | FEC 복원 |
+| Setting | KCP retransmits | FEC recoveries |
 |---|---:|---:|
-| FEC 없음 | 23회 | — |
-| FEC 10+3 | **7회** | 16패킷 |
+| No FEC | 23 | — |
+| FEC 10+3 | **7** | 16 packets |
 
-재전송이 **70% 줄었다**. 재전송 한 번은 최소 1 RTT 를 더 기다린다는 뜻이므로, 손실이 잦은
-모바일 회선에서 체감 지연이 크게 달라진다. 대신 패리티 패킷만큼(10+3 이면 30%) 대역폭을 더 쓴다.
+Retransmits dropped by **70%**. Since each retransmit means waiting at least one more RTT, this
+makes a real difference in perceived latency on lossy mobile links. The trade-off is spending
+extra bandwidth on parity packets (30% with a 10+3 configuration).
 
-## Phase 7 — 1,000 세션 부하 측정(P7-6)
+## Phase 7 — 1,000-Session Load Test (P7-6)
 
-Phase 4 완료 조건("1,000 동시 세션·60초에서 오류 0, 힙 안정")의 검증이다.
-**클라이언트와 서버를 같은 PC에서 동시에** 돌린 결과이므로, 서버 단독 용량이 아니라
-`한 대에서 양쪽을 다 돌렸을 때`의 수치임에 주의한다.
+This verifies Phase 4's completion condition ("0 errors and a stable heap across 1,000
+concurrent sessions for 60 seconds"). It was run **with client and server on the same PC at the
+same time**, so note that these numbers are not standalone server capacity but rather
+`the numbers when running both sides on one machine`.
 
 ```bash
 dotnet run -c Release --project samples/tools/LoadTest -- server
 dotnet run -c Release --project samples/tools/LoadTest --   client --sessions 1000 --rate 20 --size 256 --duration 60 --sockbuf 65536
 ```
 
-| 항목 | 결과 |
+| Item | Result |
 |---|---|
-| 세션 | 1,000 연결 / **1,000 생존**(60초 내내) |
-| 메시지 | 보냄 970,627 / **에코 970,627 (손실 0.00%)** |
-| 무결성 | **불일치 0건** |
-| 처리량 | 송신 40.3 Mbps / 수신 39.6 Mbps (16,175 msg/s) |
-| 재전송 | 21,906 / 1,940,694 세그먼트 (**1.13%**) |
+| Sessions | 1,000 connected / **1,000 survived** (the full 60 seconds) |
+| Messages | sent 970,627 / **echoed 970,627 (0.00% loss)** |
+| Integrity | **0 mismatches** |
+| Throughput | send 40.3 Mbps / receive 39.6 Mbps (16,175 msg/s) |
+| Retransmit | 21,906 / 1,940,694 segments (**1.13%**) |
 | RTT | p50 30ms · p95 250ms · p99 517ms · max 1,770ms |
 | GC | Gen0 6 / Gen1 3 / **Gen2 1** |
-| 메모리 | 관리 힙 219.6 MB, 작업 집합 386.3 MB |
+| Memory | managed heap 219.6 MB, working set 386.3 MB |
 
-**300 세션**(같은 조건)에서는 훨씬 여유롭다 — 재전송 **0.00%**, RTT p99 **48.5ms**, Gen2 **0회**.
-즉 이 PC 한 대에서 클라·서버를 함께 돌릴 때의 편안한 한계는 300~400 세션이고,
-1,000 세션은 "동작은 하지만 지연 꼬리가 길어지는" 포화 지점이다.
+At **300 sessions** (same conditions) there's much more headroom — **0.00%** retransmit, RTT p99
+**48.5ms**, **0** Gen2 collections. In other words, on this one PC the comfortable ceiling for
+running client and server together is 300–400 sessions, and 1,000 sessions is the saturation
+point where "it works, but the latency tail gets long."
 
-### Gen2 1회에 대해
+### Why You Shouldn't Read These Numbers as Server Capacity
 
-부하 **생성기 프로세스**의 수치다. 1,000개의 세션 객체와 소켓을 만드는 접속 단계에서
-수백 MB를 할당하기 때문이며, 라이브러리의 정상 상태 송수신 경로가 **0 B/op** 인 것은
-BenchmarkDotNet 측정(위 Phase 3 표)으로 따로 확인했다.
+**The load generator is far heavier than the server.** The generator creates a **separate
+`KcpClient` and a separate socket per session** and runs `Update()` on each one. Polling 1,000
+sockets individually and receiving everything through a single socket differ in cost by an order
+of magnitude. A significant part of why p99 stretched out to 517ms is likely the generator, not
+the server.
 
-### 측정하면서 고친 것 (도구 쪽 함정 3가지)
+To summarize, this measurement only proves two things:
 
-1. **접속 단계에서 기존 세션을 안 돌렸다** — 세션을 순차로 1,000개 여는 데 십수 초가 걸리는데,
-   그동안 먼저 연결된 세션들이 keepalive 를 못 보내 **서버가 10초 타임아웃으로 끊었다**.
-   1,000개를 연결해도 서버에는 325개만 남던 원인. 접속 루프에서 기존 세션도 주기적으로
-   `Update()` 하도록 고쳤다.
-2. **서버가 `Send` 반환값을 버렸다** — 백로그 상한을 넘으면 라이브러리는 `Backpressure` 를
-   돌려주고 메시지를 받지 않는데 이를 무시해, "재전송은 0인데 에코가 안 온다"는 이해 못 할
-   결과가 나왔다. 지금은 버린 개수를 세어 보고한다.
-3. **측정기가 GC 를 유발했다** — RTT 표본 96만 개를 `List<double>` 에 쌓아 측정 도구 자신이
-   Gen2 를 만들었다. 1ms 폭 고정 히스토그램(세션당 8KB)으로 바꿔 실행 중 추가 할당을 없앴다.
+- **It works with 0 loss and 0 mismatches at 1,000 sessions for 60 seconds** (Phase 4's
+  completion condition).
+- On one PC running both sides, 300–400 is comfortable and 1,000 is saturated.
 
-세 가지 모두 **라이브러리가 아니라 측정 코드의 결함**이었다. 부하 측정에서 이상한 숫자가 나오면
-측정기부터 의심하라는 사례로 책 17장에 수록한다.
+What it does *not* prove: **standalone server capacity.** That has never been measured. Doing so
+would require putting the load generator on a separate machine (see "Items to Add" below).
 
-## 성능 개선 제안서(G/C/M/A) 전후 — 2026-08-25
+The structural reasoning behind capacity (a single receive thread sets the ceiling, separating
+game logic accounts for a 2–3× difference, etc.) is written up in the "How Many Clients Can It
+Handle" section of [Chapter 17, Operations](book/ch17-operations.md) of the book (Korean only).
 
-`docs/performance-improvements.md` 의 항목을 반영한 뒤, **같은 세션에서** 반영 전(worktree 로 꺼낸 `7bec0b3`)과
-반영 후를 번갈아 측정했다. Phase 3 표의 절대값과 직접 비교하면 안 된다 — 그때와 지금은 기계 상태가 다르다.
-**중요한 것은 같은 조건에서 잰 좌우 열의 차이**다.
+### On the Single Gen2 Collection
 
-| 벤치마크 | 반영 전 (7bec0b3) | 반영 후 | 판정 |
+This is a number from the load **generator process**, not the library. It comes from allocating
+hundreds of MB during the connection phase, where 1,000 session objects and sockets get created.
+The library's steady-state send/receive path being **0 B/op** was separately confirmed with
+BenchmarkDotNet (the Phase 3 table above).
+
+### What We Fixed While Measuring (3 Tool-Side Pitfalls)
+
+1. **Existing sessions weren't pumped during the connection phase** — opening 1,000 sessions
+   sequentially takes over ten seconds, and during that time the already-connected sessions
+   couldn't send keepalives, so **the server dropped them on the 10-second timeout**. This was
+   why only 325 of 1,000 connections survived on the server side. We fixed it by periodically
+   calling `Update()` on existing sessions inside the connection loop too.
+2. **The server discarded `Send`'s return value** — when the backlog cap is exceeded, the
+   library returns `Backpressure` and refuses the message, but the tool ignored this, producing
+   the baffling result "0 retransmits, but no echo comes back." It now counts and reports how
+   many were dropped.
+3. **The measurement tool itself triggered GC** — accumulating 960,000 RTT samples into a
+   `List<double>` made the measurement tool generate its own Gen2 collections. Switching to a
+   fixed 1ms-wide histogram (8KB per session) eliminated the extra allocation during the run.
+
+All three were **flaws in the measurement code, not the library**. We wrote this up as a case
+study in Chapter 17 of the book: when a load test produces a weird number, suspect the measuring
+instrument first.
+
+## Performance Proposal (G/C/M/A) Before/After — 2026-08-25
+
+After applying the items from `docs/performance-improvements.md`, we measured before (checked
+out from commit `7bec0b3` via a worktree) and after **within the same session**, alternating
+between the two. Don't compare the absolute values against the Phase 3 table above directly —
+the machine state is different now. **What matters is the difference between the two columns
+measured under the same conditions.**
+
+| Benchmark | Before (7bec0b3) | After | Verdict |
 |---|---:|---:|---|
-| `SendRecvRoundtrip` (1000 × 1KB) | 366.0 µs ± 59.6 | 365.1 µs ± 48.7 | 동일(오차 안) |
-| `InputAckBatch` (64 ACK) | 1.486 µs ± 0.45 | 1.541 µs ± 0.36 | 동일(오차 안) |
-| `FlushLargeWindow` (윈도 1024) | 1.672 µs ± 0.38 | 1.900 µs ± 0.50 | 동일(오차 안) |
-| `FragmentationLarge` (32KB) | 7.515 µs ± 0.55 | 7.497 µs ± 0.59 | 동일(오차 안) |
-| `FecCoding.Reconstruct` (10+3) | 31.53 µs / **5,896 B** | 31.54 µs / **0 B** | **할당 제거** |
-| `FecCoding.Encode` (10+3) | 30.05 µs / 0 B | 28.47 µs / 0 B | 동일(오차 안) |
+| `SendRecvRoundtrip` (1000 × 1KB) | 366.0 µs ± 59.6 | 365.1 µs ± 48.7 | same (within error) |
+| `InputAckBatch` (64 ACK) | 1.486 µs ± 0.45 | 1.541 µs ± 0.36 | same (within error) |
+| `FlushLargeWindow` (window 1024) | 1.672 µs ± 0.38 | 1.900 µs ± 0.50 | same (within error) |
+| `FragmentationLarge` (32KB) | 7.515 µs ± 0.55 | 7.497 µs ± 0.59 | same (within error) |
+| `FecCoding.Reconstruct` (10+3) | 31.53 µs / **5,896 B** | 31.54 µs / **0 B** | **allocation eliminated** |
+| `FecCoding.Encode` (10+3) | 30.05 µs / 0 B | 28.47 µs / 0 B | same (within error) |
 
-정리하면 **코어 시간 비용은 그대로, FEC 복원의 패킷당 할당만 사라졌다.**
-나머지 개선(G-1·G-2·G-3·G-5·C-1)은 소켓·이벤트 경로라 BenchmarkDotNet 하네스에 소켓이 없어 여기서 잡히지 않는다.
-그쪽은 단위 테스트에서 `GC.GetAllocatedBytesForCurrentThread()` 로 직접 못 박았다.
+In short, **core timing cost is unchanged; only the per-packet allocation in FEC recovery
+disappeared.** The rest of the improvements (G-1, G-2, G-3, G-5, C-1) live on the socket/event
+path, and since the BenchmarkDotNet harness has no socket, they don't show up here. Those are
+pinned down directly in unit tests with `GC.GetAllocatedBytesForCurrentThread()` instead.
 
-| 테스트 | 확인하는 것 |
+| Test | What it confirms |
 |---|---|
-| `RecvInPlaceTests.무복사_수신은_힙_할당을_남기지_않는다` | `Kcp.RecvInPlace` 드레인 20회 = **0 B** |
-| `ReedSolomonTests.복원은_힙_할당을_남기지_않는다` | `Reconstruct` 100회 = **0 B** |
+| `RecvInPlaceTests.무복사_수신은_힙_할당을_남기지_않는다` | 20 drain calls of `Kcp.RecvInPlace` = **0 B** |
+| `ReedSolomonTests.복원은_힙_할당을_남기지_않는다` | 100 calls of `Reconstruct` = **0 B** |
 
-> `SendRecvRoundtrip` 이 Phase 3 표의 321.3 µs 보다 커 보이는 것은 회귀가 아니다.
-> 같은 커밋(`7bec0b3`)을 지금 재면 366.0 µs 가 나온다. 절대값은 기계 상태에 크게 흔들리므로
-> **회귀 판정은 반드시 같은 세션의 A/B 로** 한다.
+> `SendRecvRoundtrip` looking larger than the Phase 3 table's 321.3 µs is not a regression.
+> Measuring the same commit (`7bec0b3`) right now gives 366.0 µs. Absolute values swing heavily
+> with machine state, so **regression calls must always be made from an A/B within the same
+> session.**
 
-## 앞으로 추가할 항목
+## Items to Add
 
-- 서버 단독 용량(부하 생성기를 다른 PC로 분리한 측정)
-- 전송 계층(핸드셰이크 포함) 종단 간 처리량
+- Standalone server capacity (measured with the load generator on a separate PC)
+- End-to-end transport-layer throughput (including handshake)
