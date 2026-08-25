@@ -44,7 +44,20 @@ public sealed class KcpServer : IDisposable
 
     // P5-3 관측성
     private readonly List<int> rttScratch = new List<int>(256);
+    private readonly List<KcpSession> metricsScratch = new List<KcpSession>(256);
     private uint nextMetricsAt;
+
+    // G-5: 세션마다 구독 클로저를 만들지 않도록 델리게이트를 서버당 1개씩만 만들어 둔다.
+    private readonly KcpSession.PacketSender sendToCallback;
+    private readonly Action<KcpSession, KcpDisconnectReason> onSessionDisconnected;
+    private readonly KcpMessageHandler onSessionReliable;
+    private readonly KcpMessageHandler onSessionUnreliable;
+
+    // G-2: ReadOnlyMemory 이벤트 구독자가 있을 때만 쓰는 상주 복사 버퍼.
+    private byte[] eventScratch = Array.Empty<byte>();
+
+    // M-2: 게임 스레드로 넘기는 이벤트 큐. EnableEventQueue 를 부른 경우에만 생긴다.
+    private KcpEventQueue? events;
 
     /// <summary>서버를 만든다.</summary>
     /// <param name="port">바인딩할 UDP 포트.</param>
@@ -57,6 +70,11 @@ public sealed class KcpServer : IDisposable
         this.options.Session.Validate();
         this.clock = clock ?? (() => KcpClock.NowMs);
         cookies = new HandshakeCookie();
+
+        sendToCallback = SendTo;
+        onSessionDisconnected = OnSessionDisconnected;
+        onSessionReliable = OnSessionReliable;
+        onSessionUnreliable = OnSessionUnreliable;
 
         var overhead = this.options.Session.Cipher?.Overhead ?? 0;
         receiveBuffer = new byte[this.options.Session.Mtu + overhead + 64];
@@ -93,6 +111,52 @@ public sealed class KcpServer : IDisposable
 
     /// <summary>비신뢰 채널 메시지를 받으면 발생한다(메모리는 콜백 동안만 유효).</summary>
     public event Action<KcpSession, ReadOnlyMemory<byte>>? UnreliableReceived;
+
+    /// <summary>
+    /// 신뢰 채널 메시지를 <b>무복사</b>로 전달한다(진단 G-2).
+    /// </summary>
+    /// <remarks>
+    /// <see cref="ReliableReceived"/> 구독자가 없으면 KCP 세그먼트에서 그대로 넘어오므로
+    /// 수신 경로에 대여·복사·할당이 남지 않는다. Span 은 콜백 밖으로 보관할 수 없다.
+    /// </remarks>
+    public event KcpMessageHandler? ReliableReceivedSpan;
+
+    /// <summary>비신뢰 채널 메시지를 <b>무복사</b>로 전달한다(진단 G-2).</summary>
+    /// <remarks>Span 은 콜백 밖으로 보관할 수 없다.</remarks>
+    public event KcpMessageHandler? UnreliableReceivedSpan;
+
+    /// <summary>
+    /// 게임 스레드로 이벤트를 넘기는 큐(진단 M-2). <see cref="EnableEventQueue"/> 를 부르기 전에는 null.
+    /// </summary>
+    public KcpEventQueue? Events => events;
+
+    /// <summary>
+    /// 수신 이벤트를 게임 스레드로 넘기는 큐를 켠다(진단 M-2).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 이벤트는 수신 루프 스레드에서 발화하므로 게임 상태를 직접 만지면 레이스가 난다.
+    /// 이 큐를 켜면 연결·종료·메시지가 전부 큐로 들어오고, 게임 루프에서 다음처럼 꺼내 쓰면 된다.
+    /// </para>
+    /// <code>
+    /// while (server.Events!.TryRead(out var ev)) { Handle(ev); ev.ReturnPayload(); }
+    /// </code>
+    /// <para>
+    /// C# 이벤트(<see cref="ReliableReceived"/> 등)와 함께 써도 되지만, 큐만 쓰는 편이 규약이 단순하다.
+    /// <b><see cref="Start()"/> 전에</b> 불러야 한다.
+    /// </para>
+    /// </remarks>
+    /// <param name="capacity">큐 용량(이벤트 수). 가득 차면 이벤트를 버리고 <see cref="KcpEventQueue.Dropped"/> 가 오른다.</param>
+    /// <returns>만들어진 큐.</returns>
+    /// <exception cref="InvalidOperationException">이미 시작된 서버인 경우.</exception>
+    public KcpEventQueue EnableEventQueue(int capacity = 4096)
+    {
+        ThrowIfDisposed();
+        if (transport != null)
+            throw new InvalidOperationException("이벤트 큐는 서버를 시작하기 전에 켜야 합니다.");
+
+        return events ??= new KcpEventQueue(capacity);
+    }
 
     /// <summary>수신 루프에서 예외가 발생하면 발생한다(루프는 계속 돈다).</summary>
     public event Action<Exception>? Error;
@@ -196,6 +260,9 @@ public sealed class KcpServer : IDisposable
         }
         scheduler.Clear();
 
+        // M-2: 큐에 남은 대여 버퍼를 돌려준다(다시 Start 할 수 있으므로 큐 자체는 살려 둔다).
+        events?.Release(complete: false);
+
         transport?.Dispose();
         transport = null;
     }
@@ -286,7 +353,9 @@ public sealed class KcpServer : IDisposable
         {
             var issued = cookies.Compute(remote, unixSeconds);
             var len = Framing.WriteSyn(sendScratch, FrameType.SynCookie, clientNonce, issued);
-            transport?.SendTo(sendScratch.AsSpan(0, len), remote.ToEndPoint());
+            // 세션이 아직 없는 경로다. 주소 키 오버로드로 보내 IPEndPoint 할당을 없앤다(진단 G-1).
+            // SYN 홍수 시 이 경로가 가장 뜨거우므로 여기서 할당이 생기면 곧바로 GC 압력이 된다.
+            transport?.SendTo(sendScratch.AsSpan(0, len), remote);
             return;
         }
 
@@ -296,11 +365,13 @@ public sealed class KcpServer : IDisposable
 
         var endPoint = remote.ToEndPoint();
         var sessionOptions = options.Session.Clone();
-        var session = new KcpSession(endPoint, sessionOptions, SendTo, clock, isClient: false);
+        var session = new KcpSession(endPoint, sessionOptions, sendToCallback, clock, isClient: false);
 
-        session.Disconnected += OnSessionDisconnected;
-        session.ReliableReceived += (s, data) => ReliableReceived?.Invoke(s, data);
-        session.UnreliableReceived += (s, data) => UnreliableReceived?.Invoke(s, data);
+        // G-5: 캐시해 둔 델리게이트를 그대로 붙인다(세션마다 클로저 클래스 + 델리게이트 할당이 생기지 않는다).
+        // G-2: Span 이벤트로 구독해 세션이 무복사 경로를 탈 수 있게 한다.
+        session.Disconnected += onSessionDisconnected;
+        session.ReliableReceivedSpan += onSessionReliable;
+        session.UnreliableReceivedSpan += onSessionUnreliable;
 
         var conv = nextConv++;
         if (nextConv == 0) nextConv = 1;   // 0 은 예약
@@ -315,6 +386,7 @@ public sealed class KcpServer : IDisposable
 
         SendSynAck(session, remote);
         SessionConnected?.Invoke(session);
+        events?.Publish(KcpEventType.Connected, session, default, default);
     }
 
     private void SendSynAck(KcpSession session, AddressKey remote)
@@ -366,18 +438,47 @@ public sealed class KcpServer : IDisposable
 
         nextMetricsAt = now + (uint)options.MetricsIntervalMs;
 
-        List<KcpSession> snapshot;
+        // G-5: 주기마다 리스트를 새로 만들지 않는다(rttScratch 와 같은 방식).
+        metricsScratch.Clear();
         lock (sessions)
         {
-            snapshot = new List<KcpSession>(sessions.Values);
+            foreach (var session in sessions.Values)
+                metricsScratch.Add(session);
         }
 
-        handler(MetricsCollector.Collect(snapshot, now, rttScratch));
+        handler(MetricsCollector.Collect(metricsScratch, now, rttScratch));
     }
 
     private void OnSessionDisconnected(KcpSession session, KcpDisconnectReason reason)
     {
         SessionDisconnected?.Invoke(session, reason);
+        events?.Publish(KcpEventType.Disconnected, session, default, reason);
+    }
+
+    private void OnSessionReliable(KcpSession session, ReadOnlySpan<byte> data)
+    {
+        ReliableReceivedSpan?.Invoke(session, data);
+        RaiseMemory(ReliableReceived, session, data);
+        events?.Publish(KcpEventType.Reliable, session, data, default);
+    }
+
+    private void OnSessionUnreliable(KcpSession session, ReadOnlySpan<byte> data)
+    {
+        UnreliableReceivedSpan?.Invoke(session, data);
+        RaiseMemory(UnreliableReceived, session, data);
+        events?.Publish(KcpEventType.Unreliable, session, data, default);
+    }
+
+    /// <summary>ReadOnlyMemory 이벤트 구독자가 있을 때만 상주 스크래치로 복사해 전달한다.</summary>
+    private void RaiseMemory(Action<KcpSession, ReadOnlyMemory<byte>>? handler, KcpSession session, ReadOnlySpan<byte> data)
+    {
+        if (handler == null) return;
+
+        if (eventScratch.Length < data.Length)
+            eventScratch = new byte[Math.Max(data.Length, Math.Max(1024, eventScratch.Length * 2))];
+
+        data.CopyTo(eventScratch);
+        handler(session, new ReadOnlyMemory<byte>(eventScratch, 0, data.Length));
     }
 
     private void RemoveSession(KcpSession session)
@@ -419,6 +520,7 @@ public sealed class KcpServer : IDisposable
         disposed = true;
 
         Stop();
+        events?.Release(complete: true);
         cookies.Dispose();
     }
 }

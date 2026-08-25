@@ -1,6 +1,7 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace KcpCSharpR1.Transport;
@@ -13,6 +14,10 @@ namespace KcpCSharpR1.Transport;
 /// <item><description>
 /// net8.0 에서는 <c>ReceiveFrom(Span, SocketFlags, SocketAddress)</c> 로 <see cref="SocketAddress"/> 를
 /// 재사용해 수신 경로 할당을 없앤다. netstandard2.1 은 <c>ReceiveFrom(byte[], ..., ref EndPoint)</c> 로 폴백한다.
+/// </description></item>
+/// <item><description>
+/// net8.0 송신 경로도 <see cref="SocketAddress"/> 를 재사용한다. <c>SendTo(..., EndPoint)</c> 는 호출마다
+/// <c>EndPoint.Serialize()</c> 로 <see cref="SocketAddress"/> 를 새로 만들기 때문이다(진단 G-1).
 /// </description></item>
 /// <item><description>
 /// 송수신 버퍼를 기본 1MB 로 키운다. OS 기본값(보통 64KB)에서는 버스트 시 커널이 조용히 패킷을 버린다(진단 S-05).
@@ -28,10 +33,23 @@ public sealed class UdpSocketTransport : IUdpTransport
     private const int SIO_UDP_CONNRESET = -1744830452;
 
     private readonly Socket socket;
+    private readonly AddressFamily family;
     private bool disposed;
 
 #if NET8_0_OR_GREATER
     private readonly SocketAddress receiveAddress;
+
+    /// <summary>
+    /// 세션 상대 주소의 <see cref="SocketAddress"/> 캐시(진단 G-1).
+    /// </summary>
+    /// <remarks>
+    /// 세션 하나는 같은 <see cref="IPEndPoint"/> 인스턴스를 계속 쓰므로 직렬화가 세션당 1회로 줄어든다.
+    /// 약한 참조 테이블이라 세션이 사라지면 항목도 함께 사라져 별도의 수명 관리가 필요 없다.
+    /// </remarks>
+    private readonly ConditionalWeakTable<IPEndPoint, SocketAddress> sendAddressCache = new ConditionalWeakTable<IPEndPoint, SocketAddress>();
+
+    /// <summary>주소 키로 보낼 때 재사용하는 버퍼(핸드셰이크 응답 등 일회성 송신용).</summary>
+    private readonly SocketAddress keySendAddress;
 #else
     private EndPoint receiveEndPoint;
     private byte[] receiveScratch = new byte[2048];
@@ -46,6 +64,7 @@ public sealed class UdpSocketTransport : IUdpTransport
         int receiveBufferSize = 1 << 20,
         int sendBufferSize = 1 << 20)
     {
+        family = addressFamily;
         socket = new Socket(addressFamily, SocketType.Dgram, ProtocolType.Udp)
         {
             ReceiveBufferSize = receiveBufferSize,
@@ -68,6 +87,7 @@ public sealed class UdpSocketTransport : IUdpTransport
 
 #if NET8_0_OR_GREATER
         receiveAddress = new SocketAddress(addressFamily);
+        keySendAddress = new SocketAddress(addressFamily);
 #else
         receiveEndPoint = new IPEndPoint(
             addressFamily == AddressFamily.InterNetworkV6 ? IPAddress.IPv6Any : IPAddress.Any, 0);
@@ -90,11 +110,15 @@ public sealed class UdpSocketTransport : IUdpTransport
     public int SendTo(ReadOnlySpan<byte> data, IPEndPoint remote)
     {
         if (disposed) return 0;
+        if (remote == null) throw new ArgumentNullException(nameof(remote));
 
         try
         {
 #if NET8_0_OR_GREATER
-            return socket.SendTo(data, SocketFlags.None, remote);
+            // Socket.SendTo(..., EndPoint) 는 내부에서 remote.Serialize() 를 호출해 매번 SocketAddress 를 만든다.
+            // 세션의 상대 주소는 불변이므로 인스턴스를 키로 캐시해 직렬화를 세션당 1회로 줄인다(진단 G-1).
+            var address = sendAddressCache.GetValue(remote, static ep => ep.Serialize());
+            return socket.SendTo(data, SocketFlags.None, address);
 #else
             var array = System.Buffers.ArrayPool<byte>.Shared.Rent(data.Length);
             try
@@ -117,6 +141,33 @@ public sealed class UdpSocketTransport : IUdpTransport
         {
             return 0;
         }
+    }
+
+    /// <inheritdoc/>
+    public int SendTo(ReadOnlySpan<byte> data, AddressKey remote)
+    {
+        if (disposed) return 0;
+
+#if NET8_0_OR_GREATER
+        // 재사용 SocketAddress 에 직접 써서 IPEndPoint·IPAddress 할당을 모두 없앤다(진단 G-1).
+        if (!TryWriteKey(remote, keySendAddress))
+            return SendTo(data, remote.ToEndPoint());
+
+        try
+        {
+            return socket.SendTo(data, SocketFlags.None, keySendAddress);
+        }
+        catch (SocketException)
+        {
+            return 0;
+        }
+        catch (ObjectDisposedException)
+        {
+            return 0;
+        }
+#else
+        return SendTo(data, remote.ToEndPoint());
+#endif
     }
 
     /// <inheritdoc/>
@@ -180,7 +231,81 @@ public sealed class UdpSocketTransport : IUdpTransport
         }
     }
 
+    /// <inheritdoc/>
 #if NET8_0_OR_GREATER
+    public bool TryReceive(byte[] buffer, out int received, out AddressKey remote)
+    {
+        // net8.0 은 Span 오버로드가 이미 무복사·무할당이다.
+        if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+        return TryReceive(buffer.AsSpan(), out received, out remote);
+    }
+#else
+    public bool TryReceive(byte[] buffer, out int received, out AddressKey remote)
+    {
+        // netstandard2.1 에는 Span 수신 오버로드가 없다. 배열을 그대로 넘겨 스크래치 복사 1회를 없앤다(진단 C-1).
+        received = 0;
+        remote = default;
+        if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+        if (disposed) return false;
+
+        try
+        {
+            var n = socket.ReceiveFrom(buffer, 0, buffer.Length, SocketFlags.None, ref receiveEndPoint);
+            if (n <= 0) return false;
+            received = n;
+            remote = AddressKey.FromEndPoint((IPEndPoint)receiveEndPoint);
+            return true;
+        }
+        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.WouldBlock)
+        {
+            return false;
+        }
+        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionReset ||
+                                         ex.SocketErrorCode == SocketError.MessageSize)
+        {
+            return false;
+        }
+        catch (ObjectDisposedException)
+        {
+            return false;
+        }
+    }
+#endif
+
+#if NET8_0_OR_GREATER
+    /// <summary>주소 키를 재사용 <see cref="SocketAddress"/> 버퍼에 직접 기록한다.</summary>
+    /// <returns>이 소켓의 주소 체계로 기록할 수 있으면 true.</returns>
+    private bool TryWriteKey(AddressKey key, SocketAddress destination)
+    {
+        var span = destination.Buffer.Span;
+        Span<byte> bytes = stackalloc byte[16];
+        key.WriteAddressBytes(bytes);
+
+        if (family == AddressFamily.InterNetwork)
+        {
+            // sockaddr_in: [family 2][port BE 2][addr 4][zero 8]
+            if (!key.IsIPv4 || span.Length < 8) return false;
+            span[2] = (byte)(key.Port >> 8);
+            span[3] = (byte)key.Port;
+            bytes.Slice(12, 4).CopyTo(span.Slice(4));
+            return true;
+        }
+
+        if (family == AddressFamily.InterNetworkV6)
+        {
+            // sockaddr_in6: [family 2][port BE 2][flowinfo 4][addr 16][scope 4]
+            if (span.Length < 28) return false;
+            span[2] = (byte)(key.Port >> 8);
+            span[3] = (byte)key.Port;
+            span.Slice(4, 4).Clear();
+            bytes.CopyTo(span.Slice(8));
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(span.Slice(24, 4), key.ScopeId);
+            return true;
+        }
+
+        return false;
+    }
+
     private static AddressKey ToKey(SocketAddress address)
     {
         // SocketAddress -> IPEndPoint 변환은 할당을 만든다. 버퍼에서 직접 읽어 키를 만든다.

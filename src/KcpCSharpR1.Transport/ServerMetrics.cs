@@ -55,11 +55,11 @@ public readonly struct KcpServerMetrics
 internal static class MetricsCollector
 {
     /// <summary>스냅숏을 만든다.</summary>
-    /// <param name="sessions">대상 세션들.</param>
+    /// <param name="sessions">대상 세션들. <see cref="List{T}"/> 로 받아 열거자 박싱을 피한다(진단 G-5).</param>
     /// <param name="now">현재 시각(ms).</param>
     /// <param name="rttScratch">RTT 정렬에 재사용할 리스트(할당을 줄이기 위해 호출자가 준다).</param>
     /// <returns>스냅숏.</returns>
-    public static KcpServerMetrics Collect(IReadOnlyCollection<KcpSession> sessions, uint now, List<int> rttScratch)
+    public static KcpServerMetrics Collect(List<KcpSession> sessions, uint now, List<int> rttScratch)
     {
         rttScratch.Clear();
 

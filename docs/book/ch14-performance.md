@@ -310,6 +310,110 @@ for (var k = 0; k < sndBufCount; k++)
 MaxSendBacklog = 256,
 ```
 
+## 한 걸음 더 — 무복사 수신 이벤트 (G-2)
+
+여기까지가 "라이브러리 안쪽"의 할당 0입니다. 그런데 **애플리케이션에 메시지를 넘기는 마지막 한 걸음**에는
+오랫동안 복사가 남아 있었습니다.
+
+```csharp
+// 예전 경로: 이벤트 하나를 쏘기 위해 대여 + 복사 + 반환
+var buffer = ArrayPool<byte>.Shared.Rent(size);
+var n = kcp.Recv(buffer);                 // 세그먼트 → 대여 버퍼 복사
+handler(this, new ReadOnlyMemory<byte>(buffer, 0, n));
+ArrayPool<byte>.Shared.Return(buffer);
+```
+
+이 복사는 `Action<KcpSession, ReadOnlyMemory<byte>>` 라는 **이벤트 타입 때문에** 생깁니다.
+`ReadOnlySpan<byte>` 는 ref struct 라 제네릭 `Action<>` 의 타입 인자가 될 수 없거든요.
+하지만 **전용 델리게이트로는 쓸 수 있습니다.**
+
+```csharp
+public delegate void KcpMessageHandler(KcpSession session, ReadOnlySpan<byte> data);
+```
+
+그래서 Span 이벤트를 하나 더 뒀습니다. 기존 이벤트는 그대로 두었으니 골라 쓰면 됩니다.
+
+```csharp
+// 무복사 경로 — data 는 KCP 세그먼트를 그대로 가리킨다.
+server.ReliableReceivedSpan += (session, data) =>
+{
+    var opcode = data[0];
+    // ...파싱은 여기서 끝내고, 남길 것만 복사한다.
+};
+```
+
+구독자가 Span 쪽만 있으면 코어의 `Kcp.RecvInPlace` 가 **큐에서 세그먼트를 꺼내 페이로드를 바로 넘깁니다.**
+대여도, 복사도, 할당도 없습니다.
+
+```csharp
+// src/KcpCSharpR1/Kcp.cs
+public int RecvInPlace(InPlaceMessageHandler handler)
+{
+    var seg = rcv_queue.PeekFront();
+    if (seg.frg != 0) return -3;   // 다조각이면 기존 조립 경로로 폴백
+    rcv_queue.RemoveFront(1);
+    try { handler(seg.Payload); }  // ← 복사 없음
+    finally { ReturnSegment(seg); }
+    ...
+}
+```
+
+게임 메시지는 대부분 MTU 한 장에 들어가므로 이 경로가 거의 항상 탑니다.
+MTU 를 넘는 메시지(`frg != 0`)만 조립이 필요하고, 그 조립 버퍼도 **세션 상주 버퍼 하나**를 재사용합니다.
+
+**지켜야 할 규약은 하나뿐입니다.**
+
+> `data` 는 콜백이 반환하면 무효입니다. 보관하려면 콜백 안에서 복사하세요.
+
+기존 `ReadOnlyMemory` 이벤트도 이미 같은 규약이었으니 새로운 부담은 아닙니다.
+다만 Span 은 컴파일러가 **필드에 저장하는 것 자체를 막아 주기 때문에**, 실수하기가 더 어렵습니다.
+
+## 스레드 경계를 건너는 법 (M-1 / M-2)
+
+이 라이브러리의 규약은 "세션 1개 = 소유 스레드 1개"입니다. 서버에서는 수신 루프 스레드가 소유자죠.
+그런데 게임 로직은 보통 다른 스레드에서 돕니다. 이 경계를 건너는 정석은 **큐**입니다.
+
+예전에는 그 큐를 사용자가 직접 짜야 했습니다. 이제 두 방향 모두 라이브러리가 제공합니다.
+
+**받는 쪽 — 이벤트 큐**
+
+```csharp
+var events = server.EnableEventQueue(capacity: 4096);   // Start() 전에
+server.Start();
+
+// 게임 루프(다른 스레드)에서
+while (events.TryRead(out var ev))
+{
+    switch (ev.Type)
+    {
+        case KcpEventType.Connected:    OnJoin(ev.Session); break;
+        case KcpEventType.Reliable:     Handle(ev.Session, ev.Data); break;
+        case KcpEventType.Disconnected: OnLeave(ev.Session, ev.Reason); break;
+    }
+    ev.ReturnPayload();   // ★ 반드시. 대여 버퍼를 풀에 돌려준다.
+}
+```
+
+큐가 가득 차면 이벤트를 **버리고** `events.Dropped` 를 올립니다. 신뢰 채널 메시지도 예외가 아닙니다.
+게임 루프가 밀리면 조용히 데이터가 사라진다는 뜻이므로, `Dropped` 는 반드시 지표로 내보내세요.
+
+**보내는 쪽 — 아웃박스**
+
+```csharp
+options.SendOutboxCapacity = 256;   // 0 이면 아웃박스를 만들지 않는다(기본값)
+
+// 게임 스레드 어디서든
+if (!session.TrySendFromAnyThread(payload))
+{
+    // 큐가 찼다. 이번 틱은 건너뛰거나 우선순위가 낮은 메시지를 버린다.
+}
+```
+
+여기서는 복사 1회가 **필수 비용**입니다. 호출자 버퍼의 수명과 라이브러리의 수명을 떼어 놓아야 하니까요.
+반대로 이벤트 콜백 안(= 소유 스레드)에서는 `session.Send()` 를 그대로 쓰면 이 복사가 없습니다.
+
+> 정리하면, **소유 스레드 안에서는 `Send`/Span 이벤트로 무복사, 스레드를 건널 때만 큐로 1회 복사**입니다.
+
 ## 요약
 
 - 게임에서 문제가 되는 것은 **Gen2**입니다. 정상 상태 할당을 0으로 만드는 것이 목표입니다.

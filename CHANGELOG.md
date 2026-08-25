@@ -5,6 +5,38 @@
 
 ## [Unreleased]
 
+### 추가됨
+
+- **무복사 수신(G-2)** — `Kcp.RecvInPlace(InPlaceMessageHandler)` 와
+  `ReliableReceivedSpan` / `UnreliableReceivedSpan` 이벤트(`KcpSession`·`KcpServer`·`KcpClient`).
+  `ReadOnlyMemory` 이벤트 구독자가 없으면 KCP 세그먼트를 복사·대여 없이 그대로 전달합니다.
+- **스레드 경계 API** — `KcpSession.TrySendFromAnyThread` + `KcpSessionOptions.SendOutboxCapacity`(M-1),
+  `KcpEventQueue` / `KcpEvent` + `KcpServer.EnableEventQueue()` · `KcpClient.EnableEventQueue()`(M-2).
+- `IUdpTransport.SendTo(ReadOnlySpan<byte>, AddressKey)` 와 `TryReceive(byte[], …)` 오버로드(G-1·C-1).
+  둘 다 기본 구현이 있어 기존 구현체를 깨지 않습니다.
+- `AddressKey.ScopeId` / `IsIPv4` / `WriteAddressBytes`.
+
+### 변경됨
+
+- **송신 경로 무할당화(G-1)** — `UdpSocketTransport` 가 `IPEndPoint → SocketAddress` 직렬화를
+  세션당 1회만 하고, 핸드셰이크 쿠키 응답은 재사용 `SocketAddress` 로 보냅니다.
+- **암호화 세션 무할당화(G-3)** — 패킷마다의 `ArrayPool` 대여 대신 세션 상주 복호화 버퍼.
+- **FEC 무할당화(G-4)** — 디코더가 그룹 샤드 버퍼를 미리 잡아 재활용하고,
+  `ReedSolomon.Reconstruct` 가 스크래치를 재사용합니다(복원 5,896 B → **0 B**).
+  내부 API 시그니처가 `Reconstruct(byte[][], bool[], int)` 로 바뀌었습니다(`internal`).
+- **비동기 대기 개선(A-1·A-3)** — `ConnectAsync` 의 1ms `Task.Delay` 폴링 제거,
+  `RunAsync` 의 고정 1ms 대기를 다음 갱신 시각 기반(상한 5ms)으로 변경.
+- `netstandard2.1` 타깃의 `KcpCSharpR1.Transport` 가 `System.Threading.Channels` 를 참조합니다
+  (net8.0 은 BCL 내장이라 추가 의존성 없음, 코어는 여전히 의존성 0).
+
+### 고쳐짐
+
+- `Kcp.Recv` 가 rcv_buf → rcv_queue 이동 시 큐 길이를 이중으로 세어 **실효 수신 윈도가 절반**이었습니다.
+  `parse_data` 와 같은 kcp-go 방식으로 통일했습니다.
+- 수신 콜백 안에서 세션을 끊으면 `KcpSession.DrainReliable` 이 `NullReferenceException` 을
+  던질 수 있었습니다.
+- FEC 송·수신 경로의 람다가 **패킷마다** 클로저를 할당하고 있었습니다.
+
 ### 알려진 미완
 
 - nuget.org 실제 게시(API 키 필요, 별도 결정 사항) — 패키징 자체는 완료, 로컬 `dotnet pack` 검증 완료

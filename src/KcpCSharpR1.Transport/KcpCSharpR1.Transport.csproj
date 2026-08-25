@@ -17,6 +17,15 @@
     <ProjectReference Include="..\KcpCSharpR1\KcpCSharpR1.csproj" />
   </ItemGroup>
 
+  <!--
+    M-1/M-2 의 스레드 경계 큐에 System.Threading.Channels 를 쓴다.
+    net8.0 에는 BCL 에 들어 있어 참조가 필요 없고, netstandard2.1 에서만 패키지로 가져온다.
+    코어(KcpCSharpR1)는 여전히 의존성 0 이다.
+  -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
+    <PackageReference Include="System.Threading.Channels" Version="8.0.0" />
+  </ItemGroup>
+
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
     <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />

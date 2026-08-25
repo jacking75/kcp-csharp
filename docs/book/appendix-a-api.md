@@ -44,6 +44,12 @@ public Kcp(uint conv_, Action<byte[], int> output_, Func<uint>? currentTimeMs = 
 | `int Input(byte[] data, int index, int size, bool regular, bool ackNoDelay)` | 0 / -1 / -2 / -3 |
 | `int Input(ReadOnlySpan<byte> data, bool regular, bool ackNoDelay)` | 동일(무할당) |
 
+> **무복사 수신** — `int RecvInPlace(InPlaceMessageHandler handler)` (진단 G-2)
+> 다음 메시지가 단일 조각이면 세그먼트 페이로드를 복사 없이 넘긴다. 반환값은 넘긴 바이트 수,
+> 읽을 것이 없으면 `-1`, **다조각이면 `-3`** 이며 이때 큐는 그대로 남으므로
+> `PeekSize()` + `Recv(Span)` 조립 경로로 폴백하면 된다.
+> `handler` 가 받은 Span 은 콜백 밖으로 보관할 수 없다.
+
 ### 구동
 
 | 시그니처 | 설명 |
@@ -148,7 +154,11 @@ public KcpClient(KcpSessionOptions? options = null, Func<uint>? clock = null)
 | `bool IsConnected` | |
 | `IPEndPoint? LocalEndPoint` | |
 
-이벤트: `Connected`, `Disconnected`, `ReliableReceived`, `UnreliableReceived`
+| `KcpEventQueue EnableEventQueue(int capacity = 1024)` | 이벤트를 게임 스레드 큐로 받는다(M-2) |
+| `KcpEventQueue? Events` | 위에서 만든 큐. 켜기 전이면 null |
+
+이벤트: `Connected`, `Disconnected`, `ReliableReceived`, `UnreliableReceived`,
+`ReliableReceivedSpan`, `UnreliableReceivedSpan`
 
 > **구동 모델을 섞지 마세요.** `RunAsync` 중에 `Update()` 를 부르면 예외가 납니다.
 
@@ -174,9 +184,13 @@ public KcpServer(int port, KcpServerOptions? options = null, Func<uint>? clock =
 | `IReadOnlyCollection<KcpSession> Sessions` | 스냅숏(복사본) |
 | `IPEndPoint? LocalEndPoint` | |
 
-이벤트: `SessionConnected`, `SessionDisconnected`, `ReliableReceived`, `UnreliableReceived`, `Error`, `MetricsSampled`
+| `KcpEventQueue EnableEventQueue(int capacity = 4096)` | 이벤트를 게임 스레드 큐로 받는다(M-2). **`Start()` 전에** |
+| `KcpEventQueue? Events` | 위에서 만든 큐. 켜기 전이면 null |
 
-> **이벤트는 수신 루프 스레드에서 발화합니다.**
+이벤트: `SessionConnected`, `SessionDisconnected`, `ReliableReceived`, `UnreliableReceived`,
+`ReliableReceivedSpan`, `UnreliableReceivedSpan`, `Error`, `MetricsSampled`
+
+> **이벤트는 수신 루프 스레드에서 발화합니다.** 게임 스레드로 넘기려면 `EnableEventQueue` 를 쓰세요.
 
 ---
 
@@ -188,6 +202,7 @@ public KcpServer(int port, KcpServerOptions? options = null, Func<uint>? clock =
 |---|---|
 | `KcpSendResult Send(ReadOnlySpan<byte> data)` | 신뢰 채널 |
 | `KcpSendResult SendUnreliable(ReadOnlySpan<byte> data)` | 비신뢰 채널 |
+| `bool TrySendFromAnyThread(ReadOnlySpan<byte> data)` | **어느 스레드에서든** 가능한 신뢰 송신(M-1). `SendOutboxCapacity > 0` 필요 |
 | `int Receive(Span<byte> buffer)` | 폴링 수신(신뢰) |
 | `int ReceiveUnreliable(Span<byte> buffer)` | 폴링 수신(비신뢰) |
 | `int PeekSize()` | 다음 신뢰 메시지 크기 |
@@ -209,6 +224,14 @@ public KcpServer(int port, KcpServerOptions? options = null, Func<uint>? clock =
 | `byte CloseReason` | 상대가 보낸 FIN의 reason |
 | `long FecRecoveredPackets` | FEC 복원 수 |
 | `bool IsEncrypted` | |
+| `long OutboxAccepted` / `long OutboxRejected` | 아웃박스 진단 카운터(M-1) |
+
+이벤트: `Connected`, `Disconnected`, `ReliableReceived`, `UnreliableReceived`,
+`ReliableReceivedSpan`, `UnreliableReceivedSpan`
+
+> **`ReliableReceivedSpan` / `UnreliableReceivedSpan`** (진단 G-2)는 `KcpMessageHandler` 델리게이트를 쓴다.
+> `ReadOnlyMemory` 이벤트 구독자가 없으면 KCP 세그먼트를 **복사 없이** 그대로 받는다.
+> Span 은 콜백 밖으로 보관할 수 없다(기존 `ReadOnlyMemory` 이벤트와 같은 규약).
 
 ### `KcpSendResult`
 
@@ -232,6 +255,7 @@ public KcpServer(int port, KcpServerOptions? options = null, Func<uint>? clock =
 
 | 속성 | 기본값 |
 |---|---|
+| `SendOutboxCapacity` | 0 (0 이면 `TrySendFromAnyThread` 를 못 쓴다, M-1) |
 | `HandshakeTimeoutMs` | 5000 |
 | `HandshakeRetryIntervalMs` | 1000 |
 | `HandshakeMaxRetries` | 3 |
@@ -302,8 +326,10 @@ public KcpServer(int port, KcpServerOptions? options = null, Func<uint>? clock =
 | 멤버 | 설명 |
 |---|---|
 | `void Bind(IPEndPoint local)` | |
-| `int SendTo(ReadOnlySpan<byte> data, IPEndPoint remote)` | |
+| `int SendTo(ReadOnlySpan<byte> data, IPEndPoint remote)` | 같은 상대에는 **같은 인스턴스를 재사용**할 것(주소 직렬화 캐시, G-1) |
+| `int SendTo(ReadOnlySpan<byte> data, AddressKey remote)` | 세션 없는 일회성 송신(쿠키 응답 등). 기본 구현 있음 |
 | `bool TryReceive(Span<byte> buffer, out int received, out AddressKey remote)` | 비블로킹 |
+| `bool TryReceive(byte[] buffer, out int received, out AddressKey remote)` | 배열 직접 수신(C-1). 기본 구현 있음 |
 | `bool WaitForData(int microseconds)` | |
 | `IPEndPoint? LocalEndPoint` | |
 
@@ -317,6 +343,40 @@ public KcpServer(int port, KcpServerOptions? options = null, Func<uint>? clock =
 |---|---|
 | `DataShards` | 10 |
 | `ParityShards` | 3 |
+
+## `KcpCSharpR1.Transport.KcpEventQueue` / `KcpEvent`
+
+→ [14장](ch14-performance.md)
+
+수신 이벤트를 게임 스레드로 넘기는 바운디드 SPSC 큐(진단 M-2).
+`KcpServer.EnableEventQueue()` / `KcpClient.EnableEventQueue()` 로 만든다.
+
+| 멤버 | 설명 |
+|---|---|
+| `bool TryRead(out KcpEvent ev)` | 하나 꺼낸다 |
+| `ValueTask<bool> WaitToReadAsync(CancellationToken ct = default)` | 들어올 때까지 기다린다 |
+| `int Count` | 쌓여 있는 이벤트 수 |
+| `long Dropped` | **큐가 가득 차서 버린 수. 반드시 지표로 내보낼 것** |
+
+`KcpEvent` 는 값 타입이다.
+
+| 멤버 | 설명 |
+|---|---|
+| `KcpEventType Type` | `Connected` / `Disconnected` / `Reliable` / `Unreliable` |
+| `KcpSession Session` | |
+| `ReadOnlySpan<byte> Data` / `int PayloadLength` | 메시지 페이로드 |
+| `KcpDisconnectReason Reason` | `Disconnected` 일 때만 유효 |
+| `void ReturnPayload()` | **소비 후 반드시 호출.** 대여 버퍼를 풀에 돌려준다(여러 번 불러도 안전) |
+
+```csharp
+while (server.Events!.TryRead(out var ev))
+{
+    Handle(ev);
+    ev.ReturnPayload();
+}
+```
+
+---
 
 ## `KcpCSharpR1.Transport.KcpServerMetrics`
 

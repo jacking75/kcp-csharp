@@ -88,6 +88,8 @@ while (true)          // 게임 루프에서 매 프레임
 | **AES-256-GCM 암호화** | 인증 암호화 + 64비트 리플레이 윈도 |
 | **Reed-Solomon FEC** | kcp-go 호환. 손실 20%에서 재전송 −70% |
 | **무할당 설계** | 정상 상태 송수신 경로 **0 B/op**(벤치마크로 확인) |
+| **무복사 수신** | `ReliableReceivedSpan` 으로 KCP 세그먼트를 복사 없이 그대로 전달 |
+| **스레드 경계 API** | 게임 스레드용 송신 아웃박스 + 수신 이벤트 큐 |
 | **최소 힙 스케줄러** | 세션 1만 개에서도 기한이 된 것만 갱신 |
 | **관측성** | 세션 수·재전송률·RTT p50/p95/p99 주기 스냅숏 |
 | **외부 의존성 0** | 코어·전송 계층 모두. 샘플의 MonoGame 만 예외 |
@@ -145,6 +147,21 @@ dotnet add reference path/to/kcp-csharp/src/KcpCSharpR1.Transport/KcpCSharpR1.Tr
 |---|---|
 | `net8.0` | 서버, MonoGame 클라이언트 |
 | `netstandard2.1` | Godot C#, 구형 런타임 |
+
+### 호스트 권장 설정
+
+라이브러리가 무할당이어도 **호스트 GC 설정이 나쁘면 일시정지는 남습니다.** 서버 앱 csproj에 넣으세요.
+
+```xml
+<PropertyGroup>
+  <ServerGarbageCollection>true</ServerGarbageCollection>
+  <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+  <TieredPGO>true</TieredPGO>
+</PropertyGroup>
+```
+
+클라이언트(MonoGame)는 워크스테이션 GC를 그대로 두고, 대신 무복사 수신(`ReliableReceivedSpan`)을 쓰세요.
+자세한 내용은 책 [17장 운영](https://jacking75.github.io/kcp-csharp/#/book/ch17-operations)에 있습니다.
 
 ## NuGet 배포 (관리자용)
 

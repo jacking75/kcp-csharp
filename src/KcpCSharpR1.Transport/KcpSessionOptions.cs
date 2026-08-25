@@ -35,6 +35,24 @@ public sealed class KcpSessionOptions
     /// </summary>
     public int MaxSendBacklog { get; set; } = 1024;
 
+    /// <summary>
+    /// 게임 스레드용 송신 아웃박스의 용량(메시지 수). 0 이면 아웃박스를 만들지 않는다(진단 M-1).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 0 보다 크면 <see cref="KcpSession.TrySendFromAnyThread(ReadOnlySpan{byte})"/> 를 쓸 수 있다.
+    /// 어느 스레드에서든 넣을 수 있고, 소유 스레드가 <see cref="KcpSession.Update"/> 첫머리에서 꺼내
+    /// KCP 에 넣는다.
+    /// </para>
+    /// <para>
+    /// <b><see cref="MaxSendBacklog"/> 와 역할이 다르다.</b> 이 값은 "스레드 경계에서 대기하는 메시지 수"이고,
+    /// <see cref="MaxSendBacklog"/> 는 "KCP 안에서 아직 ACK 를 못 받은 세그먼트 수"다.
+    /// 아웃박스가 차면 <c>TrySendFromAnyThread</c> 가 false 를 돌려주므로(백프레셔),
+    /// 게임 루프 한 틱에 넣을 메시지 수의 몇 배 정도로 잡는 것이 적당하다.
+    /// </para>
+    /// </remarks>
+    public int SendOutboxCapacity { get; set; }
+
     /// <summary>KCP nodelay(0 끔 / 1 켬).</summary>
     public int NoDelay { get; set; } = 1;
 
@@ -111,6 +129,8 @@ public sealed class KcpSessionOptions
             throw new ArgumentOutOfRangeException(nameof(MaxSendBacklog), MaxSendBacklog, "0보다 커야 합니다.");
         if (HandshakeMaxRetries < 0)
             throw new ArgumentOutOfRangeException(nameof(HandshakeMaxRetries), HandshakeMaxRetries, "0 이상이어야 합니다.");
+        if (SendOutboxCapacity < 0)
+            throw new ArgumentOutOfRangeException(nameof(SendOutboxCapacity), SendOutboxCapacity, "0 이상이어야 합니다.");
         if (EncryptionKey != null && EncryptionKey.Length != AesGcmPacketCipher.KeySize)
             throw new ArgumentOutOfRangeException(nameof(EncryptionKey), EncryptionKey.Length,
                 $"AES-256-GCM 키는 {AesGcmPacketCipher.KeySize}바이트여야 합니다.");

@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Net;
+using System.Threading.Channels;
 using KcpCSharpR1.Transport.Fec;
 
 namespace KcpCSharpR1.Transport;
@@ -43,6 +44,18 @@ public enum KcpSendResult
     /// <summary>그 밖의 오류.</summary>
     Error = -4,
 }
+
+/// <summary>
+/// 수신 메시지를 <b>복사 없이</b> 넘겨받는 핸들러(진단 G-2).
+/// </summary>
+/// <remarks>
+/// <see cref="ReadOnlySpan{T}"/> 는 제네릭 <see cref="Action{T1, T2}"/> 의 타입 인자가 될 수 없어
+/// 전용 델리게이트로 선언한다. <paramref name="data"/> 는 <b>콜백이 반환하면 무효</b>다.
+/// 보관하려면 반드시 복사해야 한다.
+/// </remarks>
+/// <param name="session">메시지를 받은 세션.</param>
+/// <param name="data">메시지 페이로드.</param>
+public delegate void KcpMessageHandler(KcpSession session, ReadOnlySpan<byte> data);
 
 /// <summary>세션 종료 사유.</summary>
 public enum KcpDisconnectReason
@@ -86,6 +99,33 @@ public sealed class KcpSession
     private readonly bool isClient;
     private readonly byte[] frameBuffer;
     private readonly Queue<PooledMessage> unreliableQueue = new Queue<PooledMessage>();
+
+    // G-3: 암호화 세션의 상주 복호화 버퍼. 패킷마다의 Rent/Return 과 반환 누락 위험을 함께 없앤다.
+    private byte[]? decryptBuffer;
+
+    // G-2: 수신 이벤트용 상주 버퍼. 다조각 조립과 ReadOnlyMemory 계약을 맞출 때만 쓴다(필요 시 성장).
+    private byte[] assemblyBuffer = Array.Empty<byte>();
+    private byte[] unreliableScratch = Array.Empty<byte>();
+
+    // G-2: RecvInPlace 콜백을 세션당 1개만 만들어 재사용한다(호출마다 델리게이트를 만들지 않기 위해).
+    private readonly Kcp.InPlaceMessageHandler inPlaceCallback;
+    private KcpMessageHandler? inPlaceTarget;
+
+    // G-2: 드레인 재진입 가드.
+    // 조립 버퍼가 세션 상주로 바뀌었으므로, 핸들러 안에서 Update/OnFrame 을 다시 부르면
+    // 안쪽 드레인이 바깥쪽이 아직 넘겨 준 버퍼를 덮어쓸 수 있다. 안쪽은 그냥 돌아가고
+    // 바깥 루프가 이어서 처리하게 한다(메시지 유실·순서 뒤바뀜 없음).
+    private bool draining;
+
+    // G-4: FEC 인/디코더에 넘기는 콜백도 세션당 1개만 만든다.
+    // 람다로 두면 패킷마다 클로저 객체 + 델리게이트가 생긴다(FEC 를 켠 세션의 송수신 전 경로).
+    private readonly FecOutput fecOutputCallback;
+    private readonly FecOutput fecRecoveredCallback;
+
+    // M-1: 게임 스레드용 송신 아웃박스(bounded MPSC). 옵션을 켠 세션에만 만든다.
+    private readonly Channel<PooledMessage>? outbox;
+    private long outboxAccepted;
+    private long outboxRejected;
 
     private Kcp? kcp;
     private KcpSessionState state;
@@ -136,9 +176,23 @@ public sealed class KcpSession
         this.sender = sender ?? throw new ArgumentNullException(nameof(sender));
         this.clock = clock ?? (() => KcpClock.NowMs);
         this.isClient = isClient;
+        inPlaceCallback = OnInPlaceMessage;
+        fecOutputCallback = OnFecOutput;
+        fecRecoveredCallback = OnFecRecovered;
 
         options.Validate();
         RemoteKey = AddressKey.FromEndPoint(remote);
+
+        if (options.SendOutboxCapacity > 0)
+        {
+            // 여러 생산자(게임 스레드들) → 단일 소비자(소유 스레드). 가득 차면 TryWrite 가 false 를 돌려준다.
+            outbox = Channel.CreateBounded<PooledMessage>(new BoundedChannelOptions(options.SendOutboxCapacity)
+            {
+                SingleReader = true,
+                SingleWriter = false,
+                FullMode = BoundedChannelFullMode.Wait,
+            });
+        }
 
         var cipherOverhead = options.CipherOverhead;
         reservedBytes = options.RawMode
@@ -203,6 +257,31 @@ public sealed class KcpSession
     /// <remarks>메모리는 콜백이 끝나면 무효다. 보관하려면 복사해야 한다.</remarks>
     public event Action<KcpSession, ReadOnlyMemory<byte>>? UnreliableReceived;
 
+    /// <summary>
+    /// 신뢰 채널 메시지를 <b>무복사</b>로 전달한다(진단 G-2).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="ReliableReceived"/> 구독자가 없으면 단일 조각 메시지를 KCP 세그먼트에서 그대로 넘긴다.
+    /// 대여 버퍼도, 복사도, 할당도 없다. 다조각 메시지만 세션 상주 조립 버퍼를 거친다.
+    /// </para>
+    /// <para>
+    /// <b>Span 은 콜백 밖으로 보관할 수 없다.</b> 필요하면 콜백 안에서 복사한다.
+    /// (<see cref="ReliableReceived"/> 의 <see cref="ReadOnlyMemory{T}"/> 도 이미 같은 규약이다.)
+    /// </para>
+    /// <para>두 이벤트를 함께 구독하면 둘 다 발화한다(이 경우 무복사 경로는 쓰이지 않는다).</para>
+    /// </remarks>
+    public event KcpMessageHandler? ReliableReceivedSpan;
+
+    /// <summary>
+    /// 비신뢰 채널 메시지를 <b>무복사</b>로 전달한다(진단 G-2).
+    /// </summary>
+    /// <remarks>
+    /// 페이로드는 이미 수신 버퍼 안에 살아 있으므로 복사 없이 그대로 넘긴다.
+    /// Span 은 콜백 밖으로 보관할 수 없다.
+    /// </remarks>
+    public event KcpMessageHandler? UnreliableReceivedSpan;
+
     // ---------------- 핸드셰이크 ----------------
 
     /// <summary>클라이언트 핸드셰이크를 시작한다(SYN 송신).</summary>
@@ -250,6 +329,10 @@ public sealed class KcpSession
             cipher = new AesGcmPacketCipher(options.EncryptionKey, conversation, serverDirection: !isClient);
         }
 
+        // G-3: 복호화 대상 크기는 MTU 로 상한이 정해져 있다. 세션당 한 번만 잡아 두고 재사용한다.
+        if (cipher != null && decryptBuffer == null)
+            decryptBuffer = new byte[frameBuffer.Length];
+
         // P5-2: FEC 는 프레이밍 안쪽, KCP 바깥쪽에 놓인다.
         if (options.Fec != null && !options.RawMode)
         {
@@ -284,7 +367,7 @@ public sealed class KcpSession
         if (fecEncoder != null)
         {
             // [0x04][seqid][flag][size][KCP 패킷] — 데이터 패킷과 (그룹이 찼으면) 패리티가 함께 나간다.
-            fecEncoder.Encode(buffer.AsSpan(0, length), packet => sender(packet, RemoteEndPoint));
+            fecEncoder.Encode(buffer.AsSpan(0, length), fecOutputCallback);
             return;
         }
 
@@ -398,8 +481,7 @@ public sealed class KcpSession
         if (fecDecoder != null)
         {
             // 데이터 샤드면 payload 가 원본 KCP 패킷, 복원된 샤드는 콜백으로 온다.
-            var isData = fecDecoder.Decode(payload, out var original,
-                recovered => kcp.Input(recovered, false, options.AckNoDelay));
+            var isData = fecDecoder.Decode(payload, out var original, fecRecoveredCallback);
 
             if (isData)
                 kcp.Input(original, true, options.AckNoDelay);
@@ -414,17 +496,11 @@ public sealed class KcpSession
         }
         else
         {
-            var buffer = ArrayPool<byte>.Shared.Rent(payload.Length);
-            try
-            {
-                if (!cipher.TryDecrypt(payload, buffer, out var plainLength))
-                    return;   // 변조·리플레이 패킷은 조용히 버린다.
-                kcp.Input(buffer.AsSpan(0, plainLength), true, options.AckNoDelay);
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(buffer);
-            }
+            // G-3: 상주 버퍼로 복호화한다(Rent/Return·try/finally 없음).
+            var plain = decryptBuffer!;
+            if (!cipher.TryDecrypt(payload, plain, out var plainLength))
+                return;   // 변조·리플레이 패킷은 조용히 버린다.
+            kcp.Input(plain.AsSpan(0, plainLength), true, options.AckNoDelay);
         }
 
         DrainReliable();
@@ -444,17 +520,11 @@ public sealed class KcpSession
             return;
         }
 
-        var buffer = ArrayPool<byte>.Shared.Rent(payload.Length);
-        try
-        {
-            if (!cipher.TryDecrypt(payload, buffer, out var plainLength))
-                return;
-            DeliverUnreliable(buffer.AsSpan(0, plainLength));
-        }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(buffer);
-        }
+        // G-3: 상주 버퍼로 복호화한다.
+        var plain = decryptBuffer!;
+        if (!cipher.TryDecrypt(payload, plain, out var plainLength))
+            return;
+        DeliverUnreliable(plain.AsSpan(0, plainLength));
     }
 
     private void OnPing(ReadOnlySpan<byte> frame, uint now)
@@ -493,57 +563,115 @@ public sealed class KcpSession
 
     private void DeliverUnreliable(ReadOnlySpan<byte> payload)
     {
+        var spanHandler = UnreliableReceivedSpan;
         var handler = UnreliableReceived;
-        if (handler != null)
+
+        if (spanHandler == null && handler == null)
         {
-            var scratch = ArrayPool<byte>.Shared.Rent(payload.Length);
-            try
+            // 폴링 모델: 큐에 쌓아 둔다. 상한을 넘으면 가장 오래된 것을 버린다(비신뢰 채널이므로 허용).
+            // 여기는 정책상 대여 버퍼를 유지한다(꺼내 갈 때까지 살아 있어야 하므로).
+            if (unreliableQueue.Count >= MaxUnreliableQueue)
             {
-                payload.CopyTo(scratch);
-                handler(this, new ReadOnlyMemory<byte>(scratch, 0, payload.Length));
+                var dropped = unreliableQueue.Dequeue();
+                ArrayPool<byte>.Shared.Return(dropped.Buffer);
             }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(scratch);
-            }
+
+            var buffer = ArrayPool<byte>.Shared.Rent(Math.Max(1, payload.Length));
+            payload.CopyTo(buffer);
+            unreliableQueue.Enqueue(new PooledMessage { Buffer = buffer, Length = payload.Length });
             return;
         }
 
-        // 폴링 모델: 큐에 쌓아 둔다. 상한을 넘으면 가장 오래된 것을 버린다(비신뢰 채널이므로 허용).
-        if (unreliableQueue.Count >= MaxUnreliableQueue)
-        {
-            var dropped = unreliableQueue.Dequeue();
-            ArrayPool<byte>.Shared.Return(dropped.Buffer);
-        }
+        // G-2: 페이로드는 이미 수신 버퍼 안에 살아 있다. 복사 없이 그대로 넘긴다.
+        spanHandler?.Invoke(this, payload);
 
-        var buffer = ArrayPool<byte>.Shared.Rent(Math.Max(1, payload.Length));
-        payload.CopyTo(buffer);
-        unreliableQueue.Enqueue(new PooledMessage { Buffer = buffer, Length = payload.Length });
+        if (handler != null)
+        {
+            // ReadOnlyMemory 계약에는 배열이 필요하다. 대여 대신 세션 상주 스크래치로 복사한다.
+            var scratch = EnsureBuffer(ref unreliableScratch, payload.Length);
+            payload.CopyTo(scratch);
+            handler(this, new ReadOnlyMemory<byte>(scratch, 0, payload.Length));
+        }
     }
 
     private void DrainReliable()
     {
-        var handler = ReliableReceived;
-        if (handler == null || kcp == null)
+        var spanHandler = ReliableReceivedSpan;
+        var memoryHandler = ReliableReceived;
+        if (spanHandler == null && memoryHandler == null)
             return;
 
-        while (true)
-        {
-            var size = kcp.PeekSize();
-            if (size < 0) break;
+        // 핸들러가 다시 이 세션을 구동한 경우다. 바깥 루프가 이어서 꺼내므로 여기서는 돌아간다.
+        if (draining)
+            return;
 
-            var buffer = ArrayPool<byte>.Shared.Rent(Math.Max(1, size));
-            try
+        draining = true;
+        inPlaceTarget = spanHandler;
+        try
+        {
+            while (true)
             {
-                var n = kcp.Recv(buffer.AsSpan(0, buffer.Length));
+                // 핸들러가 세션을 끊으면 kcp 가 사라진다. 매 회 다시 읽는다.
+                var instance = kcp;
+                if (instance == null) break;
+
+                if (memoryHandler == null)
+                {
+                    // G-2 무복사 경로: 단일 조각이면 세그먼트 페이로드를 그대로 넘긴다.
+                    var inPlace = instance.RecvInPlace(inPlaceCallback);
+                    if (inPlace >= 0) continue;
+                    if (inPlace != -3) break;   // -1: 더 읽을 메시지가 없다.
+                    // -3: 다조각이므로 아래 조립 경로로 내려간다.
+                }
+
+                var size = instance.PeekSize();
+                if (size < 0) break;
+
+                var buffer = EnsureBuffer(ref assemblyBuffer, size);
+                var n = instance.Recv(buffer.AsSpan(0, size));
                 if (n < 0) break;
-                handler(this, new ReadOnlyMemory<byte>(buffer, 0, n));
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(buffer);
+
+                spanHandler?.Invoke(this, buffer.AsSpan(0, n));
+                memoryHandler?.Invoke(this, new ReadOnlyMemory<byte>(buffer, 0, n));
             }
         }
+        finally
+        {
+            inPlaceTarget = null;
+            draining = false;
+        }
+    }
+
+    private void OnInPlaceMessage(ReadOnlySpan<byte> message)
+    {
+        inPlaceTarget?.Invoke(this, message);
+    }
+
+    /// <summary>FEC 인코더가 내보내는 패킷(데이터·패리티)을 그대로 하위 계층으로 보낸다.</summary>
+    private void OnFecOutput(ReadOnlySpan<byte> packet)
+    {
+        sender(packet, RemoteEndPoint);
+    }
+
+    /// <summary>FEC 가 복원해 낸 KCP 패킷을 코어에 넣는다(재전송으로 온 것이 아니므로 regular: false).</summary>
+    private void OnFecRecovered(ReadOnlySpan<byte> recovered)
+    {
+        kcp?.Input(recovered, false, options.AckNoDelay);
+    }
+
+    /// <summary>상주 버퍼가 <paramref name="size"/> 이상이 되도록 키운다(2의 거듭제곱 성장).</summary>
+    private static byte[] EnsureBuffer(ref byte[] buffer, int size)
+    {
+        if (size < 1) size = 1;
+        if (buffer.Length >= size) return buffer;
+
+        var capacity = buffer.Length == 0 ? 1024 : buffer.Length;
+        while (capacity < size && capacity <= (1 << 29))
+            capacity <<= 1;
+        if (capacity < size) capacity = size;
+
+        buffer = new byte[capacity];
+        return buffer;
     }
 
     // ---------------- 송신 ----------------
@@ -569,6 +697,107 @@ public sealed class KcpSession
             -2 => KcpSendResult.TooLarge,
             _ => KcpSendResult.Error,
         };
+    }
+
+    /// <summary>
+    /// <b>어느 스레드에서든</b> 호출할 수 있는 신뢰 채널 송신(진단 M-1).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="Send(ReadOnlySpan{byte})"/> 는 소유 스레드 전용이다(코어에 lock 이 없다).
+    /// 게임 로직 스레드에서 보내야 할 때 이 메서드를 쓰면, 데이터가 바운디드 큐에 복사되어
+    /// 소유 스레드의 다음 <see cref="Update"/> 첫머리에서 KCP 로 들어간다.
+    /// </para>
+    /// <para>
+    /// 스레드 경계를 넘기 위한 복사 1회가 추가된다(호출자 버퍼의 수명과 분리해야 하므로 필수 비용).
+    /// 이벤트 콜백 안(= 소유 스레드)에서는 <see cref="Send(ReadOnlySpan{byte})"/> 를 그대로 쓰면 무복사다.
+    /// </para>
+    /// <para>
+    /// 쓰려면 <see cref="KcpSessionOptions.SendOutboxCapacity"/> 를 0 보다 크게 설정해야 한다.
+    /// </para>
+    /// <para>
+    /// 큐는 <see cref="KcpSessionState.Connected"/> 일 때만 비워진다. 연결 전·종료 후에 계속 넣으면
+    /// 용량까지 쌓인 뒤 false 가 돌아온다. 호출 전에 <see cref="State"/> 를 확인하는 것이 정석이다.
+    /// </para>
+    /// </remarks>
+    /// <param name="data">보낼 데이터.</param>
+    /// <returns>
+    /// 큐에 넣었으면 true. 데이터가 비었거나, 큐가 가득 찼거나(백프레셔),
+    /// 세션 수명이 이미 끝났으면 false.
+    /// </returns>
+    /// <exception cref="InvalidOperationException">아웃박스를 켜지 않은 세션인 경우.</exception>
+    public bool TrySendFromAnyThread(ReadOnlySpan<byte> data)
+    {
+        var queue = outbox
+            ?? throw new InvalidOperationException(
+                "아웃박스를 쓰려면 KcpSessionOptions.SendOutboxCapacity 를 0 보다 크게 설정해야 합니다(M-1).");
+
+        if (data.Length == 0)
+            return false;
+
+        var buffer = ArrayPool<byte>.Shared.Rent(data.Length);
+        data.CopyTo(buffer);
+
+        if (queue.Writer.TryWrite(new PooledMessage { Buffer = buffer, Length = data.Length }))
+        {
+            System.Threading.Interlocked.Increment(ref outboxAccepted);
+            return true;
+        }
+
+        // 넣지 못했으면 대여 버퍼를 즉시 돌려준다(누수 방지).
+        ArrayPool<byte>.Shared.Return(buffer);
+        System.Threading.Interlocked.Increment(ref outboxRejected);
+        return false;
+    }
+
+    /// <summary>아웃박스가 받아들인 메시지 누계(진단용).</summary>
+    public long OutboxAccepted => System.Threading.Interlocked.Read(ref outboxAccepted);
+
+    /// <summary>
+    /// 아웃박스가 살리지 못한 메시지 누계(진단용). 큐가 가득 찼거나 KCP 가 거부한 경우가 모두 포함된다.
+    /// 늘어나면 용량이 부족하거나 메시지가 너무 큰 것이다.
+    /// </summary>
+    public long OutboxRejected => System.Threading.Interlocked.Read(ref outboxRejected);
+
+    /// <summary>아웃박스에서 꺼내 KCP 송신 큐로 옮긴다. 소유 스레드에서만 부른다.</summary>
+    private void DrainOutbox()
+    {
+        var queue = outbox;
+        if (queue == null) return;
+
+        var reader = queue.Reader;
+
+        // 백프레셔를 매번 확인한다. KCP 백로그가 차면 남은 메시지는 아웃박스에 그대로 둔다
+        // (다음 Update 에서 이어서 처리된다).
+        while (state == KcpSessionState.Connected &&
+               kcp != null &&
+               kcp.WaitSnd < options.MaxSendBacklog &&
+               reader.TryRead(out var msg))
+        {
+            // 조각 수가 수신 윈도를 넘는 메시지는 KCP 가 거부한다(-2). 조용히 사라지지 않게 계수한다.
+            if (kcp.Send(msg.Buffer.AsSpan(0, msg.Length)) != 0)
+                System.Threading.Interlocked.Increment(ref outboxRejected);
+
+            ArrayPool<byte>.Shared.Return(msg.Buffer);
+        }
+    }
+
+    /// <summary>아웃박스에 남은 대여 버퍼를 모두 돌려준다.</summary>
+    /// <param name="complete">
+    /// true 면 쓰기 자체를 영구히 닫는다(세션 수명 종료). false 면 내용만 비운다 —
+    /// 끊긴 세션을 <see cref="StartConnect"/> 로 다시 연결하는 경우 아웃박스를 계속 쓸 수 있어야 하기 때문이다.
+    /// </param>
+    private void ReleaseOutbox(bool complete)
+    {
+        var queue = outbox;
+        if (queue == null) return;
+
+        // 먼저 쓰기를 닫아야 드레인 도중 새 메시지가 들어오는 경합이 사라진다.
+        if (complete)
+            queue.Writer.TryComplete();
+
+        while (queue.Reader.TryRead(out var msg))
+            ArrayPool<byte>.Shared.Return(msg.Buffer);
     }
 
     /// <summary>비신뢰 채널로 보낸다(재전송·순서 보장 없음).</summary>
@@ -664,6 +893,9 @@ public sealed class KcpSession
     /// <returns>다음에 <see cref="Update"/> 를 호출하면 좋은 시각(ms).</returns>
     public uint Update(uint now)
     {
+        // M-1: 다른 스레드가 넣어 둔 메시지를 먼저 KCP 로 옮긴다(소유 스레드에서만 실행된다).
+        DrainOutbox();
+
         switch (state)
         {
             case KcpSessionState.Connecting:
@@ -759,12 +991,18 @@ public sealed class KcpSession
         cipher = null;
         fecEncoder = null;
         fecDecoder = null;
+        decryptBuffer = null;
+        assemblyBuffer = Array.Empty<byte>();
+        unreliableScratch = Array.Empty<byte>();
 
         while (unreliableQueue.Count > 0)
         {
             var msg = unreliableQueue.Dequeue();
             ArrayPool<byte>.Shared.Return(msg.Buffer);
         }
+
+        // 끊긴 뒤 같은 세션으로 다시 연결할 수 있으므로 내용만 비우고 큐는 살려 둔다.
+        ReleaseOutbox(complete: false);
 
         Disconnected?.Invoke(this, reason);
     }
@@ -776,11 +1014,16 @@ public sealed class KcpSession
         kcp = null;
         (cipher as IDisposable)?.Dispose();
         cipher = null;
+        decryptBuffer = null;
+        assemblyBuffer = Array.Empty<byte>();
+        unreliableScratch = Array.Empty<byte>();
         while (unreliableQueue.Count > 0)
         {
             var msg = unreliableQueue.Dequeue();
             ArrayPool<byte>.Shared.Return(msg.Buffer);
         }
+
+        ReleaseOutbox(complete: true);
     }
 
     /// <summary>마지막으로 상대에게서 무언가 받은 시각(ms).</summary>

@@ -33,6 +33,24 @@ public readonly struct AddressKey : IEquatable<AddressKey>
     /// <summary>포트 번호.</summary>
     public int Port => port;
 
+    /// <summary>IPv6 스코프 ID. IPv4 면 0.</summary>
+    public uint ScopeId => scopeId;
+
+    /// <summary>IPv4 매핑 주소(::ffff:a.b.c.d)인지 여부.</summary>
+    public bool IsIPv4 => hi == 0 && (lo >> 32) == 0x0000FFFFUL;
+
+    /// <summary>정규화된 16바이트 표현(IPv4 는 IPv4 매핑 IPv6 형태)을 기록한다.</summary>
+    /// <remarks>
+    /// <c>SocketAddress</c> 를 직접 채우는 것처럼 <see cref="IPEndPoint"/> 를 만들지 않고
+    /// 주소 바이트만 필요한 무할당 경로에서 쓴다(진단 G-1).
+    /// </remarks>
+    /// <param name="destination">대상(16바이트 이상).</param>
+    public void WriteAddressBytes(Span<byte> destination)
+    {
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64BigEndian(destination, hi);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64BigEndian(destination.Slice(8), lo);
+    }
+
     /// <summary><see cref="IPEndPoint"/> 로부터 키를 만든다.</summary>
     /// <param name="endPoint">주소.</param>
     /// <returns>주소 키.</returns>

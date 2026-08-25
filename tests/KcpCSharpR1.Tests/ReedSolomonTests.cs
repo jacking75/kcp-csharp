@@ -63,6 +63,21 @@ public class ReedSolomonTests
         return shards;
     }
 
+    /// <summary>모두 도착한 것으로 표시한 present 배열을 만든다(G-4 API).</summary>
+    private static bool[] AllPresent(int total)
+    {
+        var present = new bool[total];
+        for (var i = 0; i < total; i++) present[i] = true;
+        return present;
+    }
+
+    /// <summary>샤드를 "잃어버린" 상태로 만든다. 버퍼는 그대로 두고 도착 표시만 지운다.</summary>
+    private static void Lose(byte[][] shards, bool[] present, int index)
+    {
+        present[index] = false;
+        Array.Clear(shards[index], 0, shards[index].Length);   // 남은 값으로 우연히 맞는 일이 없도록 지운다.
+    }
+
     [Theory]
     [InlineData(10, 3)]
     [InlineData(4, 2)]
@@ -81,15 +96,17 @@ public class ReedSolomonTests
         rs.Encode(shards, shardSize);
 
         // 데이터 샤드 중 parityShards 개를 지운다.
-        var damaged = new byte[]?[rs.TotalShards];
-        Array.Copy(shards, damaged, rs.TotalShards);
+        var present = AllPresent(rs.TotalShards);
         for (var i = 0; i < parityShards && i < dataShards; i++)
-            damaged[i] = null;
+            Lose(shards, present, i);
 
-        Assert.True(rs.Reconstruct(damaged, shardSize));
+        Assert.True(rs.Reconstruct(shards, present, shardSize));
 
         for (var i = 0; i < dataShards; i++)
-            Assert.Equal(original[i], damaged[i]);
+        {
+            Assert.True(present[i]);
+            Assert.Equal(original[i], shards[i]);
+        }
     }
 
     [Fact]
@@ -105,15 +122,14 @@ public class ReedSolomonTests
 
         rs.Encode(shards, shardSize);
 
-        var damaged = new byte[]?[rs.TotalShards];
-        Array.Copy(shards, damaged, rs.TotalShards);
-        damaged[0] = null;    // 데이터
-        damaged[7] = null;    // 데이터
-        damaged[11] = null;   // 패리티
+        var present = AllPresent(rs.TotalShards);
+        Lose(shards, present, 0);    // 데이터
+        Lose(shards, present, 7);    // 데이터
+        Lose(shards, present, 11);   // 패리티
 
-        Assert.True(rs.Reconstruct(damaged, shardSize));
-        Assert.Equal(original[0], damaged[0]);
-        Assert.Equal(original[7], damaged[7]);
+        Assert.True(rs.Reconstruct(shards, present, shardSize));
+        Assert.Equal(original[0], shards[0]);
+        Assert.Equal(original[7], shards[7]);
     }
 
     [Fact]
@@ -124,12 +140,11 @@ public class ReedSolomonTests
         var shards = MakeShards(dataShards, parityShards, shardSize, seed: 31);
         rs.Encode(shards, shardSize);
 
-        var damaged = new byte[]?[rs.TotalShards];
-        Array.Copy(shards, damaged, rs.TotalShards);
+        var present = AllPresent(rs.TotalShards);
         for (var i = 0; i < parityShards + 1; i++)
-            damaged[i] = null;   // 패리티보다 하나 더 잃었다.
+            Lose(shards, present, i);   // 패리티보다 하나 더 잃었다.
 
-        Assert.False(rs.Reconstruct(damaged, shardSize));
+        Assert.False(rs.Reconstruct(shards, present, shardSize));
     }
 
     [Fact]
@@ -140,12 +155,71 @@ public class ReedSolomonTests
         var shards = MakeShards(dataShards, parityShards, shardSize, seed: 5);
         rs.Encode(shards, shardSize);
 
-        var intact = new byte[]?[rs.TotalShards];
-        Array.Copy(shards, intact, rs.TotalShards);
-
-        Assert.True(rs.Reconstruct(intact, shardSize));
+        var snapshot = new byte[dataShards][];
         for (var i = 0; i < dataShards; i++)
-            Assert.Same(shards[i], intact[i]);
+            snapshot[i] = (byte[])shards[i].Clone();
+
+        var present = AllPresent(rs.TotalShards);
+        Assert.True(rs.Reconstruct(shards, present, shardSize));
+
+        // 손댈 것이 없으면 버퍼도 그대로여야 한다.
+        for (var i = 0; i < dataShards; i++)
+            Assert.Equal(snapshot[i], shards[i]);
+    }
+
+    [Fact]
+    public void 같은_인스턴스로_반복_복원해도_결과가_같다()
+    {
+        // G-4: Reconstruct 가 스크래치를 재사용하므로, 이전 호출의 잔재가 다음 결과를 오염시키지 않는지 본다.
+        const int dataShards = 10, parityShards = 3, shardSize = 96;
+        var rs = new ReedSolomon(dataShards, parityShards);
+
+        for (var round = 0; round < 20; round++)
+        {
+            var shards = MakeShards(dataShards, parityShards, shardSize, seed: 100 + round);
+            var original = new byte[dataShards][];
+            for (var i = 0; i < dataShards; i++)
+                original[i] = (byte[])shards[i].Clone();
+
+            rs.Encode(shards, shardSize);
+
+            // 라운드마다 다른 자리를 잃어버린다(부분 행렬·역행렬이 매번 달라진다).
+            var present = AllPresent(rs.TotalShards);
+            Lose(shards, present, round % dataShards);
+            Lose(shards, present, (round + 3) % dataShards);
+            Lose(shards, present, dataShards + (round % parityShards));
+
+            Assert.True(rs.Reconstruct(shards, present, shardSize));
+
+            for (var i = 0; i < dataShards; i++)
+                Assert.Equal(original[i], shards[i]);
+        }
+    }
+
+    [Fact]
+    public void 복원은_힙_할당을_남기지_않는다()
+    {
+        // G-4: 스크래치 재사용이 실제로 동작하는지 GC 할당량으로 확인한다.
+        const int dataShards = 10, parityShards = 3, shardSize = 128;
+        var rs = new ReedSolomon(dataShards, parityShards);
+        var shards = MakeShards(dataShards, parityShards, shardSize, seed: 77);
+        rs.Encode(shards, shardSize);
+
+        var present = AllPresent(rs.TotalShards);
+
+        // 워밍업(첫 호출에서 JIT·정적 초기화가 섞이지 않도록).
+        Lose(shards, present, 0);
+        Assert.True(rs.Reconstruct(shards, present, shardSize));
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 100; i++)
+        {
+            present[i % dataShards] = false;
+            Assert.True(rs.Reconstruct(shards, present, shardSize));
+        }
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(allocated == 0, $"복원 100회에서 {allocated}바이트를 할당했습니다(0 이어야 합니다).");
     }
 
     [Fact]

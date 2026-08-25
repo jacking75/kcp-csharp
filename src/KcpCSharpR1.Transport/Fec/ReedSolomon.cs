@@ -31,6 +31,13 @@ internal sealed class ReedSolomon
 
     private readonly byte[][] encodeMatrix;  // (k+m) x k
 
+    // G-4: 복원용 스크래치. ReedSolomon 인스턴스는 세션당 1개이고 소유 스레드 전용이므로
+    // 생성 시 한 번만 잡아 두고 Reconstruct 가 매번 재사용한다(복원마다의 행렬 할당 제거).
+    private readonly byte[][] subMatrix;      // k x k (encodeMatrix 행 참조)
+    private readonly byte[][] subShards;      // k (입력 샤드 참조)
+    private readonly byte[][] invertWork;     // k x 2k
+    private readonly byte[][] invertResult;   // k x k
+
     /// <summary>부호기를 만든다.</summary>
     /// <param name="dataShards">데이터 샤드 수(1 이상).</param>
     /// <param name="parityShards">패리티 샤드 수(1 이상).</param>
@@ -49,6 +56,16 @@ internal sealed class ReedSolomon
         parityRows = new byte[parityShards][];
         for (var i = 0; i < parityShards; i++)
             parityRows[i] = encodeMatrix[dataShards + i];
+
+        subMatrix = new byte[dataShards][];
+        subShards = new byte[dataShards][];
+        invertWork = new byte[dataShards][];
+        invertResult = new byte[dataShards][];
+        for (var i = 0; i < dataShards; i++)
+        {
+            invertWork[i] = new byte[dataShards * 2];
+            invertResult[i] = new byte[dataShards];
+        }
     }
 
     /// <summary>데이터 샤드로부터 패리티 샤드를 계산한다.</summary>
@@ -74,57 +91,74 @@ internal sealed class ReedSolomon
         }
     }
 
-    /// <summary>빠진 데이터 샤드를 복원한다.</summary>
+    /// <summary>빠진 데이터 샤드를 복원한다(무할당 경로, 진단 G-4).</summary>
+    /// <remarks>
+    /// <para>
+    /// 도착 여부를 null 대신 <paramref name="present"/> 로 표현한다. 덕분에 호출자가 샤드 버퍼를
+    /// 미리 잡아 두고 재사용할 수 있고, 복원 결과도 <b>그 버퍼에 제자리로</b> 채워진다.
+    /// </para>
+    /// <para>
+    /// 복원한 자리는 <paramref name="present"/> 가 true 로 바뀌므로, 호출 전 사본과 비교하면
+    /// "무엇이 복원되었는지"를 알 수 있다.
+    /// </para>
+    /// </remarks>
     /// <param name="shards">
-    /// 길이가 <see cref="TotalShards"/> 인 배열. 없는 샤드는 null 로 둔다.
-    /// 복원에 성공하면 빠져 있던 데이터 샤드 자리에 새 배열이 채워진다.
+    /// 길이가 <see cref="TotalShards"/> 인 배열. 모든 원소는 <paramref name="shardSize"/> 이상이어야 한다.
+    /// </param>
+    /// <param name="present">
+    /// 길이가 <see cref="TotalShards"/> 인 도착 여부. 복원에 성공하면 해당 위치가 true 로 갱신된다.
     /// </param>
     /// <param name="shardSize">각 샤드의 유효 길이.</param>
     /// <returns>복원했으면 true. 남은 샤드가 <see cref="DataShards"/> 개 미만이면 false.</returns>
-    public bool Reconstruct(byte[]?[] shards, int shardSize)
+    public bool Reconstruct(byte[][] shards, bool[] present, int shardSize)
     {
         if (shards == null) throw new ArgumentNullException(nameof(shards));
+        if (present == null) throw new ArgumentNullException(nameof(present));
         if (shards.Length != TotalShards)
             throw new ArgumentException($"샤드 배열 길이는 {TotalShards} 여야 합니다.", nameof(shards));
+        if (present.Length != TotalShards)
+            throw new ArgumentException($"도착 여부 배열 길이는 {TotalShards} 여야 합니다.", nameof(present));
 
-        var present = 0;
+        var available = 0;
         for (var i = 0; i < TotalShards; i++)
-            if (shards[i] != null) present++;
+            if (present[i]) available++;
 
-        if (present < DataShards) return false;
+        if (available < DataShards) return false;
 
         var missingData = false;
         for (var i = 0; i < DataShards; i++)
-            if (shards[i] == null) { missingData = true; break; }
+            if (!present[i]) { missingData = true; break; }
 
         if (!missingData) return true;   // 복원할 것이 없다.
 
         // 살아 있는 샤드 k 개를 골라 부분 행렬을 만든다.
-        var subMatrix = new byte[DataShards][];
-        var subShards = new byte[DataShards][];
+        // Invert 는 입력을 건드리지 않으므로 encodeMatrix 행을 복사 없이 그대로 참조한다.
         var used = 0;
         for (var i = 0; i < TotalShards && used < DataShards; i++)
         {
-            if (shards[i] == null) continue;
-            subMatrix[used] = (byte[])encodeMatrix[i].Clone();
-            subShards[used] = shards[i]!;
+            if (!present[i]) continue;
+            subMatrix[used] = encodeMatrix[i];
+            subShards[used] = shards[i];
             used++;
         }
 
-        var inverted = Invert(subMatrix);
-        if (inverted == null) return false;
+        if (!InvertInto(subMatrix, invertWork, invertResult))
+            return false;
 
         // 빠진 데이터 샤드 = 역행렬의 해당 행 × 살아 있는 샤드들
         for (var i = 0; i < DataShards; i++)
         {
-            if (shards[i] != null) continue;
+            if (present[i]) continue;
 
-            var recovered = new byte[shardSize];
-            var row = inverted[i];
+            // 재사용 버퍼이므로 XOR 누적 전에 반드시 비운다.
+            var recovered = shards[i].AsSpan(0, shardSize);
+            recovered.Clear();
+
+            var row = invertResult[i];
             for (var c = 0; c < DataShards; c++)
                 GaloisField.MultiplyAddInto(row[c], subShards[c].AsSpan(0, shardSize), recovered);
 
-            shards[i] = recovered;
+            present[i] = true;
         }
 
         return true;
@@ -177,17 +211,39 @@ internal sealed class ReedSolomon
     }
 
     /// <summary>가우스 소거법으로 정사각 행렬의 역행렬을 구한다. 특이행렬이면 null.</summary>
+    /// <remarks>행렬 생성 시 1회만 쓰는 편의 오버로드다. 핫 경로는 <see cref="InvertInto"/> 를 쓴다.</remarks>
     private static byte[][]? Invert(byte[][] matrix)
     {
         var n = matrix.Length;
-
-        // [matrix | I] 확대 행렬
         var work = new byte[n][];
+        var result = new byte[n][];
         for (var r = 0; r < n; r++)
         {
             work[r] = new byte[n * 2];
-            Array.Copy(matrix[r], work[r], n);
-            work[r][n + r] = 1;
+            result[r] = new byte[n];
+        }
+
+        return InvertInto(matrix, work, result) ? result : null;
+    }
+
+    /// <summary>
+    /// 가우스 소거법으로 역행렬을 구해 <paramref name="result"/> 에 채운다(무할당, 진단 G-4).
+    /// </summary>
+    /// <param name="matrix">입력 정사각 행렬(변경하지 않는다).</param>
+    /// <param name="work">n x 2n 작업 버퍼(내용은 매번 덮어쓴다).</param>
+    /// <param name="result">n x n 결과 버퍼.</param>
+    /// <returns>역행렬을 구했으면 true. 특이행렬이면 false.</returns>
+    private static bool InvertInto(byte[][] matrix, byte[][] work, byte[][] result)
+    {
+        var n = matrix.Length;
+
+        // [matrix | I] 확대 행렬. 재사용 버퍼이므로 오른쪽 절반을 매번 다시 세운다.
+        for (var r = 0; r < n; r++)
+        {
+            var row = work[r];
+            Array.Copy(matrix[r], row, n);
+            Array.Clear(row, n, n);
+            row[n + r] = 1;
         }
 
         for (var col = 0; col < n; col++)
@@ -200,7 +256,7 @@ internal sealed class ReedSolomon
                 {
                     if (work[r][col] != 0) { swapRow = r; break; }
                 }
-                if (swapRow < 0) return null;   // 특이행렬
+                if (swapRow < 0) return false;   // 특이행렬
 
                 (work[col], work[swapRow]) = (work[swapRow], work[col]);
             }
@@ -225,12 +281,9 @@ internal sealed class ReedSolomon
             }
         }
 
-        var inverse = new byte[n][];
         for (var r = 0; r < n; r++)
-        {
-            inverse[r] = new byte[n];
-            Array.Copy(work[r], n, inverse[r], 0, n);
-        }
-        return inverse;
+            Array.Copy(work[r], n, result[r], 0, n);
+
+        return true;
     }
 }

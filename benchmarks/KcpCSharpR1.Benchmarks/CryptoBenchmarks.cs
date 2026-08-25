@@ -105,7 +105,8 @@ public class FecCoding
 {
     private ReedSolomon rs = null!;
     private byte[][] shards = null!;
-    private byte[]?[] damaged = null!;
+    private byte[][] working = null!;
+    private bool[] present = null!;
 
     /// <summary>샤드 크기(바이트).</summary>
     [Params(1376)]
@@ -135,7 +136,12 @@ public class FecCoding
 
         rs.Encode(shards, ShardSize);
 
-        damaged = new byte[]?[shards.Length];
+        // G-4 이후의 Reconstruct 는 제자리 복원이라 원본을 보존할 작업 사본이 필요하다.
+        working = new byte[shards.Length][];
+        for (var i = 0; i < shards.Length; i++)
+            working[i] = new byte[ShardSize];
+
+        present = new bool[shards.Length];
     }
 
     /// <summary>한 그룹(10+3)의 패리티 계산.</summary>
@@ -146,10 +152,12 @@ public class FecCoding
     [Benchmark]
     public bool Reconstruct()
     {
-        Array.Copy(shards, damaged, shards.Length);
-        damaged[0] = null;
-        damaged[1] = null;
-        damaged[2] = null;
-        return rs.Reconstruct(damaged, ShardSize);
+        for (var i = 0; i < shards.Length; i++)
+        {
+            Array.Copy(shards[i], working[i], ShardSize);
+            present[i] = i >= 3;   // 데이터 샤드 0~2 를 잃은 상황
+        }
+
+        return rs.Reconstruct(working, present, ShardSize);
     }
 }

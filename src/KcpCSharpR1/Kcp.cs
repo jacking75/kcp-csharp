@@ -494,13 +494,95 @@ public class Kcp
         }
 
         // rcv_buf -> rcv_queue 로 이어지는 데이터를 옮긴다.
-        count = 0;
+        MoveRcvBufToQueue();
+
+        // fast recover: 윈도가 다시 열렸음을 상대에게 알린다.
+        if (rcv_queue.Count < rcv_wnd && fast_recover)
+        {
+            probe |= IKCP_ASK_TELL;
+        }
+
+        return written;
+    }
+
+    /// <summary>수신 메시지를 복사 없이 넘겨받는 핸들러(진단 G-2).</summary>
+    /// <param name="message">
+    /// 메시지 페이로드. <b>콜백이 반환하면 무효</b>가 되므로(세그먼트가 풀로 돌아간다)
+    /// 보관하려면 복사해야 한다.
+    /// </param>
+    public delegate void InPlaceMessageHandler(ReadOnlySpan<byte> message);
+
+    /// <summary>
+    /// 다음 메시지가 단일 조각이면 내부 세그먼트의 페이로드를 <b>복사 없이</b> 넘긴다(진단 G-2).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 게임 메시지는 대부분 MTU 한 장에 들어가는 단일 조각(<c>frg == 0</c>)이다. 그 경우
+    /// <see cref="Recv(Span{byte})"/> 의 "세그먼트 → 호출자 버퍼" 복사가 통째로 사라진다.
+    /// </para>
+    /// <para>
+    /// 다조각 메시지는 -3 을 돌려주며 <b>큐를 건드리지 않는다</b>. 호출자는 그때만
+    /// <see cref="PeekSize"/> + <see cref="Recv(Span{byte})"/> 조립 경로로 넘어가면 된다.
+    /// </para>
+    /// </remarks>
+    /// <param name="handler">페이로드를 받을 핸들러.</param>
+    /// <returns>
+    /// 넘긴 바이트 수. 읽을 메시지가 없으면 -1, 다조각이라 무복사로 넘길 수 없으면 -3.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="handler"/> 가 null 인 경우.</exception>
+    public int RecvInPlace(InPlaceMessageHandler handler)
+    {
+        if (handler == null) throw new ArgumentNullException(nameof(handler));
+        if (rcv_queue.Count == 0) return -1;
+
+        var seg = rcv_queue.PeekFront();
+        if (seg.frg != 0) return -3;   // 다조각: 호출자가 기존 조립 경로로 폴백한다.
+
+        var fast_recover = rcv_queue.Count >= rcv_wnd;
+        var length = seg.Len;
+
+        // 큐에서 먼저 떼어 낸다. 핸들러 안에서 이 인스턴스를 다시 만져도 같은 메시지를 두 번 보지 않는다.
+        rcv_queue.RemoveFront(1);
+
+        if (ikcp_canlog(IKCP_LOG_RECV))
+        {
+            ikcp_log($"recv sn={seg.sn.ToString()}");
+        }
+
+        try
+        {
+            handler(seg.Payload);
+        }
+        finally
+        {
+            // 핸들러가 던져도 세그먼트는 반드시 풀로 돌려준다(이중 반환 방지는 Reset 이 담당).
+            ReturnSegment(seg);
+        }
+
+        MoveRcvBufToQueue();
+
+        if (rcv_queue.Count < rcv_wnd && fast_recover)
+        {
+            probe |= IKCP_ASK_TELL;
+        }
+
+        return length;
+    }
+
+    /// <summary>rcv_buf 앞쪽의 이어지는 세그먼트를 rcv_queue 로 옮긴다.</summary>
+    /// <remarks>
+    /// 원본 ikcp.c / kcp-go 와 같이 <b>수신 윈도를 넘지 않는 만큼만</b> 옮긴다.
+    /// 한도 계산은 옮길 개수를 다 센 뒤 한 번에 옮기는 kcp-go 방식을 따른다
+    /// (루프 안에서 옮기면서 세면 큐 길이가 이중으로 계산돼 실효 윈도가 절반이 된다).
+    /// </remarks>
+    private void MoveRcvBufToQueue()
+    {
+        var count = 0;
         for (var i = 0; i < rcv_buf.Count; i++)
         {
             var seg = rcv_buf.AtUnchecked(i);
             if (seg.sn == rcv_nxt && rcv_queue.Count + count < rcv_wnd)
             {
-                rcv_queue.PushBack(seg);
                 rcv_nxt++;
                 count++;
             }
@@ -512,16 +594,10 @@ public class Kcp
 
         if (count > 0)
         {
+            for (var i = 0; i < count; i++)
+                rcv_queue.PushBack(rcv_buf.AtUnchecked(i));
             rcv_buf.RemoveFront(count);
         }
-
-        // fast recover: 윈도가 다시 열렸음을 상대에게 알린다.
-        if (rcv_queue.Count < rcv_wnd && fast_recover)
-        {
-            probe |= IKCP_ASK_TELL;
-        }
-
-        return written;
     }
 
     /// <summary>애플리케이션 데이터를 송신 큐에 넣는다.</summary>
@@ -739,28 +815,7 @@ public class Kcp
                 rcv_buf.Insert(insert_idx, newseg);
         }
 
-        // rcv_buf -> rcv_queue
-        var count = 0;
-        for (var i = 0; i < rcv_buf.Count; i++)
-        {
-            var seg = rcv_buf.AtUnchecked(i);
-            if (seg.sn == rcv_nxt && rcv_queue.Count + count < rcv_wnd)
-            {
-                rcv_nxt++;
-                count++;
-            }
-            else
-            {
-                break;
-            }
-        }
-
-        if (count > 0)
-        {
-            for (var i = 0; i < count; i++)
-                rcv_queue.PushBack(rcv_buf.AtUnchecked(i));
-            rcv_buf.RemoveFront(count);
-        }
+        MoveRcvBufToQueue();
         return repeat;
     }
 

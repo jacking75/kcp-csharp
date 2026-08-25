@@ -147,6 +147,16 @@ internal sealed class FecEncoder
 /// <summary>
 /// FEC 디코더. 도착한 샤드를 그룹별로 모아, 데이터 샤드가 빠졌으면 복원한다.
 /// </summary>
+/// <remarks>
+/// <para>
+/// 진단 G-4: 그룹의 샤드 버퍼를 <b>생성 시 전부 잡아 두고 재활용</b>한다. 도착 여부는 null 이 아니라
+/// <c>Present</c> 배열로 따로 관리하므로, 샤드가 도착할 때마다 <c>new byte[]</c> 를 만들 필요가 없다.
+/// </para>
+/// <para>
+/// 고정 메모리는 세션당 <c>MaxGroups × TotalShards × maxShardSize</c> 다
+/// (기본 10+3 구성, MTU 1400 기준 약 285KB). 부담스러우면 <see cref="MaxGroups"/> 를 줄인다.
+/// </para>
+/// </remarks>
 internal sealed class FecDecoder
 {
     private const int MaxGroups = 16;
@@ -154,16 +164,20 @@ internal sealed class FecDecoder
     private sealed class Group
     {
         public long Index = -1;
-        public byte[]?[] Shards = Array.Empty<byte[]?>();
+        public byte[][] Shards = Array.Empty<byte[]>();
+        public bool[] Present = Array.Empty<bool>();
         public int Received;
         public bool Recovered;
         public int MaxSize;
-        public bool[] DataArrived = Array.Empty<bool>();
     }
 
     private readonly ReedSolomon rs;
     private readonly int maxShardSize;
     private readonly List<Group> groups = new();
+
+    // G-4: 복원 직전의 도착 여부 사본. 복원 후 무엇이 새로 채워졌는지 비교하는 데 쓴다.
+    private readonly bool[] presentScratch;
+
     private long newestGroup = -1;
 
     /// <summary>디코더를 만든다.</summary>
@@ -173,6 +187,7 @@ internal sealed class FecDecoder
     {
         rs = new ReedSolomon(options.DataShards, options.ParityShards);
         this.maxShardSize = maxShardSize;
+        presentScratch = new bool[rs.TotalShards];
     }
 
     /// <summary>복원한 데이터 샤드 수(통계).</summary>
@@ -215,13 +230,17 @@ internal sealed class FecDecoder
         var group = GetGroup(groupIndex);
         if (group == null) return isData;   // 너무 오래된 그룹이면 복원은 포기하고 데이터만 넘긴다.
 
-        if (group.Shards[position] == null)
+        if (!group.Present[position])
         {
-            var copy = new byte[maxShardSize];
-            shardData.CopyTo(copy);
-            group.Shards[position] = copy;
+            // G-4: 미리 잡아 둔 슬롯에 복사한다(패킷당 할당 0).
+            // 뒷부분은 반드시 0 으로 비운다 — 인코더가 그렇게 패딩해 패리티를 계산했기 때문이다.
+            var slot = group.Shards[position];
+            shardData.CopyTo(slot);
+            if (shardData.Length < maxShardSize)
+                slot.AsSpan(shardData.Length).Clear();
+
+            group.Present[position] = true;
             group.Received++;
-            if (position < rs.DataShards) group.DataArrived[position] = true;
             if (shardData.Length > group.MaxSize) group.MaxSize = shardData.Length;
         }
 
@@ -237,7 +256,7 @@ internal sealed class FecDecoder
         var missing = false;
         for (var i = 0; i < rs.DataShards; i++)
         {
-            if (!group.DataArrived[i]) { missing = true; break; }
+            if (!group.Present[i]) { missing = true; break; }
         }
 
         if (!missing)
@@ -246,21 +265,20 @@ internal sealed class FecDecoder
             return;
         }
 
-        var snapshot = new byte[]?[rs.TotalShards];
-        Array.Copy(group.Shards, snapshot, rs.TotalShards);
+        // G-4: 도착 여부 사본만 뜬다(스크래치 재사용). 복원 결과는 그룹 슬롯에 제자리로 채워진다.
+        Array.Copy(group.Present, presentScratch, rs.TotalShards);
 
-        if (!rs.Reconstruct(snapshot, group.MaxSize))
+        if (!rs.Reconstruct(group.Shards, presentScratch, group.MaxSize))
             return;
 
         group.Recovered = true;
 
         for (var i = 0; i < rs.DataShards; i++)
         {
-            if (group.DataArrived[i]) continue;
+            if (group.Present[i]) continue;    // 원래 도착한 샤드는 이미 위로 올라갔다.
+            if (!presentScratch[i]) continue;  // 복원되지 않았다.
 
-            var shard = snapshot[i];
-            if (shard == null) continue;
-
+            var shard = group.Shards[i];
             var size = BinaryPrimitives.ReadUInt16LittleEndian(shard);
             if (size < 2 || size > group.MaxSize) continue;
 
@@ -284,7 +302,7 @@ internal sealed class FecDecoder
         Group group;
         if (groups.Count >= MaxGroups)
         {
-            // 가장 오래된 그룹을 재활용한다.
+            // 가장 오래된 그룹을 재활용한다(샤드 버퍼까지 그대로 재사용한다).
             var oldest = 0;
             for (var i = 1; i < groups.Count; i++)
                 if (groups[i].Index < groups[oldest].Index) oldest = i;
@@ -292,17 +310,21 @@ internal sealed class FecDecoder
         }
         else
         {
+            // G-4: 샤드 버퍼를 여기서 전부 만들어 두고 이후로는 재사용만 한다.
+            var shards = new byte[rs.TotalShards][];
+            for (var i = 0; i < shards.Length; i++)
+                shards[i] = new byte[maxShardSize];
+
             group = new Group
             {
-                Shards = new byte[]?[rs.TotalShards],
-                DataArrived = new bool[rs.DataShards],
+                Shards = shards,
+                Present = new bool[rs.TotalShards],
             };
             groups.Add(group);
         }
 
         group.Index = index;
-        Array.Clear(group.Shards, 0, group.Shards.Length);
-        Array.Clear(group.DataArrived, 0, group.DataArrived.Length);
+        Array.Clear(group.Present, 0, group.Present.Length);
         group.Received = 0;
         group.Recovered = false;
         group.MaxSize = 0;
