@@ -1,5 +1,13 @@
 # 작업 로그
 
+## 2026-08-25 13:40 KST — 로드맵 Phase 6 온라인 책 완성 (P6-1 ~ P6-5)
+
+온라인 책 《C#과 KCP로 배우는 실시간 게임 네트워킹》 전 17장 + 부록 5종(API / FAQ / 상호운용 / MonoGame / 용어집)을 집필하고,
+docsify + GitHub Pages 인프라(`docs/index.html`, `_sidebar.md`, `.nojekyll`)와 집필 규약(`_writing-guide.md`)을 갖췄다.
+모든 장이 DoD(학습 목표 3줄 → 본문 → 요약 → 연습문제, 코드는 실제 `samples/` 경로 명시)를 충족한다.
+저장소 위생으로 README 전면 개편(+영문판), CHANGELOG(Keep a Changelog), CONTRIBUTING, 이슈 템플릿 2종을 추가했다.
+README 30초 시작 코드는 Echo 샘플로 실제 구동 확인했고, 빌드 경고 0 · 테스트 207개 전량 통과. 로드맵 45/47.
+
 ## 2026-08-25 11:43 KST — 로드맵 Phase 1~5 전체 구현 (P1-1 ~ P5-3, 34개 작업)
 
 `docs/kcp-csharp-roadmap.md` 의 Phase 1~5 작업 34개를 모두 구현하고 페이즈 단위로 5개 커밋을 만들었다(브랜치 `phase1-5-구현`).
