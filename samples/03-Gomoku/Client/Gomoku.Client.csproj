@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>Gomoku.Client</RootNamespace>
+    <AssemblyName>Gomoku.Client</AssemblyName>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <IsPackable>false</IsPackable>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RollForward>Major</RollForward>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.5.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Shared\Gomoku.Shared.csproj" />
+    <ProjectReference Include="..\..\..\src\KcpProject\KcpProject.csproj" />
+    <ProjectReference Include="..\..\..\src\KcpProject.Transport\KcpProject.Transport.csproj" />
+  </ItemGroup>
+
+</Project>

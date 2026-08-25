@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>LoadTest</RootNamespace>
+    <AssemblyName>LoadTest</AssemblyName>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <IsPackable>false</IsPackable>
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\KcpProject\KcpProject.csproj" />
+    <ProjectReference Include="..\..\..\src\KcpProject.Transport\KcpProject.Transport.csproj" />
+  </ItemGroup>
+
+</Project>

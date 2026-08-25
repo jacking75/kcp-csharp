@@ -3,15 +3,15 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <OutputType>Exe</OutputType>
-    <RootNamespace>KcpProject.Samples.Echo</RootNamespace>
-    <AssemblyName>Echo</AssemblyName>
+    <RootNamespace>Echo.Client</RootNamespace>
+    <AssemblyName>Echo.Client</AssemblyName>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\KcpProject\KcpProject.csproj" />
-    <ProjectReference Include="..\..\src\KcpProject.Transport\KcpProject.Transport.csproj" />
+    <ProjectReference Include="..\..\..\src\KcpProject\KcpProject.csproj" />
+    <ProjectReference Include="..\..\..\src\KcpProject.Transport\KcpProject.Transport.csproj" />
   </ItemGroup>
 
 </Project>
