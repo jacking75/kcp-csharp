@@ -154,7 +154,7 @@ internal sealed class FecEncoder
 /// </para>
 /// <para>
 /// 고정 메모리는 세션당 <c>MaxGroups × TotalShards × maxShardSize</c> 다
-/// (기본 10+3 구성, MTU 1400 기준 약 285KB). 부담스러우면 <see cref="MaxGroups"/> 를 줄인다.
+/// (기본 10+3 구성, MTU 1400 기준 16 x 13 x 1393B = 약 283KB). 부담스러우면 <see cref="MaxGroups"/> 를 줄인다.
 /// </para>
 /// </remarks>
 internal sealed class FecDecoder

@@ -190,7 +190,12 @@ public int MaxSendBacklog { get; set; } = 1024;
 | `PingInterval` | 2초 | **NAT 타임아웃보다 짧아야** 합니다(아래) |
 | `SessionTimeout` | 10초 | 짧으면 잠깐의 끊김에도 튕기고, 길면 좀비 세션이 오래 남습니다 |
 | `FinLinger` | 2초 | FIN 이후 잔여 재전송을 처리할 시간 |
-| `MaxSendBacklog` | 1024 | 초과 시 `Send` 가 `Backpressure` 반환 |
+| `MaxSendBacklog` | 1024 | 초과 시 `Send` 가 `Backpressure` 반환. **세션 수가 많으면 낮추세요**(아래) |
+
+> **`MaxSendBacklog` 는 메모리에 직결됩니다.** 백로그에 쌓인 세그먼트 하나가 2,048바이트라
+> 기본값 1024면 세션당 최대 2MB입니다. 1,000세션 서버라면 이것만으로 2GB죠.
+> 게임 메시지는 256이면 충분하고, 애초에 백로그가 차는 상황 자체가 비정상입니다
+> (자세한 계산은 [14장](ch14-performance.md) "세션당 메모리 예산").
 
 ### NAT 타임아웃과 PING
 
