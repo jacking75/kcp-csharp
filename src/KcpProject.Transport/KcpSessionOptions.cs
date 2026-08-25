@@ -1,4 +1,5 @@
 using System;
+using KcpProject.Transport.Fec;
 
 namespace KcpProject.Transport;
 
@@ -71,10 +72,26 @@ public sealed class KcpSessionOptions
     public uint RawModeConv { get; set; }
 
     /// <summary>
-    /// 패킷 암호화기(P5-1). null 이면 평문. KCP·RAW 프레임의 페이로드에만 적용되며
-    /// 프레임 타입 바이트는 평문으로 남는다.
+    /// AES-256-GCM 세션 키(32바이트). 지정하면 KCP·RAW 프레임의 페이로드를 암호화한다(P5-1).
+    /// </summary>
+    /// <remarks>
+    /// 라이브러리는 키 합의를 하지 않는다. 게임은 보통 TLS 웹 API 로그인에서 세션 키를 받아 오므로
+    /// 그 값을 여기에 넣는다. 세션마다 conv 로 nonce 를 분리하므로 같은 키를 여러 세션이 공유해도 안전하지만,
+    /// 세션별 키를 쓰는 편이 더 낫다.
+    /// </remarks>
+    public byte[]? EncryptionKey { get; set; }
+
+    /// <summary>
+    /// 직접 구현한 패킷 암호화기(P5-1). 지정하면 <see cref="EncryptionKey"/> 보다 우선한다.
+    /// netstandard2.1 처럼 <c>AesGcm</c> 을 쓸 수 없는 런타임에서 자체 구현을 주입하는 통로다.
     /// </summary>
     public IPacketCipher? Cipher { get; set; }
+
+    /// <summary>FEC 설정(P5-2). null 이면 FEC 를 쓰지 않는다.</summary>
+    public FecOptions? Fec { get; set; }
+
+    /// <summary>암호화·FEC 를 고려한 패킷 오버헤드(바이트).</summary>
+    internal int CipherOverhead => Cipher?.Overhead ?? (EncryptionKey != null ? AesGcmPacketCipher.OverheadBytes : 0);
 
     /// <summary>설정을 복사한다(서버가 세션마다 독립 사본을 갖도록).</summary>
     /// <returns>복사본.</returns>
@@ -94,6 +111,12 @@ public sealed class KcpSessionOptions
             throw new ArgumentOutOfRangeException(nameof(MaxSendBacklog), MaxSendBacklog, "0보다 커야 합니다.");
         if (HandshakeMaxRetries < 0)
             throw new ArgumentOutOfRangeException(nameof(HandshakeMaxRetries), HandshakeMaxRetries, "0 이상이어야 합니다.");
+        if (EncryptionKey != null && EncryptionKey.Length != AesGcmPacketCipher.KeySize)
+            throw new ArgumentOutOfRangeException(nameof(EncryptionKey), EncryptionKey.Length,
+                $"AES-256-GCM 키는 {AesGcmPacketCipher.KeySize}바이트여야 합니다.");
+        if (Fec != null && (EncryptionKey != null || Cipher != null))
+            throw new ArgumentException("이 버전에서는 FEC 와 암호화를 함께 켤 수 없습니다(로드맵 P5-2 참조).", nameof(Fec));
+        Fec?.Validate();
     }
 }
 
@@ -117,4 +140,9 @@ public sealed class KcpServerOptions
 
     /// <summary>송신 버퍼(소켓 옵션) 크기.</summary>
     public int SocketSendBufferSize { get; set; } = 1 << 20;
+
+    /// <summary>
+    /// 관측 스냅숏(<see cref="KcpServer.MetricsSampled"/>) 주기(ms). 0 이하면 수집하지 않는다(P5-3).
+    /// </summary>
+    public int MetricsIntervalMs { get; set; } = 5_000;
 }

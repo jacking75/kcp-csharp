@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Net;
+using KcpProject.Transport.Fec;
 
 namespace KcpProject.Transport;
 
@@ -90,6 +91,12 @@ public sealed class KcpSession
     private KcpSessionState state;
     private uint conv;
 
+    // P5-1 암호화 / P5-2 FEC
+    private IPacketCipher? cipher;
+    private FecEncoder? fecEncoder;
+    private FecDecoder? fecDecoder;
+    private readonly int reservedBytes;
+
     // 핸드셰이크(클라이언트)
     private uint clientNonce;
     private uint cookie;
@@ -133,7 +140,10 @@ public sealed class KcpSession
         options.Validate();
         RemoteKey = AddressKey.FromEndPoint(remote);
 
-        var cipherOverhead = options.Cipher?.Overhead ?? 0;
+        var cipherOverhead = options.CipherOverhead;
+        reservedBytes = options.RawMode
+            ? 0
+            : Framing.KcpHeaderSize + (options.Fec != null ? FecFrame.DataHeaderSize : 0);
         frameBuffer = new byte[options.Mtu + cipherOverhead + Framing.RawHeaderSize];
 
         if (options.RawMode)
@@ -233,12 +243,27 @@ public sealed class KcpSession
 
     private void CreateKcp(uint conversation)
     {
-        var instance = new Kcp(conversation, OnKcpOutput, clock);
-        instance.SetMtu(options.Mtu - (options.Cipher?.Overhead ?? 0));
-        if (!options.RawMode)
+        // P5-1: 키만 주면 세션이 conv·방향에 맞는 암호화기를 직접 만든다(nonce 재사용 방지).
+        cipher = options.Cipher;
+        if (cipher == null && options.EncryptionKey != null)
         {
-            // 프레임 타입 1바이트를 KCP 패킷 앞에 확보한다(복사 없이 프레이밍).
-            instance.ReserveBytes(Framing.KcpHeaderSize);
+            cipher = new AesGcmPacketCipher(options.EncryptionKey, conversation, serverDirection: !isClient);
+        }
+
+        // P5-2: FEC 는 프레이밍 안쪽, KCP 바깥쪽에 놓인다.
+        if (options.Fec != null && !options.RawMode)
+        {
+            var maxShardSize = options.Mtu - Framing.KcpHeaderSize - FecFrame.HeaderSize;
+            fecEncoder = new FecEncoder(options.Fec, maxShardSize, Framing.KcpHeaderSize);
+            fecDecoder = new FecDecoder(options.Fec, maxShardSize);
+        }
+
+        var instance = new Kcp(conversation, OnKcpOutput, clock);
+        instance.SetMtu(options.Mtu - (cipher?.Overhead ?? 0));
+        if (reservedBytes > 0)
+        {
+            // 프레임 타입(+FEC 헤더) 만큼을 KCP 패킷 앞에 확보한다(복사 없이 프레이밍).
+            instance.ReserveBytes(reservedBytes);
         }
         instance.NoDelay(options.NoDelay, options.IntervalMs, options.FastResend, options.NoCongestionControl);
         instance.WndSize(options.SendWindow, options.ReceiveWindow);
@@ -254,16 +279,23 @@ public sealed class KcpSession
             return;
         }
 
-        var cipher = options.Cipher;
+        buffer[0] = (byte)FrameType.Kcp;
+
+        if (fecEncoder != null)
+        {
+            // [0x04][seqid][flag][size][KCP 패킷] — 데이터 패킷과 (그룹이 찼으면) 패리티가 함께 나간다.
+            fecEncoder.Encode(buffer.AsSpan(0, length), packet => sender(packet, RemoteEndPoint));
+            return;
+        }
+
         if (cipher == null)
         {
             // 예약해 둔 첫 바이트에 프레임 타입만 채우면 그대로 보낼 수 있다.
-            buffer[0] = (byte)FrameType.Kcp;
             sender(buffer.AsSpan(0, length), RemoteEndPoint);
             return;
         }
 
-        // 암호화 경로: [0x04][암호문(nonce+태그 포함)]
+        // 암호화 경로: [0x04][암호문(카운터+태그 포함)]
         frameBuffer[0] = (byte)FrameType.Kcp;
         var payload = buffer.AsSpan(Framing.KcpHeaderSize, length - Framing.KcpHeaderSize);
         var written = cipher.Encrypt(payload, frameBuffer.AsSpan(Framing.KcpHeaderSize));
@@ -363,7 +395,19 @@ public sealed class KcpSession
 
         lastReceiveAt = now;
 
-        var cipher = options.Cipher;
+        if (fecDecoder != null)
+        {
+            // 데이터 샤드면 payload 가 원본 KCP 패킷, 복원된 샤드는 콜백으로 온다.
+            var isData = fecDecoder.Decode(payload, out var original,
+                recovered => kcp.Input(recovered, false, options.AckNoDelay));
+
+            if (isData)
+                kcp.Input(original, true, options.AckNoDelay);
+
+            DrainReliable();
+            return;
+        }
+
         if (cipher == null)
         {
             kcp.Input(payload, true, options.AckNoDelay);
@@ -394,7 +438,6 @@ public sealed class KcpSession
 
         lastReceiveAt = now;
 
-        var cipher = options.Cipher;
         if (cipher == null)
         {
             DeliverUnreliable(payload);
@@ -540,7 +583,6 @@ public sealed class KcpSession
         if (options.RawMode)
             return KcpSendResult.Error;   // RawMode 에는 비신뢰 프레임이 없다.
 
-        var cipher = options.Cipher;
         var overhead = Framing.RawHeaderSize + (cipher?.Overhead ?? 0);
         if (data.Length + overhead > options.Mtu)
             return KcpSendResult.TooLarge;
@@ -713,6 +755,10 @@ public sealed class KcpSession
 
         kcp?.Release();
         kcp = null;
+        (cipher as IDisposable)?.Dispose();
+        cipher = null;
+        fecEncoder = null;
+        fecDecoder = null;
 
         while (unreliableQueue.Count > 0)
         {
@@ -728,6 +774,8 @@ public sealed class KcpSession
     {
         kcp?.Release();
         kcp = null;
+        (cipher as IDisposable)?.Dispose();
+        cipher = null;
         while (unreliableQueue.Count > 0)
         {
             var msg = unreliableQueue.Dequeue();
@@ -751,4 +799,10 @@ public sealed class KcpSession
 
     /// <summary>클라이언트 세션인지 여부.</summary>
     internal bool IsClient => isClient;
+
+    /// <summary>FEC 로 재전송 없이 복원해 낸 패킷 수(P5-2). FEC 를 쓰지 않으면 0.</summary>
+    public long FecRecoveredPackets => fecDecoder?.RecoveredShards ?? 0;
+
+    /// <summary>이 세션이 암호화를 쓰고 있는지 여부(P5-1).</summary>
+    public bool IsEncrypted => cipher != null;
 }

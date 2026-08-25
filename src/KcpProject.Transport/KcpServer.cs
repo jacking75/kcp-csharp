@@ -42,6 +42,10 @@ public sealed class KcpServer : IDisposable
     private uint nextConv = 1;      // 0 은 예약
     private bool disposed;
 
+    // P5-3 관측성
+    private readonly List<int> rttScratch = new List<int>(256);
+    private uint nextMetricsAt;
+
     /// <summary>서버를 만든다.</summary>
     /// <param name="port">바인딩할 UDP 포트.</param>
     /// <param name="options">서버 설정. 생략하면 기본값.</param>
@@ -92,6 +96,12 @@ public sealed class KcpServer : IDisposable
 
     /// <summary>수신 루프에서 예외가 발생하면 발생한다(루프는 계속 돈다).</summary>
     public event Action<Exception>? Error;
+
+    /// <summary>
+    /// <see cref="KcpServerOptions.MetricsIntervalMs"/> 주기로 서버 상태 스냅숏을 알린다(P5-3).
+    /// 수신 루프 스레드에서 발화하므로 핸들러는 짧아야 한다.
+    /// </summary>
+    public event Action<KcpServerMetrics>? MetricsSampled;
 
     /// <summary>소켓을 열고 수신 루프를 시작한다.</summary>
     public void Start()
@@ -157,6 +167,7 @@ public sealed class KcpServer : IDisposable
 
         DrainSocket(udp);
         RunDueSessions();
+        SampleMetrics();
     }
 
     /// <summary>수신 루프를 멈추고 세션을 모두 정리한다.</summary>
@@ -209,6 +220,7 @@ public sealed class KcpServer : IDisposable
                 }
 
                 RunDueSessions();
+                SampleMetrics();
             }
             catch (OperationCanceledException)
             {
@@ -339,6 +351,28 @@ public sealed class KcpServer : IDisposable
                 RemoveSession(session);
             pendingRemoval.Clear();
         }
+    }
+
+    /// <summary>주기가 되면 관측 스냅숏을 만들어 이벤트로 알린다(P5-3).</summary>
+    private void SampleMetrics()
+    {
+        var handler = MetricsSampled;
+        if (handler == null || options.MetricsIntervalMs <= 0)
+            return;
+
+        var now = clock();
+        if (nextMetricsAt != 0 && Kcp.Itimediff(now, nextMetricsAt) < 0)
+            return;
+
+        nextMetricsAt = now + (uint)options.MetricsIntervalMs;
+
+        List<KcpSession> snapshot;
+        lock (sessions)
+        {
+            snapshot = new List<KcpSession>(sessions.Values);
+        }
+
+        handler(MetricsCollector.Collect(snapshot, now, rttScratch));
     }
 
     private void OnSessionDisconnected(KcpSession session, KcpDisconnectReason reason)
