@@ -32,7 +32,7 @@
 - **벤치마크** — BenchmarkDotNet 6종, 결과를 `docs/benchmarks.md` 에 기록
 - **샘플 5종 + 부하 도구** — Echo / Chat / Gomoku / MoveSync / TankBattle / LoadTest
 - **온라인 책** — 17장 + 부록 5종(docsify + GitHub Pages)
-- **CI** — ubuntu/windows 매트릭스 빌드·테스트, 커버리지 게이트(코어 85%), 야간 소크
+- **품질 기준** — 빌드 경고 0, 코어 라인 커버리지 85% 이상(실측 93.4%). 검증 명령은 `CONTRIBUTING.md` 참조
 
 ### 변경됨
 

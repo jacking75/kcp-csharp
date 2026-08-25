@@ -43,7 +43,8 @@ dotnet test tests/KcpProject.SimTests -c Release \
   -p:Threshold=85 -p:ThresholdType=line
 ```
 
-코어(`KcpProject`) 라인 커버리지 **85% 이상**이 CI 게이트입니다. 현재 93.4%입니다.
+코어(`KcpProject`) 라인 커버리지 **85% 이상**이 기준입니다. 현재 93.4%입니다.
+PR 을 올리기 전에 로컬에서 직접 확인해 주세요.
 
 ## 코드 규칙
 
@@ -131,7 +132,7 @@ return pending.Count == 0 && pair.ReceivedB.Length == payload.Length && pair.A.W
 [Trait("Category", "Soak")]
 ```
 
-를 붙이면 일반 CI 에서 제외되고 야간 스케줄에서만 돕니다.
+를 붙이면 `--filter "Category!=Soak"` 로 걸러집니다. 평소에는 제외하고 필요할 때만 돌립니다.
 
 ## 성능 변경 절차
 

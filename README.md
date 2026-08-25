@@ -2,7 +2,6 @@
 
 **UDP 위에 필요한 만큼의 신뢰성을 얹는 C# 라이브러리.** 실시간 게임을 위한 KCP 구현입니다.
 
-[![CI](https://github.com/jacking75/kcp-csharp/actions/workflows/ci.yml/badge.svg)](https://github.com/jacking75/kcp-csharp/actions/workflows/ci.yml)
 ![net8.0](https://img.shields.io/badge/net-8.0-512BD4)
 ![netstandard2.1](https://img.shields.io/badge/netstandard-2.1-512BD4)
 ![license](https://img.shields.io/badge/license-MIT-green)

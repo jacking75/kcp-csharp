@@ -2,7 +2,6 @@
 
 **A C# library that adds exactly as much reliability as you need on top of UDP.** A KCP implementation for real-time games.
 
-[![CI](https://github.com/jacking75/kcp-csharp/actions/workflows/ci.yml/badge.svg)](https://github.com/jacking75/kcp-csharp/actions/workflows/ci.yml)
 ![net8.0](https://img.shields.io/badge/net-8.0-512BD4)
 ![netstandard2.1](https://img.shields.io/badge/netstandard-2.1-512BD4)
 ![license](https://img.shields.io/badge/license-MIT-green)
