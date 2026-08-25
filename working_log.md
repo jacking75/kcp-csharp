@@ -1,5 +1,18 @@
 # 작업 로그
 
+## 2026-08-25 18:00 KST — 코드 완전 해설서(docs/code-guide.md) 신설
+
+kcp-csharp 소스를 파일 단위로 아주 상세하게 설명하는 한국어 전용 문서를 새로 만들었다.
+기존 docs/ 문서 중 이런 "코드 자체를 처음부터 끝까지 설명"하는 문서가 없어 요청받아 작성했다
+(온라인 책은 사용법 위주라 범위가 다름). 코어(Kcp.cs 의 ARQ·슬라이딩 윈도·RTO 계산·재전송
+3경로·MoveRcvBufToQueue 버그 스토리 등)와 전송 계층(KcpSession 상태 머신·핸드셰이크·아웃박스,
+KcpServer/KcpClient, AES-GCM nonce/리플레이 윈도, Reed-Solomon FEC 수학) 전체 20여 개 파일을
+다뤘고, 전체 데이터 흐름·스레딩 모델·메모리 모델 절도 추가했다(2,580줄). 작성 후 코드 블록
+전체를 실제 소스와 대조 검증해, 조기 재전송 change++ 누락·EnsureBuffer 안전 가드 누락·
+AesGcm.MarkSeen 첫 수신 초기화 분기 누락 등 실제 동작과 어긋나는 축약을 10여 곳 찾아 고쳤다
+(전부 "이해를 돕기 위한 요약"이 실제로는 다른 동작을 암시하던 문제). docs/_sidebar.md·
+docs/README.md·양쪽 최상위 README에 이 문서로의 링크를 추가했다.
+
 ## 2026-08-25 17:23 KST — README·벤치마크 문서 한/영 이중화
 
 README.md 를 영어로 전면 번역하고, 기존 한국어 내용은 README_kr.md 로 옮겼다(상호 언어

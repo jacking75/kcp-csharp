@@ -160,6 +160,10 @@ Five samples in increasing difficulty, plus one tool. Each sample has its own RE
 Every code snippet in the book is lifted straight from the code in `samples/`, and
 **the original file path is noted with every code block.**
 
+**Want a deep, file-by-file walkthrough of the source itself?** See
+[`docs/code-guide.md`](docs/code-guide.md) — a very detailed explanation of every file in the
+core and transport layer, line by line (Korean only).
+
 ## Installation
 
 ```bash
