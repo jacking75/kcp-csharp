@@ -22,6 +22,9 @@ internal sealed class Report
     /// <summary>연결에 성공한 세션 수.</summary>
     public int Sessions { get; init; }
 
+    /// <summary>측정 종료 시점에도 살아 있던 세션 수. 이보다 적으면 생성기가 감당하지 못한 것이다.</summary>
+    public int AliveSessions { get; init; }
+
     /// <summary>보낸 애플리케이션 메시지 수.</summary>
     public long MessagesSent { get; init; }
 
@@ -58,8 +61,8 @@ internal sealed class Report
     /// <summary>측정 종료 시점의 프로세스 작업 집합(바이트).</summary>
     public long WorkingSetBytes { get; init; }
 
-    /// <summary>RTT 표본(ms). 정렬된 상태로 들어온다.</summary>
-    public IReadOnlyList<double> RttSamples { get; init; } = Array.Empty<double>();
+    /// <summary>RTT 히스토그램(고정 크기 — 측정 도구가 GC 를 유발하지 않도록).</summary>
+    public LatencyHistogram Rtt { get; init; } = new();
 
     /// <summary>초당 메시지 수.</summary>
     public double MessagesPerSecond => ElapsedSeconds <= 0 ? 0 : MessagesSent / ElapsedSeconds;
@@ -76,19 +79,6 @@ internal sealed class Report
     /// <summary>에코 손실률(%). 신뢰 채널이면 0 이어야 한다.</summary>
     public double EchoLossPercent => MessagesSent == 0 ? 0 : (MessagesSent - MessagesEchoed) * 100.0 / MessagesSent;
 
-    /// <summary>백분위 RTT(ms).</summary>
-    /// <param name="percentile">0.0~1.0.</param>
-    /// <returns>밀리초. 표본이 없으면 0.</returns>
-    public double Rtt(double percentile)
-    {
-        if (RttSamples.Count == 0) return 0;
-
-        var rank = (int)Math.Ceiling(percentile * RttSamples.Count);
-        if (rank < 1) rank = 1;
-        if (rank > RttSamples.Count) rank = RttSamples.Count;
-        return RttSamples[rank - 1];
-    }
-
     /// <summary>사람이 읽는 리포트를 출력한다.</summary>
     /// <param name="options">실행 옵션(설정을 함께 찍는다).</param>
     public void Print(Options options)
@@ -98,13 +88,14 @@ internal sealed class Report
         Console.WriteLine();
         Console.WriteLine("┌───────────────── LoadTest 결과 ─────────────────");
         Console.WriteLine($"│ 설정      세션 {options.Sessions}, {options.Rate}msg/s, {options.Size}B, {channel}, 프리셋 {options.Preset}");
-        Console.WriteLine($"│ 측정 시간 {ElapsedSeconds:F1}초 (연결 성공 {Sessions}/{options.Sessions})");
+        Console.WriteLine($"│ 측정 시간 {ElapsedSeconds:F1}초 (연결 성공 {Sessions}/{options.Sessions}, 끝까지 생존 {AliveSessions})");
         Console.WriteLine("├─────────────────────────────────────────────────");
         Console.WriteLine($"│ 메시지    보냄 {MessagesSent:N0} / 에코 {MessagesEchoed:N0} ({MessagesPerSecond:N0} msg/s)");
         Console.WriteLine($"│ 무결성    불일치 {Mismatched:N0}건, 에코 손실 {EchoLossPercent:F2}%");
         Console.WriteLine($"│ 처리량    송신 {SendMbps:F2} Mbps / 수신 {ReceiveMbps:F2} Mbps");
         Console.WriteLine($"│ 재전송    {RetransmitSegments:N0} / {SegmentsSent:N0} 세그먼트 ({RetransmitRatePercent:F2}%)");
-        Console.WriteLine($"│ RTT       p50 {Rtt(0.50):F1}ms  p95 {Rtt(0.95):F1}ms  p99 {Rtt(0.99):F1}ms  (표본 {RttSamples.Count:N0})");
+        Console.WriteLine($"│ RTT       p50 {Rtt.Percentile(0.50):F0}ms  p95 {Rtt.Percentile(0.95):F0}ms  " +
+                          $"p99 {Rtt.Percentile(0.99):F0}ms  max {Rtt.Max:F0}ms  (표본 {Rtt.Count:N0})");
         Console.WriteLine($"│ GC        Gen0 {Gen0} / Gen1 {Gen1} / Gen2 {Gen2}");
         Console.WriteLine($"│ 메모리    관리 힙 {ManagedHeapBytes / 1024.0 / 1024.0:F1} MB, 작업 집합 {WorkingSetBytes / 1024.0 / 1024.0:F1} MB");
         Console.WriteLine("└─────────────────────────────────────────────────");
@@ -115,6 +106,24 @@ internal sealed class Report
             Console.WriteLine($"! Gen2 수집이 {Gen2}회 있었습니다. 게임 서버에서는 프레임 스파이크로 나타납니다(책 14장).");
         if (Mismatched > 0)
             Console.WriteLine("! 내용 불일치가 있습니다. 심각한 버그이므로 반드시 원인을 찾으세요.");
+
+        if (AliveSessions < Sessions)
+        {
+            Console.WriteLine($"! 세션 {Sessions - AliveSessions}개가 측정 중 끊겼습니다(대개 생성기가 keepalive 를 제때 못 보낸 것).");
+            Console.WriteLine("  --threads 를 늘리거나 --sessions 를 줄여 다시 재 보세요.");
+        }
+
+        if (EchoLossPercent > 1 && RetransmitRatePercent < 0.1)
+        {
+            Console.WriteLine(
+                "! 재전송은 없는데 에코가 덜 돌아왔습니다. 신뢰 채널은 데이터를 잃지 않으므로,");
+            Console.WriteLine(
+                "  ① 서버가 백프레셔로 흘려버렸거나(서버 콘솔의 '백프레셔로 버림' 확인),");
+            Console.WriteLine(
+                "  ② 부하 생성기(이 프로세스)가 CPU 한계에 걸려 수신을 다 못 끌어온 경우입니다.");
+            Console.WriteLine(
+                "  --sessions 를 줄이거나 여러 프로세스로 나눠 다시 재 보세요.");
+        }
     }
 
     /// <summary>결과를 CSV 로 저장한다(파일이 있으면 헤더 없이 덧붙인다).</summary>
@@ -146,9 +155,9 @@ internal sealed class Report
                .Append(SendMbps.ToString("F3", culture)).Append(',')
                .Append(ReceiveMbps.ToString("F3", culture)).Append(',')
                .Append(RetransmitRatePercent.ToString("F3", culture)).Append(',')
-               .Append(Rtt(0.50).ToString("F2", culture)).Append(',')
-               .Append(Rtt(0.95).ToString("F2", culture)).Append(',')
-               .Append(Rtt(0.99).ToString("F2", culture)).Append(',')
+               .Append(Rtt.Percentile(0.50).ToString("F0", culture)).Append(',')
+               .Append(Rtt.Percentile(0.95).ToString("F0", culture)).Append(',')
+               .Append(Rtt.Percentile(0.99).ToString("F0", culture)).Append(',')
                .Append(Gen0).Append(',')
                .Append(Gen1).Append(',')
                .Append(Gen2).Append(',')

@@ -58,13 +58,23 @@ internal sealed class Options
     /// <summary>세션당 소켓 버퍼 크기(바이트). 세션이 많을 때 메모리를 아끼려고 낮춘다.</summary>
     public int SocketBufferSize { get; private set; } = 64 * 1024;
 
+    /// <summary>
+    /// 세션을 나눠 구동할 워커 스레드 수. 0 이면 CPU 수에 맞춰 자동으로 정한다.
+    /// </summary>
+    /// <remarks>
+    /// 세션 하나는 반드시 한 스레드가 소유한다(라이브러리 스레딩 규약). 스레드마다 서로 겹치지 않는
+    /// 세션 묶음을 맡으므로 lock 이 필요 없다. 단일 스레드로는 세션 수백 개를 넘기면
+    /// keepalive 를 제때 못 보내 서버가 세션을 타임아웃시킨다.
+    /// </remarks>
+    public int Threads { get; private set; }
+
     /// <summary>사용법.</summary>
     public static string Usage => """
         사용법:
           LoadTest server [--port 27010] [--preset fast2]
           LoadTest client [--host 127.0.0.1] [--port 27010] [--sessions 1000] [--rate 20]
                           [--size 256] [--duration 60] [--unreliable] [--preset fast2]
-                          [--csv result.csv] [--sockbuf 65536]
+                          [--csv result.csv] [--sockbuf 65536] [--threads 0]
 
         프리셋: normal(0,40,2,1) / fast(0,30,2,1) / fast2(1,20,2,1) / fast3(1,10,2,1)
         """;
@@ -124,6 +134,7 @@ internal sealed class Options
                 case "--size": if (!TryInt(value, out var z, out error)) return false; options.Size = z; break;
                 case "--duration": if (!TryInt(value, out var d, out error)) return false; options.DurationSeconds = d; break;
                 case "--sockbuf": if (!TryInt(value, out var b, out error)) return false; options.SocketBufferSize = b; break;
+                case "--threads": if (!TryInt(value, out var t, out error)) return false; options.Threads = t; break;
 
                 default:
                     error = $"알 수 없는 옵션: {args[i - 1]}";

@@ -29,7 +29,12 @@ UDP **27010** 포트를 쓴다. **반드시 `-c Release`** 로 돌린다(Debug �
 | `--preset` | `fast2` | `normal` / `fast` / `fast2` / `fast3` |
 | `--csv` | 없음 | 결과를 CSV에 덧붙인다(비교 실험용) |
 | `--sockbuf` | `65536` | 세션당 소켓 버퍼(바이트) |
+| `--threads` | `0`(자동) | 세션을 나눠 구동할 워커 스레드 수 |
 
+> `--threads` 가 왜 있나: 세션 하나는 반드시 한 스레드가 소유해야 한다(라이브러리 스레딩 규약).
+> 스레드마다 겹치지 않는 세션 묶음을 맡으므로 lock 이 없다. 단일 스레드로는 세션 수백 개를 넘기면
+> keepalive 를 제때 못 보내 서버가 세션을 끊는다.
+>
 > `--sockbuf` 가 왜 있나: 라이브러리 기본값은 1MB다. 세션 1,000개면 송·수신 합쳐 2GB를 요청하게 된다.
 > 부하 도구는 세션이 많으므로 64KB로 낮춰 잡는다. **실제 서버는 기본값(1MB)을 쓰는 것이 맞다**(진단 S-05).
 
@@ -76,6 +81,11 @@ dotnet run -c Release --project samples/tools/LoadTest -- client --sessions 200 
 sudo tc qdisc add dev lo root netem loss 10% delay 50ms   # 걸기
 sudo tc qdisc del dev lo root                              # 풀기
 ```
+
+## 실측 기록
+
+`docs/benchmarks.md` 의 「Phase 7 — 1,000 세션 부하 측정」 절에 결과와,
+**측정하다 발견한 도구 쪽 함정 3가지**를 기록해 두었다. 이상한 숫자가 나오면 측정기부터 의심하자.
 
 ## 책
 
