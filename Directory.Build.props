@@ -1,0 +1,18 @@
+<Project>
+
+  <!-- 전 프로젝트 공통 속성. 개별 csproj 는 이 값을 덮어쓰지 않는 것을 원칙으로 한다. -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Authors>jacking75</Authors>
+    <Product>kcp-csharp</Product>
+    <Copyright>Copyright (c) jacking75</Copyright>
+    <NeutralLanguage>ko-KR</NeutralLanguage>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-minimum</AnalysisLevel>
+  </PropertyGroup>
+
+</Project>
