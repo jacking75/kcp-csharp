@@ -1,5 +1,15 @@
 # 작업 로그
 
+## 2026-08-25 11:43 KST — 로드맵 Phase 1~5 전체 구현 (P1-1 ~ P5-3, 34개 작업)
+
+`docs/kcp-csharp-roadmap.md` 의 Phase 1~5 작업 34개를 모두 구현하고 페이즈 단위로 5개 커밋을 만들었다(브랜치 `phase1-5-구현`).
+Phase 1: src/tests/benchmarks/samples 재편 + netstandard2.1;net8.0 멀티타깃, 단조 시계(B-01), 치명·높음 버그 9종 수정, CI.
+Phase 2: 가상 네트워크 시뮬레이터(SimulatedLink/KcpPair)와 프로토콜 시나리오 14종, 골든 벡터, 소크 테스트, 커버리지 게이트.
+Phase 3: Span 코덱·ArrayPool 세그먼트·RingBuffer 큐·인스턴스 풀·이분 탐색으로 재구성(왕복 -27%, 할당 0 유지), 벤치 기준선 기록.
+Phase 4: 쿠키 핸드셰이크·세션 상태 머신·KcpClient/KcpServer·최소 힙 스케줄러. 샘플 ① 에코가 공개 API만으로 동작.
+Phase 5: AES-256-GCM 암호화(리플레이 윈도), 리드-솔로몬 FEC(손실 20%에서 재전송 -70%), 서버 관측 스냅숏.
+결과: 빌드 경고 0, 테스트 157개 통과, 코어 라인 커버리지 93.4%.
+
 ## 2026-08-25 10:02 KST — 로드맵 전체 작업 체크리스트 신설
 
 `docs/kcp-csharp-roadmap.md` 상단(v2 변경 사항 바로 아래)에 `## ✅ 전체 작업 체크리스트 (진행 현황판)` 절을 추가했다.
