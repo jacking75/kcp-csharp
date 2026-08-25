@@ -14,7 +14,8 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest-minimum</AnalysisLevel>
     <!-- CA1510(ArgumentNullException.ThrowIfNull)은 .NET 6+ 전용이라 netstandard2.1 타깃에서 쓸 수 없다. -->
-    <NoWarn>$(NoWarn);CA1510</NoWarn>
+    <!-- CA1513(ObjectDisposedException.ThrowIf) 도 마찬가지로 .NET 7+ 전용이다. -->
+    <NoWarn>$(NoWarn);CA1510;CA1513</NoWarn>
   </PropertyGroup>
 
 </Project>

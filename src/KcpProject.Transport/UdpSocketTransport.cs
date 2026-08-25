@@ -2,8 +2,6 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace KcpProject.Transport;
 
@@ -13,9 +11,8 @@ namespace KcpProject.Transport;
 /// <remarks>
 /// <list type="bullet">
 /// <item><description>
-/// net8.0 에서는 <c>ReceiveFromAsync(Memory, SocketFlags, SocketAddress, CancellationToken)</c> 로
-/// <see cref="SocketAddress"/> 를 재사용해 수신 경로 할당을 없앤다. netstandard2.1 은
-/// <c>ReceiveFromAsync(ArraySegment, ...)</c> 로 폴백한다.
+/// net8.0 에서는 <c>ReceiveFrom(Span, SocketFlags, SocketAddress)</c> 로 <see cref="SocketAddress"/> 를
+/// 재사용해 수신 경로 할당을 없앤다. netstandard2.1 은 <c>ReceiveFrom(byte[], ..., ref EndPoint)</c> 로 폴백한다.
 /// </description></item>
 /// <item><description>
 /// 송수신 버퍼를 기본 1MB 로 키운다. OS 기본값(보통 64KB)에서는 버스트 시 커널이 조용히 패킷을 버린다(진단 S-05).
@@ -35,10 +32,9 @@ public sealed class UdpSocketTransport : IUdpTransport
 
 #if NET8_0_OR_GREATER
     private readonly SocketAddress receiveAddress;
-    private readonly SocketAddress sendAddress;
-    private IPEndPoint? lastSendEndPoint;
 #else
     private EndPoint receiveEndPoint;
+    private byte[] receiveScratch = new byte[2048];
 #endif
 
     /// <summary>소켓을 만든다.</summary>
@@ -54,6 +50,7 @@ public sealed class UdpSocketTransport : IUdpTransport
         {
             ReceiveBufferSize = receiveBufferSize,
             SendBufferSize = sendBufferSize,
+            Blocking = false,
         };
 
         // Windows: ICMP Port Unreachable 로 인한 수신 예외를 막는다.
@@ -65,13 +62,12 @@ public sealed class UdpSocketTransport : IUdpTransport
             }
             catch (SocketException)
             {
-                // 일부 환경(특정 가상 어댑터)에서는 지원하지 않는다. 치명적이지 않으므로 무시한다.
+                // 일부 가상 어댑터는 지원하지 않는다. 치명적이지 않으므로 넘어간다.
             }
         }
 
 #if NET8_0_OR_GREATER
         receiveAddress = new SocketAddress(addressFamily);
-        sendAddress = new SocketAddress(addressFamily);
 #else
         receiveEndPoint = new IPEndPoint(
             addressFamily == AddressFamily.InterNetworkV6 ? IPAddress.IPv6Any : IPAddress.Any, 0);
@@ -98,13 +94,7 @@ public sealed class UdpSocketTransport : IUdpTransport
         try
         {
 #if NET8_0_OR_GREATER
-            // 같은 상대로 연속 송신할 때 SocketAddress 변환을 재사용한다.
-            if (!ReferenceEquals(lastSendEndPoint, remote))
-            {
-                remote.Serialize().Buffer.CopyTo(sendAddress.Buffer);
-                lastSendEndPoint = remote;
-            }
-            return socket.SendTo(data, SocketFlags.None, sendAddress);
+            return socket.SendTo(data, SocketFlags.None, remote);
 #else
             var array = System.Buffers.ArrayPool<byte>.Shared.Rent(data.Length);
             try
@@ -130,21 +120,64 @@ public sealed class UdpSocketTransport : IUdpTransport
     }
 
     /// <inheritdoc/>
-    public async ValueTask<UdpReceiveResult> ReceiveAsync(Memory<byte> buffer, CancellationToken cancellationToken)
+    public bool TryReceive(Span<byte> buffer, out int received, out AddressKey remote)
     {
-#if NET8_0_OR_GREATER
-        var received = await socket.ReceiveFromAsync(buffer, SocketFlags.None, receiveAddress, cancellationToken)
-                                   .ConfigureAwait(false);
-        return new UdpReceiveResult(received, ToKey(receiveAddress));
-#else
-        if (!System.Runtime.InteropServices.MemoryMarshal.TryGetArray<byte>(buffer, out var segment))
-            throw new ArgumentException("배열 기반 버퍼가 필요합니다.", nameof(buffer));
+        received = 0;
+        remote = default;
+        if (disposed) return false;
 
-        cancellationToken.ThrowIfCancellationRequested();
-        var result = await socket.ReceiveFromAsync(segment, SocketFlags.None, receiveEndPoint).ConfigureAwait(false);
-        receiveEndPoint = result.RemoteEndPoint;
-        return new UdpReceiveResult(result.ReceivedBytes, AddressKey.FromEndPoint((IPEndPoint)result.RemoteEndPoint));
+        try
+        {
+#if NET8_0_OR_GREATER
+            var n = socket.ReceiveFrom(buffer, SocketFlags.None, receiveAddress);
+            if (n <= 0) return false;
+            received = n;
+            remote = ToKey(receiveAddress);
+            return true;
+#else
+            if (receiveScratch.Length < buffer.Length)
+                receiveScratch = new byte[buffer.Length];
+
+            var n = socket.ReceiveFrom(receiveScratch, 0, buffer.Length, SocketFlags.None, ref receiveEndPoint);
+            if (n <= 0) return false;
+            receiveScratch.AsSpan(0, n).CopyTo(buffer);
+            received = n;
+            remote = AddressKey.FromEndPoint((IPEndPoint)receiveEndPoint);
+            return true;
 #endif
+        }
+        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.WouldBlock)
+        {
+            return false;
+        }
+        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionReset ||
+                                         ex.SocketErrorCode == SocketError.MessageSize)
+        {
+            // 상대가 사라졌거나(ICMP) 데이터그램이 버퍼보다 큰 경우. 그 패킷만 버리고 계속한다.
+            return false;
+        }
+        catch (ObjectDisposedException)
+        {
+            return false;
+        }
+    }
+
+    /// <inheritdoc/>
+    public bool WaitForData(int microseconds)
+    {
+        if (disposed) return false;
+        try
+        {
+            return socket.Poll(microseconds, SelectMode.SelectRead);
+        }
+        catch (SocketException)
+        {
+            return false;
+        }
+        catch (ObjectDisposedException)
+        {
+            return false;
+        }
     }
 
 #if NET8_0_OR_GREATER
@@ -152,19 +185,15 @@ public sealed class UdpSocketTransport : IUdpTransport
     {
         // SocketAddress -> IPEndPoint 변환은 할당을 만든다. 버퍼에서 직접 읽어 키를 만든다.
         var span = address.Buffer.Span;
+        var port = (ushort)((span[2] << 8) | span[3]);
+
         if (address.Family == AddressFamily.InterNetwork)
         {
-            var port = (ushort)((span[2] << 8) | span[3]);
-            var addr = new IPAddress(span.Slice(4, 4).ToArray());
-            return AddressKey.FromAddress(addr, port);
+            return AddressKey.FromIPv4(span.Slice(4, 4), port);
         }
-        else
-        {
-            var port = (ushort)((span[2] << 8) | span[3]);
-            var scope = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(span.Slice(24, 4));
-            var addr = new IPAddress(span.Slice(8, 16).ToArray(), scope);
-            return AddressKey.FromAddress(addr, port);
-        }
+
+        var scope = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(span.Slice(24, 4));
+        return AddressKey.FromIPv6(span.Slice(8, 16), scope, port);
     }
 #endif
 

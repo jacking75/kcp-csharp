@@ -179,6 +179,19 @@ public class Kcp
     /// </summary>
     internal static int _itimediff(uint later, uint earlier) => (int)(later - earlier);
 
+    /// <summary>
+    /// 32비트 밀리초 시각의 부호 있는 차이(<paramref name="later"/> - <paramref name="earlier"/>)를 구한다.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Check"/> 가 돌려준 시각과 현재 시각을 비교할 때는 반드시 이 함수를 써야 한다.
+    /// 부호 없는 크기 비교(<c>now &gt;= next</c>)는 약 49.7일마다 오는 랩어라운드에서 영원히 거짓이 되어
+    /// 갱신이 멈춘다(진단 B-02).
+    /// </remarks>
+    /// <param name="later">나중 시각.</param>
+    /// <param name="earlier">이전 시각.</param>
+    /// <returns>밀리초 차이. 음수면 <paramref name="later"/> 가 아직 오지 않았다는 뜻이다.</returns>
+    public static int Itimediff(uint later, uint earlier) => (int)(later - earlier);
+
     internal struct ackItem
     {
         internal uint sn;

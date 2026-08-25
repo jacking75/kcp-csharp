@@ -77,6 +77,52 @@ public readonly struct AddressKey : IEquatable<AddressKey>
         return new AddressKey(hi, lo, scope, (ushort)port);
     }
 
+    /// <summary>IPv4 주소 바이트(4)와 포트로 키를 만든다(무할당 경로).</summary>
+    /// <param name="v4Bytes">네트워크 바이트 순서의 IPv4 주소 4바이트.</param>
+    /// <param name="port">포트.</param>
+    /// <returns>주소 키.</returns>
+    public static AddressKey FromIPv4(ReadOnlySpan<byte> v4Bytes, int port)
+    {
+        if (v4Bytes.Length != 4) throw new ArgumentException("IPv4 주소는 4바이트여야 합니다.", nameof(v4Bytes));
+
+        Span<byte> bytes = stackalloc byte[16];
+        bytes.Clear();
+        bytes[10] = 0xFF;
+        bytes[11] = 0xFF;
+        v4Bytes.CopyTo(bytes.Slice(12));
+
+        var hi = System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(bytes);
+        var lo = System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(bytes.Slice(8));
+        return new AddressKey(hi, lo, 0, (ushort)port);
+    }
+
+    /// <summary>IPv6 주소 바이트(16)와 스코프·포트로 키를 만든다(무할당 경로).</summary>
+    /// <param name="v6Bytes">네트워크 바이트 순서의 IPv6 주소 16바이트.</param>
+    /// <param name="scopeId">스코프 ID.</param>
+    /// <param name="port">포트.</param>
+    /// <returns>주소 키.</returns>
+    public static AddressKey FromIPv6(ReadOnlySpan<byte> v6Bytes, uint scopeId, int port)
+    {
+        if (v6Bytes.Length != 16) throw new ArgumentException("IPv6 주소는 16바이트여야 합니다.", nameof(v6Bytes));
+
+        var hi = System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(v6Bytes);
+        var lo = System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(v6Bytes.Slice(8));
+        return new AddressKey(hi, lo, scopeId, (ushort)port);
+    }
+
+    /// <summary>쿠키 계산 등에 쓰기 위해 키를 바이트로 직렬화한다.</summary>
+    /// <param name="destination">대상(<see cref="SerializedSize"/> 바이트 이상).</param>
+    public void WriteTo(Span<byte> destination)
+    {
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64BigEndian(destination, hi);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64BigEndian(destination.Slice(8), lo);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(destination.Slice(16), scopeId);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16BigEndian(destination.Slice(20), port);
+    }
+
+    /// <summary><see cref="WriteTo"/> 가 기록하는 바이트 수.</summary>
+    public const int SerializedSize = 22;
+
     /// <summary>키를 다시 <see cref="IPEndPoint"/> 로 만든다(세션 생성 시 1회만 호출한다).</summary>
     /// <returns>주소.</returns>
     public IPEndPoint ToEndPoint()
