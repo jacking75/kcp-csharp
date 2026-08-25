@@ -99,7 +99,7 @@
 - [x] **M2** 증명된 코어 — P2-1 ~ P2-7 (완료: 2026-08-25)
 - [x] **M3** 빠른 코어 — P3-1 ~ P3-7 (완료: 2026-08-25 / `1.0.0-preview.1` 태그는 미부여)
 - [x] **M4** 게임에 쓸 수 있는 라이브러리 — P4-1a ~ P4-5 (완료: 2026-08-25 / 1,000세션 LoadTest 검증은 P7-6, 태그 미부여)
-- [x] **M5** 배우기 쉬운 라이브러리 — P6-1~5, P7-1~6, P8-1 완료 (2026-08-25) → `1.0.0`
+- [x] **M5** 배우기 쉬운 라이브러리 — P6-1~5, P7-1~6, P8-1 완료 (2026-08-25) → `0.10.0` (계획은 `1.0.0` 이었으나 API 안정성에 확신이 서기 전까지는 0.x 로 유지하기로 사용자가 결정)
 - [x] **M6** 차별화 — P5-1 ~ P5-3 + 책 15~17장 완료 (2026-08-25)
 
 ---
@@ -1303,7 +1303,7 @@ while (!ct.IsCancellationRequested)
 ```xml
 <PropertyGroup>
   <PackageId>KcpCSharpR1</PackageId>
-  <Version>1.0.0</Version>
+  <Version>0.10.0</Version>
   <PackageLicenseExpression>MIT</PackageLicenseExpression>
   <PackageProjectUrl>https://github.com/jacking75/kcp-csharp</PackageProjectUrl>
   <RepositoryUrl>https://github.com/jacking75/kcp-csharp</RepositoryUrl>
@@ -1316,9 +1316,10 @@ while (!ct.IsCancellationRequested)
 ```
 
 - 버전 정책: SemVer. 애초 계획은 M3/M4 에서 프리뷰 태그(`1.0.0-preview.1`, `preview.2`)를 순차로 내는
-  것이었으나 실제로 배포한 적은 없어(M3·M4 완료 시점에 태그 미부여), P8-1 에서 처음 패키징하며 바로
-  `1.0.0` 으로 시작했다(구현: 2026-08-25). 이 시점에 M6(P5 보안/FEC, 책 15~17장) 범위도 이미 코드에
-  포함돼 있다.
+  것이었으나 실제로 배포한 적은 없어(M3·M4 완료 시점에 태그 미부여), P8-1 에서 처음 패키징하게 됐다.
+  최초 계획은 바로 `1.0.0` 이었지만, API 가 아직 굳어졌다고 보기엔 이르다는 판단으로 `0.10.0` 으로
+  낮춰서 시작하기로 사용자가 결정했다(2026-08-25). 이 시점에 M6(P5 보안/FEC, 책 15~17장) 범위도
+  이미 코드에 포함돼 있다.
 - 릴리스 자동화: 태그 `v*` 푸시 → GitHub Actions가 pack + push(`NUGET_API_KEY` 시크릿) + GitHub Release
   초안 생성. **보류** — 이 저장소를 다루는 푸시 토큰에 `workflow` 스코프가 없어 `.github/workflows/*.yml`
   을 추가하는 푸시 자체가 거부된다(P1-8 CI 제거 때와 같은 제약, 2026-08-25). 스코프가 부여되면 P1-8
@@ -1332,7 +1333,8 @@ dotnet pack -c Release -o artifacts/nupkg src/KcpCSharpR1.Transport/KcpCSharpR1.
 ```
 
 nuspec 확인 결과 두 타깃(`net8.0`, `netstandard2.1`) 모두 정상 포함, Transport → 코어
-`KcpCSharpR1 1.0.0` 의존성 자동 생성, README.md·LICENSE·XML 문서 동봉 확인.
+`KcpCSharpR1 0.10.0` 의존성 자동 생성(NuGet 이 `<Version>0.10</Version>` 을 `0.10.0` 으로
+정규화함을 nuspec 으로 직접 확인), README.md·LICENSE·XML 문서 동봉 확인.
 nuget.org 에 `KcpCSharpR1`/`KcpCSharpR1.Transport` 두 ID 모두 미등록 확인(대안 ID 불필요).
 
 ### P8-2. 품질 게이트 유지 `권장`
