@@ -158,14 +158,27 @@ while (true)          // 게임 루프에서 매 프레임
 
 ## 설치
 
+패키지는 두 개로 나뉘어 있습니다. **대부분은 하나만 설치하면 됩니다.**
+
+| 패키지 | 무엇인가 | 언제 설치하나 |
+|---|---|---|
+| `KcpCSharpR1.Transport` | 소켓·세션·핸드셰이크·암호화·FEC — 실제로 클라이언트/서버를 돌릴 때 쓰는 계층 | 게임을 만드는 경우(대부분 이쪽) |
+| `KcpCSharpR1` | 순수 프로토콜 코어(24바이트 헤더, ARQ, 슬라이딩 윈도). 의존성 0, 소켓·스레드를 전혀 모름 | 이미 자체 소켓·세션 계층이 있어 KCP 알고리즘만 필요하거나, `RawMode`로 원본 kcp/kcp-go 서버와 통신하는 경우 |
+
+`KcpCSharpR1.Transport`가 `KcpCSharpR1`에 의존하므로, Transport 패키지를 설치하면 코어가
+**자동으로 함께 따라옵니다** — 둘 다 수동으로 추가할 필요가 없습니다.
+
 ```bash
-# NuGet (배포 후)
-dotnet add package KcpCSharpR1
+# NuGet (배포 후) — 거의 모든 경우 이 한 줄이면 충분합니다
 dotnet add package KcpCSharpR1.Transport
 
-# 소스 참조
-dotnet add reference path/to/kcp-csharp/src/KcpCSharpR1/KcpCSharpR1.csproj
+# 소스 참조 — 마찬가지로 Transport 만 참조하면 됩니다.
+# Transport.csproj 자체가 이미 코어 프로젝트를 참조하고 있습니다
 dotnet add reference path/to/kcp-csharp/src/KcpCSharpR1.Transport/KcpCSharpR1.Transport.csproj
+
+# 전송 계층 없이 코어만 단독으로 쓰고 싶을 때만
+dotnet add package KcpCSharpR1
+dotnet add reference path/to/kcp-csharp/src/KcpCSharpR1/KcpCSharpR1.csproj
 ```
 
 | 타깃 | 용도 |

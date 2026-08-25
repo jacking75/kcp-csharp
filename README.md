@@ -166,14 +166,27 @@ core and transport layer, line by line (Korean only).
 
 ## Installation
 
+The library ships as two packages. **Most people only need to install one.**
+
+| Package | What it is | Install it if |
+|---|---|---|
+| `KcpCSharpR1.Transport` | Sockets, sessions, handshake, encryption, FEC — the layer you actually use to run a client/server | You're building a game (the common case) |
+| `KcpCSharpR1` | The pure protocol core (24-byte header, ARQ, sliding window). Zero dependencies; knows nothing about sockets or threads | You already have your own socket/session layer and only need the KCP algorithm, or you're talking to an original kcp/kcp-go server over `RawMode` |
+
+`KcpCSharpR1.Transport` depends on `KcpCSharpR1`, so installing the Transport package pulls the
+core in automatically — **you don't need to add both by hand.**
+
 ```bash
-# NuGet (after publishing)
-dotnet add package KcpCSharpR1
+# NuGet (after publishing) — this alone is enough for almost everyone
 dotnet add package KcpCSharpR1.Transport
 
-# Source reference
-dotnet add reference path/to/kcp-csharp/src/KcpCSharpR1/KcpCSharpR1.csproj
+# Source reference — same rule: referencing Transport is usually enough,
+# since its own .csproj already references the core project
 dotnet add reference path/to/kcp-csharp/src/KcpCSharpR1.Transport/KcpCSharpR1.Transport.csproj
+
+# Only if you want the core by itself, with no transport layer at all
+dotnet add package KcpCSharpR1
+dotnet add reference path/to/kcp-csharp/src/KcpCSharpR1/KcpCSharpR1.csproj
 ```
 
 | Target | Use for |
