@@ -1,5 +1,16 @@
 # 작업 로그
 
+## 2026-08-26 10:49 KST — 내부 관리 문서를 docs/note 로 이동
+
+docs/kcp-csharp-roadmap.md 와 docs/performance-improvements.md 를 `git mv` 로
+docs/note/ 디렉토리로 옮겼다(둘 다 이력이 rename 으로 보존됨). 공개 문서(온라인 책,
+벤치마크 기록, 코드 해설서)와 내부 관리·엔지니어링 문서를 디렉토리로 구분하기 위함이다.
+이동에 따라 두 파일을 참조하던 CLAUDE.md, CONTRIBUTING.md, .github/ISSUE_TEMPLATE/
+feature_request.md, docs/_sidebar.md, docs/benchmarks.md, docs/benchmarks_kr.md,
+docs/code-guide.md 및 두 파일 자신의 상호 참조까지 전부 새 경로로 고쳤다. 전체 저장소를
+재검색해 남은 구 경로 참조가 없음을 확인했다(working_log.md 의 과거 기록은 당시 시점의
+사실이라 그대로 둠). 빌드 경고 0 확인(문서 이동만, 코드 영향 없음).
+
 ## 2026-08-26 10:34 KST — NuGet 실제 게시를 문서에 반영
 
 사용자가 `KcpCSharpR1`·`KcpCSharpR1.Transport` 0.10.0 을 nuget.org 에 실제로 게시했다고 알려와,

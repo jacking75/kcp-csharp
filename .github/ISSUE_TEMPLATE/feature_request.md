@@ -39,6 +39,6 @@ assignees: ''
 ## 로드맵 관련
 
 <!--
-docs/kcp-csharp-roadmap.md 에 이미 계획된 항목인가요?
+docs/note/kcp-csharp-roadmap.md 에 이미 계획된 항목인가요?
 관련 작업 ID(P5-2, S-04 등)가 있으면 적어 주세요.
 -->

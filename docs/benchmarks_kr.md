@@ -197,7 +197,7 @@ BenchmarkDotNet 측정(위 Phase 3 표)으로 따로 확인했다.
 
 ## 성능 개선 제안서(G/C/M/A) 전후 — 2026-08-25
 
-`docs/performance-improvements.md` 의 항목을 반영한 뒤, **같은 세션에서** 반영 전(worktree 로 꺼낸 `7bec0b3`)과
+`docs/note/performance-improvements.md` 의 항목을 반영한 뒤, **같은 세션에서** 반영 전(worktree 로 꺼낸 `7bec0b3`)과
 반영 후를 번갈아 측정했다. Phase 3 표의 절대값과 직접 비교하면 안 된다 — 그때와 지금은 기계 상태가 다르다.
 **중요한 것은 같은 조건에서 잰 좌우 열의 차이**다.
 

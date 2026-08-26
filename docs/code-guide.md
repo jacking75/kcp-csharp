@@ -695,7 +695,7 @@ public int PeekSize()
 
 #### 3.4.7 무복사 수신 — `RecvInPlace`
 
-이 메서드는 성능 개선 작업(`docs/performance-improvements.md`의 G-2)에서 나중에 추가된
+이 메서드는 성능 개선 작업(`docs/note/performance-improvements.md`의 G-2)에서 나중에 추가된
 것이라 원본 kcp/kcp-go에는 없습니다. **문제의식**: 게임 메시지는 거의 항상 MTU 한 장(약
 1,376바이트)에 들어가는 단일 조각(`frg == 0`)입니다. 그런데 기존 `Recv()`는 항상 "호출자 버퍼로
 복사"하는 경로였습니다.
@@ -2501,7 +2501,7 @@ events.TryRead(out ev)  (게임 스레드에서 폴링)
 못하므로(디버그 빌드가 아니면), 이 패턴이 없으면 조용한 메모리 오염 버그가 됩니다.
 
 **"필수 복사"와 "제거 가능한 복사"를 구분하는 것**이 이 라이브러리 성능 작업의 반복되는
-주제입니다. 다음은 **일부러 손대지 않은** 복사들입니다(`docs/performance-improvements.md`
+주제입니다. 다음은 **일부러 손대지 않은** 복사들입니다(`docs/note/performance-improvements.md`
 "조사 결과, 손대지 않는 것이 맞는 곳" 절 참고).
 
 - `Kcp.Send`의 사용자 데이터 복사 — 재전송을 위해 라이브러리가 데이터를 소유해야 하므로 필수.
@@ -2569,9 +2569,9 @@ events.TryRead(out ev)  (게임 스레드에서 폴링)
   [3장 KCP 프로토콜 해부](book/ch03-kcp-anatomy.md), [5장 코어 API](book/ch05-core-api.md),
   [6장 세션 수명](book/ch06-session.md)
 - **API 시그니처만 빠르게 찾고 싶다면** — [부록 A: API 레퍼런스](book/appendix-a-api.md)
-- **성능 개선의 배경과 벤치마크 수치** — `docs/performance-improvements.md`,
+- **성능 개선의 배경과 벤치마크 수치** — `docs/note/performance-improvements.md`,
   `docs/benchmarks.md`
-- **구현 지시서(작업 단위로 무엇을 왜 했는지)** — `docs/kcp-csharp-roadmap.md`
+- **구현 지시서(작업 단위로 무엇을 왜 했는지)** — `docs/note/kcp-csharp-roadmap.md`
 - **원본과의 상호운용** — 책 [부록 C](book/appendix-c-interop.md)
 - **보안·FEC를 실전에 적용하는 법** — 책 [15장 보안](book/ch15-security.md),
   [16장 FEC](book/ch16-fec.md)

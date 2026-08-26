@@ -35,5 +35,5 @@
 - **저장소 문서**
   - [코드 완전 해설서](code-guide.md)
   - [벤치마크 기록](benchmarks_kr.md)
-  - [개선 로드맵](kcp-csharp-roadmap.md)
+  - [개선 로드맵](note/kcp-csharp-roadmap.md)
   - [집필 규약](book/_writing-guide.md)

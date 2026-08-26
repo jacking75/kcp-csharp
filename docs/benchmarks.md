@@ -219,7 +219,7 @@ instrument first.
 
 ## Performance Proposal (G/C/M/A) Before/After — 2026-08-25
 
-After applying the items from `docs/performance-improvements.md`, we measured before (checked
+After applying the items from `docs/note/performance-improvements.md`, we measured before (checked
 out from commit `7bec0b3` via a worktree) and after **within the same session**, alternating
 between the two. Don't compare the absolute values against the Phase 3 table above directly —
 the machine state is different now. **What matters is the difference between the two columns

@@ -88,7 +88,7 @@ dotnet pack -c Release -o artifacts/nupkg src/KcpCSharpR1.Transport/KcpCSharpR1.
 - **PR 1개 = 작업 ID 1개**
 - `master` 직접 푸시 금지
 
-작업 ID는 [docs/kcp-csharp-roadmap.md](docs/kcp-csharp-roadmap.md)의 체크리스트를 따릅니다.
+작업 ID는 [docs/note/kcp-csharp-roadmap.md](docs/note/kcp-csharp-roadmap.md)의 체크리스트를 따릅니다.
 작업을 완료하면 **같은 커밋에서** 로드맵의 체크박스도 갱신하세요.
 
 ## 버그 리포트
