@@ -5,7 +5,20 @@
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-08-25
+
+라이브러리·전송 계층·보안·FEC·테스트·벤치마크·샘플 5종·온라인 책·NuGet 패키징까지 갖춘 첫 배포 대상
+버전입니다. 아직 API 가 굳어졌다고 보기엔 이르다고 판단해 `1.0.0` 대신 `0.10.0` 으로 낮춰서 시작합니다.
+
+**nuget.org 에 실제로 게시되었습니다(2026-08-26).** `KcpCSharpR1`, `KcpCSharpR1.Transport` 두
+패키지 모두 아래의 모든 항목(무복사 수신·스레드 경계 API·FEC 무할당화 포함)을 담은 최종 코드로
+빌드·재패키징한 뒤 올렸습니다.
+
 ### 추가됨
+
+- **패키징(P8-1)** — `KcpCSharpR1`, `KcpCSharpR1.Transport` 두 NuGet 패키지. MIT 라이선스, README·XML
+  문서 동봉, `net8.0`/`netstandard2.1` 양쪽 타깃, Transport → 코어 자동 의존성. 심볼 패키지(`.snupkg`)
+  포함
 
 - **무복사 수신(G-2)** — `Kcp.RecvInPlace(InPlaceMessageHandler)` 와
   `ReliableReceivedSpan` / `UnreliableReceivedSpan` 이벤트(`KcpSession`·`KcpServer`·`KcpClient`).
@@ -15,44 +28,6 @@
 - `IUdpTransport.SendTo(ReadOnlySpan<byte>, AddressKey)` 와 `TryReceive(byte[], …)` 오버로드(G-1·C-1).
   둘 다 기본 구현이 있어 기존 구현체를 깨지 않습니다.
 - `AddressKey.ScopeId` / `IsIPv4` / `WriteAddressBytes`.
-
-### 변경됨
-
-- **송신 경로 무할당화(G-1)** — `UdpSocketTransport` 가 `IPEndPoint → SocketAddress` 직렬화를
-  세션당 1회만 하고, 핸드셰이크 쿠키 응답은 재사용 `SocketAddress` 로 보냅니다.
-- **암호화 세션 무할당화(G-3)** — 패킷마다의 `ArrayPool` 대여 대신 세션 상주 복호화 버퍼.
-- **FEC 무할당화(G-4)** — 디코더가 그룹 샤드 버퍼를 미리 잡아 재활용하고,
-  `ReedSolomon.Reconstruct` 가 스크래치를 재사용합니다(복원 5,896 B → **0 B**).
-  내부 API 시그니처가 `Reconstruct(byte[][], bool[], int)` 로 바뀌었습니다(`internal`).
-- **비동기 대기 개선(A-1·A-3)** — `ConnectAsync` 의 1ms `Task.Delay` 폴링 제거,
-  `RunAsync` 의 고정 1ms 대기를 다음 갱신 시각 기반(상한 5ms)으로 변경.
-- `netstandard2.1` 타깃의 `KcpCSharpR1.Transport` 가 `System.Threading.Channels` 를 참조합니다
-  (net8.0 은 BCL 내장이라 추가 의존성 없음, 코어는 여전히 의존성 0).
-
-### 고쳐짐
-
-- `Kcp.Recv` 가 rcv_buf → rcv_queue 이동 시 큐 길이를 이중으로 세어 **실효 수신 윈도가 절반**이었습니다.
-  `parse_data` 와 같은 kcp-go 방식으로 통일했습니다.
-- 수신 콜백 안에서 세션을 끊으면 `KcpSession.DrainReliable` 이 `NullReferenceException` 을
-  던질 수 있었습니다.
-- FEC 송·수신 경로의 람다가 **패킷마다** 클로저를 할당하고 있었습니다.
-
-### 알려진 미완
-
-- nuget.org 실제 게시(API 키 필요, 별도 결정 사항) — 패키징 자체는 완료, 로컬 `dotnet pack` 검증 완료
-- CI(GitHub Actions), 릴리스 자동화, `master` 브랜치 보호 — 푸시 토큰에 `workflow` 스코프가 없어 보류.
-  자세한 사유는 `docs/kcp-csharp-roadmap.md` 의 P8-1·P8-2 절 참고
-
-## [0.10.0] - 2026-08-25
-
-라이브러리·전송 계층·보안·FEC·테스트·벤치마크·샘플 5종·온라인 책·NuGet 패키징까지 갖춘 첫 배포 대상
-버전입니다. 아직 API 가 굳어졌다고 보기엔 이르다고 판단해 `1.0.0` 대신 `0.10.0` 으로 낮춰서 시작합니다.
-
-### 추가됨
-
-- **패키징(P8-1)** — `KcpCSharpR1`, `KcpCSharpR1.Transport` 두 NuGet 패키지. MIT 라이선스, README·XML
-  문서 동봉, `net8.0`/`netstandard2.1` 양쪽 타깃, Transport → 코어 자동 의존성. 심볼 패키지(`.snupkg`)
-  포함
 
 - **전송 계층** `KcpCSharpR1.Transport`
   - `KcpClient` / `KcpServer` / `KcpSession` — 핸드셰이크·keepalive·정상 종료를 포함한 세션 관리
@@ -72,8 +47,8 @@
   - `Kcp.Itimediff` — 랩어라운드 안전한 시각 비교(공개)
   - `Span` 오버로드(`Send` / `Input` / `Recv`)
   - `Kcp.Release()` — 대여 버퍼 반환
-- **테스트** 207개 — 코덱 골든 벡터, 프로토콜 시나리오 14종, 가상 24시간 소크,
-  실소켓 통합, 샘플별 단위 테스트
+- **테스트** 238개 — 코덱 골든 벡터, 프로토콜 시나리오 14종, 가상 24시간 소크,
+  실소켓 통합, 샘플별 단위 테스트, 무복사 수신·FEC 무할당 검증
 - **벤치마크** — BenchmarkDotNet 6종, 결과를 `docs/benchmarks.md` 에 기록
 - **샘플 5종 + 부하 도구** — Echo / Chat / Gomoku / MoveSync / TankBattle / LoadTest
 - **온라인 책** — 17장 + 부록 5종(docsify + GitHub Pages)
@@ -90,6 +65,16 @@
 - 세그먼트 풀을 전역 static(lock) → 인스턴스 필드(lock 없음)
 - `parse_ack` / `parse_fastack` 을 이분 탐색으로
 - 소켓 옵션 기본값을 1MB로 상향, Windows `SIO_UDP_CONNRESET` 비활성화
+- **송신 경로 무할당화(G-1)** — `UdpSocketTransport` 가 `IPEndPoint → SocketAddress` 직렬화를
+  세션당 1회만 하고, 핸드셰이크 쿠키 응답은 재사용 `SocketAddress` 로 보냅니다.
+- **암호화 세션 무할당화(G-3)** — 패킷마다의 `ArrayPool` 대여 대신 세션 상주 복호화 버퍼.
+- **FEC 무할당화(G-4)** — 디코더가 그룹 샤드 버퍼를 미리 잡아 재활용하고,
+  `ReedSolomon.Reconstruct` 가 스크래치를 재사용합니다(복원 5,896 B → **0 B**).
+  내부 API 시그니처가 `Reconstruct(byte[][], bool[], int)` 로 바뀌었습니다(`internal`).
+- **비동기 대기 개선(A-1·A-3)** — `ConnectAsync` 의 1ms `Task.Delay` 폴링 제거,
+  `RunAsync` 의 고정 1ms 대기를 다음 갱신 시각 기반(상한 5ms)으로 변경.
+- `netstandard2.1` 타깃의 `KcpCSharpR1.Transport` 가 `System.Threading.Channels` 를 참조합니다
+  (net8.0 은 BCL 내장이라 추가 의존성 없음, 코어는 여전히 의존성 0).
 
 ### 제거됨
 
@@ -126,6 +111,9 @@
 | S-05 | 소켓 수신 버퍼 미설정 |
 | — | 종료된 세션이 PING 에 PONG 을 돌려줘 상대가 영원히 타임아웃되지 않던 문제 |
 | — | `.gitignore` 가 `*.csproj` / `*.sln` 을 무시해 프로젝트 파일이 커밋되지 않던 문제 |
+| — | `Kcp.Recv` 가 rcv_buf → rcv_queue 이동 시 큐 길이를 이중으로 세어 **실효 수신 윈도가 절반**이던 문제. `parse_data` 와 같은 kcp-go 방식으로 통일 |
+| — | 수신 콜백 안에서 세션을 끊으면 `KcpSession.DrainReliable` 이 `NullReferenceException` 을 던질 수 있던 문제 |
+| — | FEC 송·수신 경로의 람다가 **패킷마다** 클로저를 할당하던 문제 |
 
 ### 알려진 제약
 

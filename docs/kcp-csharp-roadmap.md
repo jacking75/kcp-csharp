@@ -1361,6 +1361,11 @@ nuspec 확인 결과 두 타깃(`net8.0`, `netstandard2.1`) 모두 정상 포함
 정규화함을 nuspec 으로 직접 확인), README.md·LICENSE·XML 문서 동봉 확인.
 nuget.org 에 `KcpCSharpR1`/`KcpCSharpR1.Transport` 두 ID 모두 미등록 확인(대안 ID 불필요).
 
+**실제 게시 완료(2026-08-26).** 성능 개선 제안서(G/C/M/A) 반영분까지 전부 포함해 다시
+빌드·pack 한 뒤(무복사 수신·스레드 경계 API 등이 최초 로컬 검증 시점엔 없었음) 사용자가
+`dotnet nuget push` 로 `KcpCSharpR1`, `KcpCSharpR1.Transport` 두 패키지를 nuget.org 에
+직접 올렸다. `CHANGELOG.md` 의 `[0.10.0]` 항목에 게시 사실과 최종 포함 범위를 기록했다.
+
 ### P8-2. 품질 게이트 유지 `권장`
 
 - PR 필수 체크: 빌드, 테스트, 커버리지 85%, 벤치 회귀 비교(PR 본문 표). **CI 미가동 상태라 자동 강제는
