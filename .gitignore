@@ -361,3 +361,7 @@ coverage/
 coverage.json
 coverage.*.json
 *.cobertura.xml
+
+# 릴리스 안내 문서는 빌드 산출물 Releases/ 규칙에서 제외한다.
+!docs/releases/
+!docs/releases/*.md

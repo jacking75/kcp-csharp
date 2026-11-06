@@ -129,6 +129,7 @@ public sealed class KcpSession
 
     private Kcp? kcp;
     private KcpSessionState state;
+    private bool resourcesReleased;
     private uint conv;
 
     // P5-1 암호화 / P5-2 FEC
@@ -136,6 +137,8 @@ public sealed class KcpSession
     private FecEncoder? fecEncoder;
     private FecDecoder? fecDecoder;
     private readonly int reservedBytes;
+    private readonly int cipherOverhead;
+    private readonly int maxOutboxMessageSize;
 
     // 핸드셰이크(클라이언트)
     private uint clientNonce;
@@ -172,7 +175,8 @@ public sealed class KcpSession
     public KcpSession(IPEndPoint remote, KcpSessionOptions options, PacketSender sender, Func<uint>? clock = null, bool isClient = true)
     {
         RemoteEndPoint = remote ?? throw new ArgumentNullException(nameof(remote));
-        this.options = options ?? throw new ArgumentNullException(nameof(options));
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        this.options = options = options.Clone();
         this.sender = sender ?? throw new ArgumentNullException(nameof(sender));
         this.clock = clock ?? (() => KcpClock.NowMs);
         this.isClient = isClient;
@@ -194,10 +198,14 @@ public sealed class KcpSession
             });
         }
 
-        var cipherOverhead = options.CipherOverhead;
+        cipherOverhead = options.CipherOverhead;
         reservedBytes = options.RawMode
             ? 0
             : Framing.KcpHeaderSize + (options.Fec != null ? FecFrame.DataHeaderSize : 0);
+        var maxFragments = Math.Min(options.ReceiveWindow - 1, options.MaxSendBacklog);
+        if (!options.StreamMode) maxFragments = Math.Min(maxFragments, 256);
+        maxOutboxMessageSize = (int)Math.Min(int.MaxValue,
+            (long)maxFragments * (options.Mtu - cipherOverhead - reservedBytes - Kcp.IKCP_OVERHEAD));
         frameBuffer = new byte[options.Mtu + cipherOverhead + Framing.RawHeaderSize];
 
         if (options.RawMode)
@@ -288,7 +296,7 @@ public sealed class KcpSession
     /// <param name="now">현재 시각(ms).</param>
     public void StartConnect(uint now)
     {
-        if (options.RawMode || state != KcpSessionState.Closed)
+        if (resourcesReleased || options.RawMode || state != KcpSessionState.Closed)
             return;
 
         clientNonce = NewNonce();
@@ -322,36 +330,57 @@ public sealed class KcpSession
 
     private void CreateKcp(uint conversation)
     {
-        // P5-1: 키만 주면 세션이 conv·방향에 맞는 암호화기를 직접 만든다(nonce 재사용 방지).
-        cipher = options.Cipher;
-        if (cipher == null && options.EncryptionKey != null)
+        IPacketCipher? createdCipher = null;
+        Kcp? instance = null;
+        try
         {
-            cipher = new AesGcmPacketCipher(options.EncryptionKey, conversation, serverDirection: !isClient);
+            // 연결마다 새 암호화기를 만들고, 검증이 끝난 뒤에만 세션에 공개한다.
+            if (options.CipherFactory != null)
+                createdCipher = options.CipherFactory(conversation, !isClient)
+                    ?? throw new InvalidOperationException("CipherFactory 는 null 을 반환할 수 없습니다.");
+            else if (options.Cipher != null)
+                createdCipher = options.Cipher;
+            else if (options.EncryptionKey != null)
+                createdCipher = new AesGcmPacketCipher(options.EncryptionKey, conversation, serverDirection: !isClient);
+
+            if ((createdCipher?.Overhead ?? 0) != cipherOverhead)
+                throw new InvalidOperationException("암호화기 Overhead 는 설정한 값과 정확히 같아야 합니다.");
+
+            // G-3: 패킷마다 할당하지 않고 연결 수명 동안 재사용한다.
+            var createdDecryptBuffer = createdCipher == null ? null : new byte[frameBuffer.Length];
+            FecEncoder? createdFecEncoder = null;
+            FecDecoder? createdFecDecoder = null;
+            if (options.Fec != null && !options.RawMode)
+            {
+                var maxShardSize = options.Mtu - Framing.KcpHeaderSize - FecFrame.HeaderSize;
+                createdFecEncoder = new FecEncoder(options.Fec, maxShardSize, Framing.KcpHeaderSize);
+                createdFecDecoder = new FecDecoder(options.Fec, maxShardSize);
+            }
+
+            instance = new Kcp(conversation, OnKcpOutput, clock);
+            if (instance.SetMtu(options.Mtu - cipherOverhead) != 0 ||
+                (reservedBytes > 0 && !instance.ReserveBytes(reservedBytes)))
+                throw new InvalidOperationException("암호화·프레이밍 오버헤드가 MTU 에 맞지 않습니다.");
+            instance.NoDelay(options.NoDelay, options.IntervalMs, options.FastResend, options.NoCongestionControl);
+            instance.WndSize(options.SendWindow, options.ReceiveWindow);
+            instance.SetStreamMode(options.StreamMode);
+
+            cipher = createdCipher;
+            decryptBuffer = createdDecryptBuffer;
+            fecEncoder = createdFecEncoder;
+            fecDecoder = createdFecDecoder;
+            kcp = instance;
         }
-
-        // G-3: 복호화 대상 크기는 MTU 로 상한이 정해져 있다. 세션당 한 번만 잡아 두고 재사용한다.
-        if (cipher != null && decryptBuffer == null)
-            decryptBuffer = new byte[frameBuffer.Length];
-
-        // P5-2: FEC 는 프레이밍 안쪽, KCP 바깥쪽에 놓인다.
-        if (options.Fec != null && !options.RawMode)
+        catch
         {
-            var maxShardSize = options.Mtu - Framing.KcpHeaderSize - FecFrame.HeaderSize;
-            fecEncoder = new FecEncoder(options.Fec, maxShardSize, Framing.KcpHeaderSize);
-            fecDecoder = new FecDecoder(options.Fec, maxShardSize);
+            // 팩토리 결과를 받은 순간부터 소유권이 있으므로 초기화 실패도 반드시 해제한다.
+            instance?.Release();
+            state = KcpSessionState.Closed;
+            conv = 0;
+            ReleaseOutbox(complete: false);
+            (createdCipher as IDisposable)?.Dispose();
+            throw;
         }
-
-        var instance = new Kcp(conversation, OnKcpOutput, clock);
-        instance.SetMtu(options.Mtu - (cipher?.Overhead ?? 0));
-        if (reservedBytes > 0)
-        {
-            // 프레임 타입(+FEC 헤더) 만큼을 KCP 패킷 앞에 확보한다(복사 없이 프레이밍).
-            instance.ReserveBytes(reservedBytes);
-        }
-        instance.NoDelay(options.NoDelay, options.IntervalMs, options.FastResend, options.NoCongestionControl);
-        instance.WndSize(options.SendWindow, options.ReceiveWindow);
-        instance.SetStreamMode(options.StreamMode);
-        kcp = instance;
     }
 
     private void OnKcpOutput(byte[] buffer, int length)
@@ -399,8 +428,8 @@ public sealed class KcpSession
 
         if (options.RawMode)
         {
-            lastReceiveAt = now;
-            kcp?.Input(frame, true, options.AckNoDelay);
+            if (kcp?.Input(frame, true, options.AckNoDelay) == 0)
+                lastReceiveAt = now;
             DrainReliable();
             return;
         }
@@ -476,10 +505,9 @@ public sealed class KcpSession
         if (kcp == null || state == KcpSessionState.Closed) return;
         if (!Framing.TryReadKcp(frame, out var payload)) return;
 
-        lastReceiveAt = now;
-
         if (fecDecoder != null)
         {
+            lastReceiveAt = now;
             // 데이터 샤드면 payload 가 원본 KCP 패킷, 복원된 샤드는 콜백으로 온다.
             var isData = fecDecoder.Decode(payload, out var original, fecRecoveredCallback);
 
@@ -492,7 +520,8 @@ public sealed class KcpSession
 
         if (cipher == null)
         {
-            kcp.Input(payload, true, options.AckNoDelay);
+            if (kcp.Input(payload, true, options.AckNoDelay) == 0)
+                lastReceiveAt = now;
         }
         else
         {
@@ -500,7 +529,8 @@ public sealed class KcpSession
             var plain = decryptBuffer!;
             if (!cipher.TryDecrypt(payload, plain, out var plainLength))
                 return;   // 변조·리플레이 패킷은 조용히 버린다.
-            kcp.Input(plain.AsSpan(0, plainLength), true, options.AckNoDelay);
+            if (kcp.Input(plain.AsSpan(0, plainLength), true, options.AckNoDelay) == 0)
+                lastReceiveAt = now;
         }
 
         DrainReliable();
@@ -512,10 +542,9 @@ public sealed class KcpSession
         if (!Framing.TryReadRaw(frame, out var frameConv, out var payload)) return;
         if (frameConv != conv) return;
 
-        lastReceiveAt = now;
-
         if (cipher == null)
         {
+            lastReceiveAt = now;
             DeliverUnreliable(payload);
             return;
         }
@@ -524,6 +553,7 @@ public sealed class KcpSession
         var plain = decryptBuffer!;
         if (!cipher.TryDecrypt(payload, plain, out var plainLength))
             return;
+        lastReceiveAt = now;
         DeliverUnreliable(plain.AsSpan(0, plainLength));
     }
 
@@ -686,8 +716,12 @@ public sealed class KcpSession
         if (data.Length == 0)
             return KcpSendResult.Error;
 
-        // 백프레셔: 큐가 이미 상한이면 받아 주지 않는다(P4-4c).
-        if (kcp.WaitSnd >= options.MaxSendBacklog)
+        var additionalSegments = kcp.GetSendSegmentCount(data.Length);
+        if (additionalSegments < 0)
+            return KcpSendResult.TooLarge;
+
+        // 이번 메시지의 모든 조각까지 포함해 상한을 지킨다.
+        if (additionalSegments > options.MaxSendBacklog - kcp.WaitSnd)
             return KcpSendResult.Backpressure;
 
         var ret = kcp.Send(data);
@@ -722,7 +756,7 @@ public sealed class KcpSession
     /// </remarks>
     /// <param name="data">보낼 데이터.</param>
     /// <returns>
-    /// 큐에 넣었으면 true. 데이터가 비었거나, 큐가 가득 찼거나(백프레셔),
+    /// 큐에 넣었으면 true. 데이터가 비었거나, 메시지 크기가 프로토콜·백로그 상한을 넘거나, 큐가 가득 찼거나(백프레셔),
     /// 세션 수명이 이미 끝났으면 false.
     /// </returns>
     /// <exception cref="InvalidOperationException">아웃박스를 켜지 않은 세션인 경우.</exception>
@@ -734,6 +768,13 @@ public sealed class KcpSession
 
         if (data.Length == 0)
             return false;
+
+        // 코어는 다른 스레드에서 읽지 않는다. 생성 시 복사한 옵션만으로 안전한 상한을 구한다.
+        if (data.Length > maxOutboxMessageSize)
+        {
+            System.Threading.Interlocked.Increment(ref outboxRejected);
+            return false;
+        }
 
         var buffer = ArrayPool<byte>.Shared.Rent(data.Length);
         data.CopyTo(buffer);
@@ -771,14 +812,21 @@ public sealed class KcpSession
         // (다음 Update 에서 이어서 처리된다).
         while (state == KcpSessionState.Connected &&
                kcp != null &&
-               kcp.WaitSnd < options.MaxSendBacklog &&
-               reader.TryRead(out var msg))
+               reader.TryPeek(out var next))
         {
-            // 조각 수가 수신 윈도를 넘는 메시지는 KCP 가 거부한다(-2). 조용히 사라지지 않게 계수한다.
-            if (kcp.Send(msg.Buffer.AsSpan(0, msg.Length)) != 0)
-                System.Threading.Interlocked.Increment(ref outboxRejected);
-
-            ArrayPool<byte>.Shared.Return(msg.Buffer);
+            // 큐 선두를 유지한 채 용량을 확인한다. 큰 메시지를 중간에서 버리지 않는다.
+            if (kcp.GetSendSegmentCount(next.Length) > options.MaxSendBacklog - kcp.WaitSnd)
+                break;
+            if (!reader.TryRead(out var msg)) break;
+            try
+            {
+                if (kcp.Send(msg.Buffer.AsSpan(0, msg.Length)) != 0)
+                    System.Threading.Interlocked.Increment(ref outboxRejected);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(msg.Buffer);
+            }
         }
     }
 
@@ -812,7 +860,7 @@ public sealed class KcpSession
         if (options.RawMode)
             return KcpSendResult.Error;   // RawMode 에는 비신뢰 프레임이 없다.
 
-        var overhead = Framing.RawHeaderSize + (cipher?.Overhead ?? 0);
+        var overhead = Framing.RawHeaderSize + cipherOverhead;
         if (data.Length + overhead > options.Mtu)
             return KcpSendResult.TooLarge;
 
@@ -960,6 +1008,9 @@ public sealed class KcpSession
         kcp.Update();
         DrainReliable();
 
+        // 수신 콜백에서 Disconnect/클라이언트 Dispose 로 코어가 해제될 수 있다.
+        if (kcp == null)
+            return now + (uint)options.IntervalMs;
         var nextKcp = kcp.Check();
         var nextPing = lastPingSentAt + (uint)options.PingIntervalMs;
         return Kcp.Itimediff(nextKcp, nextPing) <= 0 ? nextKcp : nextPing;
@@ -1010,10 +1061,14 @@ public sealed class KcpSession
     /// <summary>세션이 쥐고 있던 자원을 모두 돌려준다.</summary>
     internal void ReleaseResources()
     {
+        resourcesReleased = true;
+        state = KcpSessionState.Closed;
         kcp?.Release();
         kcp = null;
         (cipher as IDisposable)?.Dispose();
         cipher = null;
+        fecEncoder = null;
+        fecDecoder = null;
         decryptBuffer = null;
         assemblyBuffer = Array.Empty<byte>();
         unreliableScratch = Array.Empty<byte>();

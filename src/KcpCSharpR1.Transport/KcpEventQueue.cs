@@ -21,6 +21,19 @@ public enum KcpEventType
     Unreliable,
 }
 
+/// <summary>수신 이벤트 큐가 가득 찼을 때의 처리 정책.</summary>
+public enum KcpEventQueueOverflowPolicy
+{
+    /// <summary>새 이벤트를 버리고 누계만 올린다. 기존 동작과 호환된다.</summary>
+    DropNewest,
+
+    /// <summary>
+    /// 신뢰 메시지 또는 연결 이벤트가 누락되면 해당 세션의 정상 종료를 요청한다.
+    /// 비신뢰 메시지는 버리기만 하며, 종료 이벤트 누락은 이미 종료된 세션을 다시 종료하지 않는다.
+    /// </summary>
+    DisconnectOnCriticalOverflow,
+}
+
 /// <summary>
 /// 게임 스레드로 넘기는 수신 이벤트 한 건(진단 M-2).
 /// </summary>
@@ -92,6 +105,9 @@ public struct KcpEvent
 /// <b>쓰는 쪽은 수신 루프 스레드 하나, 읽는 쪽은 게임 스레드 하나</b>를 전제한다.
 /// 큐가 가득 차면 이벤트를 버리고 <see cref="Dropped"/> 를 올린다 — 신뢰 채널 메시지도 예외가 아니므로,
 /// 게임 루프가 밀리지 않을 만큼 용량을 넉넉히 잡고 <see cref="Dropped"/> 를 반드시 관측해야 한다.
+/// <see cref="KcpEventQueueOverflowPolicy.DisconnectOnCriticalOverflow"/> 를 선택하면 신뢰 메시지·연결
+/// 이벤트 누락 시 해당 세션을 종료한다. 종료 알림 자체도 큐에서 누락될 수 있으므로
+/// 소비자는 <see cref="HasCriticalOverflow"/> 를 확인해 게임 상태를 재동기화해야 한다.
 /// </para>
 /// <para>
 /// 호스트를 멈추면(<c>KcpServer.Stop</c> / <c>Dispose</c>) 남은 이벤트의 대여 버퍼가 회수된다.
@@ -102,11 +118,17 @@ public sealed class KcpEventQueue
 {
     private readonly Channel<KcpEvent> channel;
     private long dropped;
+    private readonly long[] droppedByType = new long[4];
 
-    internal KcpEventQueue(int capacity)
+    internal KcpEventQueue(int capacity, KcpEventQueueOverflowPolicy overflowPolicy = KcpEventQueueOverflowPolicy.DropNewest)
     {
         if (capacity <= 0)
             throw new ArgumentOutOfRangeException(nameof(capacity), capacity, "0보다 커야 합니다.");
+        if (overflowPolicy != KcpEventQueueOverflowPolicy.DropNewest &&
+            overflowPolicy != KcpEventQueueOverflowPolicy.DisconnectOnCriticalOverflow)
+            throw new ArgumentOutOfRangeException(nameof(overflowPolicy));
+
+        OverflowPolicy = overflowPolicy;
 
         channel = Channel.CreateBounded<KcpEvent>(new BoundedChannelOptions(capacity)
         {
@@ -121,6 +143,27 @@ public sealed class KcpEventQueue
 
     /// <summary>큐가 가득 차서 버린 이벤트 누계. 0 이 아니면 용량이 부족한 것이다.</summary>
     public long Dropped => Interlocked.Read(ref dropped);
+
+    /// <summary>큐 생성 시 선택한 오버플로 정책.</summary>
+    public KcpEventQueueOverflowPolicy OverflowPolicy { get; }
+
+    /// <summary>누락된 연결 이벤트 누계.</summary>
+    public long DroppedConnected => Interlocked.Read(ref droppedByType[(int)KcpEventType.Connected]);
+
+    /// <summary>누락된 종료 이벤트 누계.</summary>
+    public long DroppedDisconnected => Interlocked.Read(ref droppedByType[(int)KcpEventType.Disconnected]);
+
+    /// <summary>누락된 신뢰 메시지 누계.</summary>
+    public long DroppedReliable => Interlocked.Read(ref droppedByType[(int)KcpEventType.Reliable]);
+
+    /// <summary>누락된 비신뢰 메시지 누계.</summary>
+    public long DroppedUnreliable => Interlocked.Read(ref droppedByType[(int)KcpEventType.Unreliable]);
+
+    /// <summary>
+    /// 신뢰 메시지·연결·종료 이벤트가 한 번이라도 누락됐는지 여부.
+    /// 큐를 비우거나 서버를 재시작해도 초기화되지 않는다. 소비자는 누계 변화와 세션 상태를 확인해야 한다.
+    /// </summary>
+    public bool HasCriticalOverflow => DroppedReliable != 0 || DroppedConnected != 0 || DroppedDisconnected != 0;
 
     /// <summary>이벤트를 하나 꺼낸다.</summary>
     /// <param name="ev">꺼낸 이벤트. 소비 후 <see cref="KcpEvent.ReturnPayload"/> 를 불러야 한다.</param>
@@ -155,6 +198,15 @@ public sealed class KcpEventQueue
             ArrayPool<byte>.Shared.Return(buffer);
 
         Interlocked.Increment(ref dropped);
+        Interlocked.Increment(ref droppedByType[(int)type]);
+        if (OverflowPolicy == KcpEventQueueOverflowPolicy.DisconnectOnCriticalOverflow &&
+            (type == KcpEventType.Reliable || type == KcpEventType.Connected) &&
+            session.State == KcpSessionState.Connected)
+        {
+            // FIN 종료는 즉시 또는 다음 Update 에서 종료 이벤트를 만든다. 그 이벤트가 누락돼도
+            // 이 분기에 다시 들어오지 않으므로 큐가 꽉 찬 상태에서 재귀 종료가 발생하지 않는다.
+            session.Disconnect();
+        }
         return false;
     }
 

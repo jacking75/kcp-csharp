@@ -8,6 +8,35 @@ Following the common procedure in roadmap §6: **① measure baseline → ② ch
 
 ## How to Reproduce
 
+### Send boundary regression check (2026-11-06)
+
+The game-readiness changes validate complete messages before mutating the send queue.
+The comparison harness builds the core from commit `4e4d9904e6b758d817ee954187e31d017eff40a9`
+and the current working tree in separate namespaces, without replacing working-tree files:
+
+```powershell
+./scripts/compare-protocol.ps1 -BaselineRef 4e4d990
+```
+
+Source: [ProtocolComparison](../benchmarks/ProtocolComparison/Program.cs). Each operation sends
+one message over a synchronous, lossless in-memory link, updates both endpoints, receives it,
+and asserts the received length and an empty sender backlog (all ACKs processed). This is a
+core send/receive check, not a UDP socket, transport outbox, or server-capacity measurement.
+BenchmarkDotNet 0.13.12: 5 warmup iterations, 12 measurement iterations; .NET 8.0.28
+(X64 RyuJIT AVX2), SDK 10.0.301, concurrent workstation GC, Windows 11 10.0.26300.9818.
+
+| Payload | Before mean ± error | After mean ± error | Allocation, before / after |
+|---|---:|---:|---:|
+| 1 KiB | 212.7 ± 12.15 ns | 213.8 ± 11.97 ns | 0 / 0 B/op |
+| 32 KiB | 7,319.4 ± 399.49 ns | 7,235.4 ± 479.71 ns | 0 / 0 B/op |
+
+Error is half the 99.9% confidence interval. The differences are below measurement error:
+no measurable regression in these scenarios, and no steady-state allocation increase.
+Generated source copies remain in ignored `artifacts/protocol-comparison/`; reports are in
+ignored `BenchmarkDotNet.Artifacts/results/` (`*ProtocolBench-report*`).
+
+### Existing benchmark suite
+
 ```bash
 # all of them
 dotnet run -c Release --project benchmarks/KcpCSharpR1.Benchmarks -- --filter '*'

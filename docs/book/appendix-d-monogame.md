@@ -25,12 +25,15 @@ dotnet new mgdesktopgl -o MyGame
     <OutputType>WinExe</OutputType>
     <RootNamespace>Gomoku.Client</RootNamespace>
     <AssemblyName>Gomoku.Client</AssemblyName>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <IsPackable>false</IsPackable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <RollForward>Major</RollForward>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.5.1" />
+    <Compile Include="..\..\Common\PollingKcpClient.cs" Link="PollingKcpClient.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -75,18 +78,22 @@ protected override void Update(GameTime gameTime)
 }
 ```
 
-`network.Poll()` 안에서 `KcpClient.Update()` 를 부릅니다.
+`network.Poll()`은 공통 어댑터의 `Poll()`을 호출합니다. 어댑터는 연결 태스크가
+완료된 뒤에만 `KcpClient.Update()`를 부릅니다.
 
 ```csharp
 // samples/03-Gomoku/Client/NetworkClient.cs
 /// <summary>매 프레임 호출한다.</summary>
-public void Poll() => client.Update();
+public void Poll() => client.Poll();
 ```
 
 ### 왜 이것으로 충분한가
 
-`Update()` 안에서 수신 콜백이 발화하므로 **콜백이 게임 스레드에서 실행**됩니다.
-따라서 렌더링 상태를 lock 없이 직접 고쳐도 안전합니다.
+`ConnectAsync`도 내부에서 수신을 처리하므로, 라이브러리의 직접 콜백을 구독하면
+연결 중에는 작업 스레드에서 게임 상태를 바꿀 수 있습니다. 공통 어댑터
+`samples/Common/PollingKcpClient.cs`는 먼저 `EnableEventQueue()`를 켜고,
+완료된 연결과 큐 이벤트를 `Poll()`에서만 전달합니다. 따라서 어댑터의 콜백은
+**게임 스레드에서 실행**되며 렌더링 상태를 lock 없이 고칠 수 있습니다.
 
 ```csharp
 // samples/03-Gomoku/Client/NetworkClient.cs
@@ -99,20 +106,27 @@ public void Poll() => client.Update();
 
 ### 연결은 비동기로
 
-`ConnectAsync` 는 비동기입니다. `Initialize()` 에서 기다리지 말고 던져 두세요.
+`Initialize()`에서는 공통 어댑터의 `Connect`로 연결을 시작합니다.
+어댑터가 연결 태스크를 보관하고 `Poll()`에서 완료·실패를 관측합니다.
 
 ```csharp
 // samples/03-Gomoku/Client/GomokuGame.cs
 protected override void Initialize()
 {
     Window.Title = "KcpCSharpR1 샘플 3 - Gomoku";
-    _ = network.ConnectAsync(host, reconnectToken);   // await 하지 않는다
+    network.Connect(host, reconnectToken);
     base.Initialize();
 }
 ```
 
 연결이 끝날 때까지 화면에는 "CONNECTING…"을 그립니다.
 `Initialize()` 에서 `.Wait()` 하면 **창이 뜨기 전에 멈춥니다.**
+
+이전 샘플은 연결 태스크를 버린 뒤 매 프레임 곧바로 `client.Update()`를 호출했습니다.
+이 방식은 연결 펌프와 게임 루프가 같은 세션을 동시에 만질 수 있어 수정했습니다.
+현재 어댑터는 연결 중에는 갱신을 건너뛰고, 완료된 태스크의 결과를 게임 스레드에서
+인수합니다. 큐가 넘치면 신뢰 메시지도 빠질 수 있으므로 오류를 알리고 연결을 정리합니다.
+스레드 경계와 큐 정책은 [게임 연동 가이드](../game-integration_kr.md)를 참고하세요.
 
 ## 고정 틱과 `IsFixedTimeStep`
 
@@ -319,19 +333,20 @@ protected override void UnloadContent()
 }
 ```
 
-`network.Dispose()` 안에서 FIN을 보내고 한 번 더 펌프합니다.
+`network.Dispose()`는 공통 어댑터를 정리합니다.
 
 ```csharp
 // samples/03-Gomoku/Client/NetworkClient.cs
 public void Dispose()
 {
-    client.Disconnect();
-    client.Update();     // FIN 이 실제로 나가도록
     client.Dispose();
 }
 ```
 
-**`Update()` 를 한 번 더 부르는 것**을 잊지 마세요. `Disconnect()` 는 큐에 넣기만 합니다.
+어댑터는 진행 중 연결을 취소하고 태스크 종료를 확인한 뒤 자원을 반환합니다.
+이미 연결된 경우에는 `Disconnect()`가 FIN을 즉시 보냅니다. 이것이 상대의 수신 확인이나
+대기 중인 게임 메시지의 전달 완료를 뜻하지는 않습니다. 종료 전에 중요한 메시지를
+확인해야 하는 게임은 애플리케이션 확인 응답과 별도의 종료 대기 단계를 구현해야 합니다.
 
 ## 입력 처리 패턴
 

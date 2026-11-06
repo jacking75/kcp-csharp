@@ -68,7 +68,7 @@ internal sealed class GomokuGame : Game
     protected override void Initialize()
     {
         Window.Title = "KcpCSharpR1 샘플 3 - Gomoku";
-        _ = network.ConnectAsync(host, reconnectToken);
+        network.Connect(host, reconnectToken);
         base.Initialize();
     }
 

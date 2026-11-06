@@ -41,6 +41,10 @@ public sealed class KcpServer : IDisposable
     private Task? loopTask;
     private uint nextConv = 1;      // 0 은 예약
     private bool disposed;
+    private readonly object lifecycleGate = new object();
+    private int receiveLoopThreadId;
+    private bool pumping;
+    private volatile bool stopRequested;
 
     // P5-3 관측성
     private readonly List<int> rttScratch = new List<int>(256);
@@ -66,8 +70,10 @@ public sealed class KcpServer : IDisposable
     public KcpServer(int port, KcpServerOptions? options = null, Func<uint>? clock = null)
     {
         this.port = port;
-        this.options = options ?? new KcpServerOptions();
-        this.options.Session.Validate();
+        this.options = (options ?? new KcpServerOptions()).Clone();
+        this.options.Validate();
+        if (this.options.Session.Cipher != null)
+            throw new ArgumentException("서버는 세션별 암호화기를 만들어야 합니다. Session.Cipher 대신 CipherFactory 를 사용하세요.", nameof(options));
         this.clock = clock ?? (() => KcpClock.NowMs);
         cookies = new HandshakeCookie();
 
@@ -76,7 +82,7 @@ public sealed class KcpServer : IDisposable
         onSessionReliable = OnSessionReliable;
         onSessionUnreliable = OnSessionUnreliable;
 
-        var overhead = this.options.Session.Cipher?.Overhead ?? 0;
+        var overhead = this.options.Session.CipherOverhead;
         receiveBuffer = new byte[this.options.Session.Mtu + overhead + 64];
         sendScratch = new byte[64];
     }
@@ -126,7 +132,7 @@ public sealed class KcpServer : IDisposable
     public event KcpMessageHandler? UnreliableReceivedSpan;
 
     /// <summary>
-    /// 게임 스레드로 이벤트를 넘기는 큐(진단 M-2). <see cref="EnableEventQueue"/> 를 부르기 전에는 null.
+    /// 게임 스레드로 이벤트를 넘기는 큐(진단 M-2). <see cref="EnableEventQueue(int)"/> 를 부르기 전에는 null.
     /// </summary>
     public KcpEventQueue? Events => events;
 
@@ -150,12 +156,20 @@ public sealed class KcpServer : IDisposable
     /// <returns>만들어진 큐.</returns>
     /// <exception cref="InvalidOperationException">이미 시작된 서버인 경우.</exception>
     public KcpEventQueue EnableEventQueue(int capacity = 4096)
+        => EnableEventQueue(capacity, KcpEventQueueOverflowPolicy.DropNewest);
+
+    /// <summary>오버플로 정책을 지정해 게임 스레드용 수신 큐를 켠다.</summary>
+    /// <param name="capacity">이벤트 수 상한.</param>
+    /// <param name="overflowPolicy">신뢰 이벤트 누락 시 해당 세션을 종료할지 결정한다.</param>
+    /// <returns>큐. 이미 켜져 있으면 최초 설정을 유지한 기존 큐.</returns>
+    /// <remarks>Start 전에 호출한다. 종료 알림도 누락될 수 있으므로 HasCriticalOverflow 를 관측한다.</remarks>
+    public KcpEventQueue EnableEventQueue(int capacity, KcpEventQueueOverflowPolicy overflowPolicy)
     {
         ThrowIfDisposed();
         if (transport != null)
             throw new InvalidOperationException("이벤트 큐는 서버를 시작하기 전에 켜야 합니다.");
 
-        return events ??= new KcpEventQueue(capacity);
+        return events ??= new KcpEventQueue(capacity, overflowPolicy);
     }
 
     /// <summary>수신 루프에서 예외가 발생하면 발생한다(루프는 계속 돈다).</summary>
@@ -190,9 +204,20 @@ public sealed class KcpServer : IDisposable
     /// </param>
     public void Start(IUdpTransport? udpTransport, bool runLoop)
     {
+        lock (lifecycleGate)
+            StartCore(udpTransport, runLoop);
+    }
+
+    private void StartCore(IUdpTransport? udpTransport, bool runLoop)
+    {
         ThrowIfDisposed();
-        if (loopTask != null)
+        if (transport != null || (loopTask != null && !loopTask.IsCompleted))
             throw new InvalidOperationException("이미 시작된 서버입니다.");
+
+        cts?.Dispose();
+        cts = null;
+        loopTask = null;
+        stopRequested = false;
 
         if (udpTransport == null)
         {
@@ -200,7 +225,15 @@ public sealed class KcpServer : IDisposable
                 AddressFamily.InterNetwork,
                 options.SocketReceiveBufferSize,
                 options.SocketSendBufferSize);
-            socketTransport.Bind(new IPEndPoint(IPAddress.Any, port));
+            try
+            {
+                socketTransport.Bind(new IPEndPoint(IPAddress.Any, port));
+            }
+            catch
+            {
+                socketTransport.Dispose();
+                throw;
+            }
             transport = socketTransport;
         }
         else
@@ -215,7 +248,8 @@ public sealed class KcpServer : IDisposable
         var token = cts.Token;
         loopTask = Task.Factory.StartNew(
             () => ReceiveLoop(token),
-            token,
+            // 시작 직후 취소해도 본체의 finally 는 반드시 실행해야 한다.
+            CancellationToken.None,
             TaskCreationOptions.LongRunning,
             TaskScheduler.Default);
     }
@@ -226,32 +260,83 @@ public sealed class KcpServer : IDisposable
     /// </summary>
     public void Pump()
     {
-        var udp = transport;
-        if (udp == null) return;
+        lock (lifecycleGate)
+        {
+            ThrowIfDisposed();
+            if (loopTask != null)
+                throw new InvalidOperationException("수신 루프가 실행 중이면 Pump 를 호출할 수 없습니다.");
+            if (pumping)
+                throw new InvalidOperationException("Pump 를 콜백에서 다시 호출할 수 없습니다.");
+            var udp = transport;
+            if (udp == null) return;
 
-        DrainSocket(udp);
-        RunDueSessions();
-        SampleMetrics();
+            pumping = true;
+            try
+            {
+                DrainSocket(udp);
+                RunDueSessions();
+                SampleMetrics();
+            }
+            finally
+            {
+                pumping = false;
+                if (stopRequested)
+                    ReleaseStoppedResources();
+            }
+        }
     }
 
     /// <summary>수신 루프를 멈추고 세션을 모두 정리한다.</summary>
+    /// <remarks>
+    /// 외부 스레드에서는 진행 중인 콜백과 루프가 끝날 때까지 기다린다.
+    /// 수신 루프 콜백 안에서는 종료만 요청하고 즉시 반환하며, 콜백이 반환한 뒤 자원을 정리한다.
+    /// </remarks>
     public void Stop()
     {
-        cts?.Cancel();
+        Task? stopping;
+        lock (lifecycleGate)
+        {
+            stopRequested = true;
+            cts?.Cancel();
+            stopping = loopTask;
+            if (pumping) return;
+            if (stopping == null)
+            {
+                ReleaseStoppedResources();
+                return;
+            }
+
+            if (Environment.CurrentManagedThreadId == Volatile.Read(ref receiveLoopThreadId))
+                return;
+        }
 
         try
         {
-            loopTask?.Wait(TimeSpan.FromSeconds(3));
+            stopping.GetAwaiter().GetResult();
         }
-        catch (AggregateException)
+        catch (OperationCanceledException)
         {
             // 취소로 인한 예외는 정상 종료 경로다.
         }
+        finally
+        {
+            lock (lifecycleGate)
+            {
+                if (ReferenceEquals(loopTask, stopping))
+                {
+                    loopTask = null;
+                    cts?.Dispose();
+                    cts = null;
+                    // 루프가 먼저 끝난 뒤 Dispose 했을 수도 있으므로 영구 자원도 정리한다.
+                    if (disposed)
+                        ReleaseStoppedResources();
+                }
+            }
+        }
+    }
 
-        loopTask = null;
-        cts?.Dispose();
-        cts = null;
-
+    private void ReleaseStoppedResources()
+    {
         lock (sessions)
         {
             foreach (var session in sessions.Values)
@@ -259,47 +344,67 @@ public sealed class KcpServer : IDisposable
             sessions.Clear();
         }
         scheduler.Clear();
+        pendingRemoval.Clear();
+        metricsScratch.Clear();
+        rttScratch.Clear();
+        nextMetricsAt = 0;
 
         // M-2: 큐에 남은 대여 버퍼를 돌려준다(다시 Start 할 수 있으므로 큐 자체는 살려 둔다).
-        events?.Release(complete: false);
+        events?.Release(complete: disposed);
 
         transport?.Dispose();
         transport = null;
+        cts?.Dispose();
+        cts = null;
+        if (disposed)
+            cookies.Dispose();
     }
 
     /// <summary>수신 루프 본체. 소켓 읽기와 타이머를 한 스레드에서 처리한다.</summary>
     private void ReceiveLoop(CancellationToken token)
     {
-        while (!token.IsCancellationRequested)
+        Volatile.Write(ref receiveLoopThreadId, Environment.CurrentManagedThreadId);
+        try
         {
-            try
+            while (!token.IsCancellationRequested)
             {
-                var udp = transport;
-                if (udp == null) break;
-
-                var now = clock();
-                var waitMicros = scheduler.TimeToNext(now, options.PollMicroseconds / 1000) * 1000;
-                if (waitMicros > options.PollMicroseconds) waitMicros = options.PollMicroseconds;
-
-                if (udp.WaitForData(waitMicros))
+                try
                 {
-                    DrainSocket(udp);
-                }
+                    var udp = transport;
+                    if (udp == null) break;
 
-                RunDueSessions();
-                SampleMetrics();
+                    var now = clock();
+                    var waitMicros = scheduler.TimeToNext(now, options.PollMicroseconds / 1000) * 1000;
+                    if (waitMicros > options.PollMicroseconds) waitMicros = options.PollMicroseconds;
+
+                    if (udp.WaitForData(waitMicros))
+                    {
+                        DrainSocket(udp);
+                    }
+
+                    RunDueSessions();
+                    SampleMetrics();
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                catch (ObjectDisposedException)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Error?.Invoke(ex);
+                }
             }
-            catch (OperationCanceledException)
+        }
+        finally
+        {
+            lock (lifecycleGate)
             {
-                break;
-            }
-            catch (ObjectDisposedException)
-            {
-                break;
-            }
-            catch (Exception ex)
-            {
-                Error?.Invoke(ex);
+                ReleaseStoppedResources();
+                Volatile.Write(ref receiveLoopThreadId, 0);
             }
         }
     }
@@ -307,7 +412,7 @@ public sealed class KcpServer : IDisposable
     private void DrainSocket(IUdpTransport udp)
     {
         var processed = 0;
-        while (processed < options.MaxReceiveBatch &&
+        while (!stopRequested && processed < options.MaxReceiveBatch &&
                udp.TryReceive(receiveBuffer, out var received, out var remote))
         {
             processed++;
@@ -381,7 +486,18 @@ public sealed class KcpServer : IDisposable
             sessions[remote] = session;
         }
 
-        session.AcceptAsServer(conv, now);
+        try
+        {
+            session.AcceptAsServer(conv, now);
+        }
+        catch
+        {
+            // 팩터리 등 세션 초기화 실패가 미완성 세션을 주소 테이블에 남기지 않게 한다.
+            lock (sessions)
+                sessions.Remove(remote);
+            session.ReleaseResources();
+            throw;
+        }
         scheduler.Schedule(session, now);
 
         SendSynAck(session, remote);
@@ -400,7 +516,7 @@ public sealed class KcpServer : IDisposable
     {
         var now = clock();
 
-        while (scheduler.TryPopDue(now, out var session))
+        while (!stopRequested && scheduler.TryPopDue(now, out var session))
         {
             var next = session.Update(now);
 
@@ -429,7 +545,7 @@ public sealed class KcpServer : IDisposable
     private void SampleMetrics()
     {
         var handler = MetricsSampled;
-        if (handler == null || options.MetricsIntervalMs <= 0)
+        if (stopRequested || handler == null || options.MetricsIntervalMs <= 0)
             return;
 
         var now = clock();
@@ -520,7 +636,5 @@ public sealed class KcpServer : IDisposable
         disposed = true;
 
         Stop();
-        events?.Release(complete: true);
-        cookies.Dispose();
     }
 }

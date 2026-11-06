@@ -14,9 +14,30 @@ dotnet test  -c Release
 
 ## 빌드와 테스트
 
+Windows PowerShell 또는 PowerShell 7에서 다음 명령으로 로컬 품질 게이트를 한 번에 실행할 수 있습니다.
+
+```powershell
+./scripts/verify.ps1
+# 복원이 완료된 환경에서 네트워크 접근 없이 다시 검사
+./scripts/verify.ps1 -SkipRestore
+# 빠른 검사: 가상 24시간 소크만 생략
+./scripts/verify.ps1 -SkipRestore -SkipSoak
+```
+
+스크립트는 Release 전체 빌드, 샘플을 포함한 전체 테스트, 두 코어 테스트 프로젝트의
+합산 라인 커버리지 85% 게이트, 두 NuGet 패키지의 타깃별 DLL/XML 문서·README·라이선스·
+심볼 패키지·코어 의존 버전을 검사합니다. 결과는 실행마다 별도의 `artifacts/verify/` 하위
+디렉터리에 남습니다. 실패하면 즉시 중단하며 패키지를 게시하지 않습니다.
+
+패키지 파일 검사 후에는 `scripts/verify-package-consumer.ps1`을 실행합니다. 별도 피드·캐시에
+정확한 로컬 패키지를 복원한 실제 소비자가 신뢰/비신뢰 UDP 왕복, 암호화 구성, 연결 취소와
+종료를 검사합니다. `netstandard2.1` 빌드도 .NET 8 호스트에서 실행해 조건부 구현을 검증하지만,
+이것이 Mono·모바일·게임 콘솔 런타임 검증을 대신하지는 않습니다. 격리 캐시의 추가 의존성 복원에는
+NuGet 접근이 필요합니다(`-SkipRestore`는 솔루션 복원만 생략).
+
 ```bash
 dotnet build -c Release                              # 경고 0 이어야 합니다
-dotnet test  -c Release                              # 전체 207개
+dotnet test  -c Release                              # 전체 테스트
 dotnet test  -c Release --filter "Category!=Soak"    # 장시간 테스트 제외(빠름)
 dotnet test  -c Release --filter "Category=Soak"     # 가상 24시간 소크만
 ```
@@ -32,18 +53,9 @@ dotnet run -c Release --project benchmarks/KcpCSharpR1.Benchmarks -- --filter '*
 
 ### 커버리지
 
-```bash
-dotnet test tests/KcpCSharpR1.Tests -c Release \
-  -p:CollectCoverage=true -p:Include="[KcpCSharpR1]*" \
-  -p:CoverletOutputFormat=json -p:CoverletOutput=./coverage/coverage.json
-
-dotnet test tests/KcpCSharpR1.SimTests -c Release \
-  -p:CollectCoverage=true -p:Include="[KcpCSharpR1]*" \
-  -p:MergeWith=./coverage/coverage.json \
-  -p:Threshold=85 -p:ThresholdType=line
-```
-
-코어(`KcpCSharpR1`) 라인 커버리지 **85% 이상**이 기준입니다. 현재 93.4%입니다.
+코어(`KcpCSharpR1`) 라인 커버리지 **85% 이상**이 기준입니다. 위 `verify.ps1`은
+단위·시뮬레이션 테스트를 순차 실행하고, 같은 **절대 경로**의 JSON 결과를 합쳐 검사합니다.
+프로젝트마다 상대 출력 경로를 사용하면 서로 다른 파일을 가리켜 합산이 누락될 수 있습니다.
 PR 을 올리기 전에 로컬에서 직접 확인해 주세요.
 
 ### 패키징(NuGet)

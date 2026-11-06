@@ -19,7 +19,7 @@
 
     <!-- NuGet 패키징 공통 속성(P8-1). 패키지로 낼 프로젝트만 개별 csproj 에서 IsPackable 을 true 로 덮어쓴다. -->
     <IsPackable>false</IsPackable>
-    <Version>0.10</Version>
+    <Version>0.11.0</Version>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/jacking75/kcp-csharp</PackageProjectUrl>
     <RepositoryUrl>https://github.com/jacking75/kcp-csharp</RepositoryUrl>

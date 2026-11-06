@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Compile Include="..\..\samples\Common\PollingKcpClient.cs" Link="PollingKcpClient.cs" />
   </ItemGroup>
 
 </Project>

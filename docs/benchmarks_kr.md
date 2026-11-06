@@ -7,6 +7,35 @@ Phase 3(성능 최적화)의 기준선과 개선 결과를 기록한다. 로드�
 
 ## 재현 방법
 
+### 송신 경계값 수정 회귀 검사 (2026-11-06)
+
+게임 도입 안정성 개선에서는 송신 큐를 변경하기 전에 메시지 전체를 검사한다.
+비교 하네스는 `4e4d9904e6b758d817ee954187e31d017eff40a9` 커밋과 현재 작업 트리의
+코어를 별도 네임스페이스로 빌드하므로 작업 트리 소스를 교체하지 않는다.
+
+```powershell
+./scripts/compare-protocol.ps1 -BaselineRef 4e4d990
+```
+
+소스는 [ProtocolComparison](../benchmarks/ProtocolComparison/Program.cs)에 있다.
+동기식 무손실 메모리 연결에서 메시지 1개를 송신하고 양쪽 코어를 갱신한 뒤 수신한다.
+매 연산마다 수신 길이와 송신 백로그 0(ACK 처리 완료)을 검사한다. UDP 소켓이나
+전송 계층 아웃박스, 서버 수용량을 재는 벤치마크가 아니다.
+BenchmarkDotNet 0.13.12, 워밍업 5회·측정 12회, .NET 8.0.28(X64 RyuJIT AVX2),
+SDK 10.0.301, concurrent workstation GC, Windows 11 10.0.26300.9818에서 측정했다.
+
+| 페이로드 | 변경 전 평균 ± 오차 | 변경 후 평균 ± 오차 | 변경 전 / 후 할당 |
+|---|---:|---:|---:|
+| 1 KiB | 212.7 ± 12.15 ns | 213.8 ± 11.97 ns | 0 / 0 B/op |
+| 32 KiB | 7,319.4 ± 399.49 ns | 7,235.4 ± 479.71 ns | 0 / 0 B/op |
+
+오차는 99.9% 신뢰구간의 절반이다. 차이가 측정 오차보다 작아 이 시나리오에서
+측정 가능한 성능 회귀는 없고, 정상 상태 할당도 늘지 않았다.
+생성 소스는 gitignore 대상인 `artifacts/protocol-comparison/`, 결과는
+`BenchmarkDotNet.Artifacts/results/`의 `*ProtocolBench-report*`에 남는다.
+
+### 기존 벤치마크 모음
+
 ```bash
 # 전체
 dotnet run -c Release --project benchmarks/KcpCSharpR1.Benchmarks -- --filter '*'

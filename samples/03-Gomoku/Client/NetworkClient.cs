@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Net;
-using System.Threading.Tasks;
 using Gomoku.Shared;
 using KcpCSharpR1.Transport;
+using KcpSamples.Common;
 
 namespace Gomoku.Client;
 
@@ -38,11 +37,12 @@ internal enum ClientPhase
 /// </remarks>
 internal sealed class NetworkClient : IDisposable
 {
-    private readonly KcpClient client = new();
+    private readonly PollingKcpClient client = new();
     private readonly byte[] sendBuffer = new byte[ProtocolLimits.MaxMessageBytes];
     private readonly string nick;
 
     private KcpSession? session;
+    private string? requestedReconnectToken;
 
     /// <summary>서버가 보낸 판 상태(클라이언트 사본).</summary>
     public GomokuBoard Board { get; } = new();
@@ -85,35 +85,36 @@ internal sealed class NetworkClient : IDisposable
     public NetworkClient(string nick)
     {
         this.nick = nick;
-        client.ReliableReceived += (_, data) => Handle(data.Span);
+        client.ReliableReceived += (_, data) => Handle(data);
         client.Disconnected += (_, reason) =>
         {
             Phase = ClientPhase.Disconnected;
             StatusText = $"DISCONNECTED ({reason})";
         };
+        client.Error += ex =>
+        {
+            Phase = ClientPhase.Disconnected;
+            StatusText = $"NETWORK FAILED: {ex.Message}";
+        };
+        client.Connected += OnConnected;
     }
 
     /// <summary>서버에 접속하고 대기열에 들어간다.</summary>
     /// <param name="host">서버 주소.</param>
     /// <param name="token">재접속 토큰(있으면 대기열 대신 복귀를 시도한다).</param>
-    /// <returns>비동기 작업.</returns>
-    public async Task ConnectAsync(string host, string? token)
+    public void Connect(string host, string? token)
     {
-        try
-        {
-            session = await client.ConnectAsync(new IPEndPoint(IPAddress.Parse(host), ProtocolLimits.Port));
-        }
-        catch (Exception ex)
-        {
-            Phase = ClientPhase.Disconnected;
-            StatusText = $"CONNECT FAILED: {ex.Message}";
-            return;
-        }
+        requestedReconnectToken = token;
+        client.Connect(host, ProtocolLimits.Port);
+    }
 
-        if (!string.IsNullOrEmpty(token))
+    private void OnConnected(KcpSession connected)
+    {
+        session = connected;
+        if (!string.IsNullOrEmpty(requestedReconnectToken))
         {
             var writer = new MessageWriter(sendBuffer, MessageType.Reconnect);
-            writer.WriteString(token);
+            writer.WriteString(requestedReconnectToken);
             session.Send(writer.Finish());
             StatusText = "RECONNECTING...";
         }
@@ -128,7 +129,7 @@ internal sealed class NetworkClient : IDisposable
     }
 
     /// <summary>매 프레임 호출한다.</summary>
-    public void Poll() => client.Update();
+    public void Poll() => client.Poll();
 
     /// <summary>돌을 놓아 달라고 서버에 요청한다.</summary>
     /// <param name="x">X.</param>
@@ -291,8 +292,6 @@ internal sealed class NetworkClient : IDisposable
     /// <summary>연결을 정리한다.</summary>
     public void Dispose()
     {
-        client.Disconnect();
-        client.Update();
         client.Dispose();
     }
 }
