@@ -33,6 +33,11 @@ KCP는 UDP 위에서 **필요한 곳에만** 신뢰성을 얹습니다.
 
 ## 30초 시작
 
+게임 루프 소유권, 연결·취소, 큐 한도, 채널 선택은
+[게임 연동 가이드](docs/game-integration_kr.md)([English](docs/game-integration.md))를 참고하세요.
+MonoGame 샘플은 연결 결과와 수신 이벤트를 게임 스레드로 넘기는
+[폴링 어댑터](samples/Common/PollingKcpClient.cs)를 공유합니다.
+
 ```bash
 git clone https://github.com/jacking75/kcp-csharp
 cd kcp-csharp
@@ -67,6 +72,10 @@ server.Stop();
 ### 클라이언트
 
 ```csharp
+using System.Net;
+using System.Text;
+using KcpCSharpR1.Transport;
+
 using var client = new KcpClient();
 client.ReliableReceived += (_, data) => Console.WriteLine(Encoding.UTF8.GetString(data.Span));
 
@@ -94,7 +103,7 @@ while (true)          // 게임 루프에서 매 프레임
 | **스레드 경계 API** | 게임 스레드용 송신 아웃박스 + 수신 이벤트 큐 |
 | **최소 힙 스케줄러** | 세션 1만 개에서도 기한이 된 것만 갱신 |
 | **관측성** | 세션 수·재전송률·RTT p50/p95/p99 주기 스냅숏 |
-| **외부 의존성 0** | 코어·전송 계층 모두. 샘플의 MonoGame 만 예외 |
+| **최소 의존성** | 코어는 0. Transport는 `netstandard2.1`에서 `System.Threading.Channels` 참조, `net8.0`은 추가 패키지 없음 |
 | **원본 kcp 와 와이어 호환** | RawMode 로 kcp-go 서버와 직접 통신 |
 
 ## 성능
@@ -163,13 +172,13 @@ while (true)          // 게임 루프에서 매 프레임
 | 패키지 | 무엇인가 | 언제 설치하나 |
 |---|---|---|
 | `KcpCSharpR1.Transport` | 소켓·세션·핸드셰이크·암호화·FEC — 실제로 클라이언트/서버를 돌릴 때 쓰는 계층 | 게임을 만드는 경우(대부분 이쪽) |
-| `KcpCSharpR1` | 순수 프로토콜 코어(24바이트 헤더, ARQ, 슬라이딩 윈도). 의존성 0, 소켓·스레드를 전혀 모름 | 이미 자체 소켓·세션 계층이 있어 KCP 알고리즘만 필요하거나, `RawMode`로 원본 kcp/kcp-go 서버와 통신하는 경우 |
+| `KcpCSharpR1` | 순수 프로토콜 코어(24바이트 헤더, ARQ, 슬라이딩 윈도). 의존성 0, 소켓·스레드를 전혀 모름 | 자체 소켓·세션 계층이 있어 KCP 알고리즘만 필요한 경우. `RawMode`는 Transport 패키지의 옵션 |
 
 `KcpCSharpR1.Transport`가 `KcpCSharpR1`에 의존하므로, Transport 패키지를 설치하면 코어가
 **자동으로 함께 따라옵니다** — 둘 다 수동으로 추가할 필요가 없습니다.
 
 ```bash
-# NuGet (배포 후) — 거의 모든 경우 이 한 줄이면 충분합니다
+# NuGet — 거의 모든 경우 이 한 줄이면 충분합니다
 dotnet add package KcpCSharpR1.Transport
 
 # 소스 참조 — 마찬가지로 Transport 만 참조하면 됩니다.
@@ -184,7 +193,11 @@ dotnet add reference path/to/kcp-csharp/src/KcpCSharpR1/KcpCSharpR1.csproj
 | 타깃 | 용도 |
 |---|---|
 | `net8.0` | 서버, MonoGame 클라이언트 |
-| `netstandard2.1` | Godot C#, 구형 런타임 |
+| `netstandard2.1` | 호환 호스트. 실제 런타임의 소켓·스레드 지원 확인 필요 |
+
+.NET Standard 빌드에서 암호화가 필요하면 `IPacketCipher`를 직접 구현해야 합니다.
+내장 AES-GCM은 `net8.0` 빌드에서 구현됩니다. 엔진·배포 타깃을 선택하기 전에
+[타깃과 기능의 경계](docs/game-integration_kr.md#타깃과-기능의-경계)를 확인하세요.
 
 ### 호스트 권장 설정
 
@@ -280,7 +293,7 @@ docs/                    온라인 책 + 벤치마크 기록 + 로드맵
 
 ```bash
 dotnet build -c Release              # 경고 0 유지
-dotnet test  -c Release              # 238개
+dotnet test  -c Release              # 전체 테스트
 dotnet test  -c Release --filter "Category!=Soak"   # 장시간 테스트 제외
 dotnet run   -c Release --project benchmarks/KcpCSharpR1.Benchmarks -- --filter '*'
 ```

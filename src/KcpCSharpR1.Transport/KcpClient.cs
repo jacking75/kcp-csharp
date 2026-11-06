@@ -23,6 +23,11 @@ namespace KcpCSharpR1.Transport;
 /// 콘솔 도구·부하 테스트에 적합하다. 콜백은 그 루프 스레드에서 발화한다.
 /// </description></item>
 /// </list>
+/// <para>
+/// <c>ConnectAsync</c> 자체가 핸드셰이크를 구동하므로 완료를 기다린 뒤 Update 또는 RunAsync 를 시작한다.
+/// 재연결은 기존 세션이 Closed/Dead 이고 자체 루프가 끝난 뒤 가능하다.
+/// 수명 API 는 직렬로 호출한다. 자체 루프를 취소한 뒤 태스크 완료를 기다리고 Dispose 한다.
+/// </para>
 /// </remarks>
 public sealed class KcpClient : IDisposable
 {
@@ -50,16 +55,17 @@ public sealed class KcpClient : IDisposable
     private KcpSession? session;
     private bool disposed;
     private bool runLoopActive;
+    private bool connectInProgress;
 
     /// <summary>클라이언트를 만든다.</summary>
     /// <param name="options">세션 설정. 생략하면 기본값.</param>
     /// <param name="clock">밀리초 시계. 생략하면 <see cref="KcpClock.NowMs"/>.</param>
     public KcpClient(KcpSessionOptions? options = null, Func<uint>? clock = null)
     {
-        this.options = options ?? new KcpSessionOptions();
+        this.options = (options ?? new KcpSessionOptions()).Clone();
         this.options.Validate();
         this.clock = clock ?? (() => KcpClock.NowMs);
-        receiveBuffer = new byte[this.options.Mtu + (this.options.Cipher?.Overhead ?? 0) + 64];
+        receiveBuffer = new byte[this.options.Mtu + this.options.CipherOverhead + 64];
 
         sendToCallback = SendTo;
         onSessionConnected = OnSessionConnected;
@@ -103,7 +109,7 @@ public sealed class KcpClient : IDisposable
     public event KcpMessageHandler? UnreliableReceivedSpan;
 
     /// <summary>
-    /// 게임 스레드로 이벤트를 넘기는 큐(진단 M-2). <see cref="EnableEventQueue"/> 를 부르기 전에는 null.
+    /// 게임 스레드로 이벤트를 넘기는 큐(진단 M-2). <see cref="EnableEventQueue(int)"/> 를 부르기 전에는 null.
     /// </summary>
     public KcpEventQueue? Events => events;
 
@@ -123,9 +129,17 @@ public sealed class KcpClient : IDisposable
     /// <param name="capacity">큐 용량(이벤트 수). 가득 차면 이벤트를 버리고 <see cref="KcpEventQueue.Dropped"/> 가 오른다.</param>
     /// <returns>만들어진 큐.</returns>
     public KcpEventQueue EnableEventQueue(int capacity = 1024)
+        => EnableEventQueue(capacity, KcpEventQueueOverflowPolicy.DropNewest);
+
+    /// <summary>오버플로 정책을 지정해 게임 스레드용 수신 큐를 켠다.</summary>
+    /// <param name="capacity">이벤트 수 상한.</param>
+    /// <param name="overflowPolicy">신뢰 이벤트 누락 시 연결을 종료할지 결정한다.</param>
+    /// <returns>큐. 이미 켜져 있으면 최초 설정을 유지한 기존 큐.</returns>
+    /// <remarks>ConnectAsync 전에 호출한다. 종료 알림도 누락될 수 있으므로 HasCriticalOverflow 를 관측한다.</remarks>
+    public KcpEventQueue EnableEventQueue(int capacity, KcpEventQueueOverflowPolicy overflowPolicy)
     {
         ThrowIfDisposed();
-        return events ??= new KcpEventQueue(capacity);
+        return events ??= new KcpEventQueue(capacity, overflowPolicy);
     }
 
     /// <summary>서버에 연결한다.</summary>
@@ -148,17 +162,25 @@ public sealed class KcpClient : IDisposable
     public async Task<KcpSession> ConnectAsync(IPEndPoint remote, CancellationToken cancellationToken = default)
     {
         if (remote == null) throw new ArgumentNullException(nameof(remote));
-        ThrowIfDisposed();
+        ThrowIfCannotConnect();
 
         var socketTransport = new UdpSocketTransport(remote.AddressFamily);
-        socketTransport.Bind(new IPEndPoint(
-            remote.AddressFamily == AddressFamily.InterNetworkV6 ? IPAddress.IPv6Any : IPAddress.Any, 0));
+        try
+        {
+            socketTransport.Bind(new IPEndPoint(
+                remote.AddressFamily == AddressFamily.InterNetworkV6 ? IPAddress.IPv6Any : IPAddress.Any, 0));
+        }
+        catch
+        {
+            socketTransport.Dispose();
+            throw;
+        }
 
         return await ConnectAsync(socketTransport, remote, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>지정한 전송 계층으로 연결한다(테스트에서 가상 전송을 끼울 때 쓴다).</summary>
-    /// <param name="udpTransport">전송 계층. 소유권이 이 클라이언트로 넘어간다.</param>
+    /// <param name="udpTransport">전송 계층. 인수·수명 상태 검증을 통과하면 소유권이 클라이언트로 넘어가며 취소·실패 시에도 정리한다.</param>
     /// <param name="remote">서버 주소.</param>
     /// <param name="cancellationToken">취소 토큰.</param>
     /// <returns>연결된 세션.</returns>
@@ -167,9 +189,35 @@ public sealed class KcpClient : IDisposable
     {
         if (udpTransport == null) throw new ArgumentNullException(nameof(udpTransport));
         if (remote == null) throw new ArgumentNullException(nameof(remote));
-        ThrowIfDisposed();
+        ThrowIfCannotConnect();
 
-        transport = udpTransport;
+        connectInProgress = true;
+        try
+        {
+            // 종료된 이전 연결의 소켓과 대여 버퍼를 재연결 전에 돌려준다.
+            session?.ReleaseResources();
+            session = null;
+            transport?.Dispose();
+            transport = udpTransport;
+            cancellationToken.ThrowIfCancellationRequested();
+            return await ConnectCoreAsync(udpTransport, remote, cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            session?.ReleaseResources();
+            session = null;
+            transport?.Dispose();
+            transport = null;
+            throw;
+        }
+        finally
+        {
+            connectInProgress = false;
+        }
+    }
+
+    private async Task<KcpSession> ConnectCoreAsync(IUdpTransport udpTransport, IPEndPoint remote, CancellationToken cancellationToken)
+    {
         var connecting = CreateSession(remote);
         session = connecting;
 
@@ -194,6 +242,7 @@ public sealed class KcpClient : IDisposable
             while (connecting.State == KcpSessionState.Connecting && !handshake.Task.IsCompleted)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                ThrowIfDisposed();
 
                 // Pump 안에서 SYN_ACK 을 처리하면 위 이벤트가 이 스레드에서 곧바로 발화한다.
                 var next = Pump();
@@ -228,10 +277,6 @@ public sealed class KcpClient : IDisposable
 
         if (connecting.State != KcpSessionState.Connected)
         {
-            session = null;
-            connecting.ReleaseResources();   // 실패한 세션이 쥔 대여 버퍼를 돌려준다.
-            transport.Dispose();
-            transport = null;
             throw new TimeoutException($"{remote} 로의 KCP 핸드셰이크가 실패했습니다(상태: {connecting.State}).");
         }
 
@@ -303,6 +348,9 @@ public sealed class KcpClient : IDisposable
     /// </summary>
     public void Update()
     {
+        ThrowIfDisposed();
+        if (connectInProgress)
+            throw new InvalidOperationException("ConnectAsync 완료 후 Update 를 호출해야 합니다.");
         if (runLoopActive)
             throw new InvalidOperationException("RunAsync 로 구동 중에는 Update 를 호출하지 않습니다(구동 모델 혼용 금지).");
 
@@ -338,6 +386,8 @@ public sealed class KcpClient : IDisposable
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
+        if (connectInProgress)
+            throw new InvalidOperationException("ConnectAsync 완료 후 RunAsync 를 호출해야 합니다.");
         if (runLoopActive)
             throw new InvalidOperationException("이미 RunAsync 로 구동 중입니다.");
 
@@ -396,6 +446,14 @@ public sealed class KcpClient : IDisposable
     private void ThrowIfDisposed()
     {
         if (disposed) throw new ObjectDisposedException(nameof(KcpClient));
+    }
+
+    private void ThrowIfCannotConnect()
+    {
+        ThrowIfDisposed();
+        if (connectInProgress || runLoopActive ||
+            (session != null && session.State != KcpSessionState.Closed && session.State != KcpSessionState.Dead))
+            throw new InvalidOperationException("기존 연결과 구동 루프가 종료된 뒤에 다시 연결해야 합니다.");
     }
 
     /// <summary>소켓과 세션 자원을 정리한다.</summary>

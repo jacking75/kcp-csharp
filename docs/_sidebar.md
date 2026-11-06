@@ -1,4 +1,6 @@
 - [표지](/)
+- [게임 연동 가이드](game-integration_kr.md)
+- [Game integration guide (English)](game-integration.md)
 
 - **1부 · 원리**
   - [1장 온라인 게임과 네트워크](book/ch01-game-and-network.md)

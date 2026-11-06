@@ -35,6 +35,12 @@ buy back latency.**
 
 ## 30-Second Quick Start
 
+For game-loop ownership, safe connection/cancellation, queue limits, and channel
+selection, start with the [game integration guide](docs/game-integration.md)
+([한국어](docs/game-integration_kr.md)). The MonoGame samples share a
+[polling adapter](samples/Common/PollingKcpClient.cs) that hands connection results
+and received events back to the game thread.
+
 ```bash
 git clone https://github.com/jacking75/kcp-csharp
 cd kcp-csharp
@@ -70,6 +76,10 @@ Full code: [samples/01-Echo/Server/Program.cs](samples/01-Echo/Server/Program.cs
 ### Client
 
 ```csharp
+using System.Net;
+using System.Text;
+using KcpCSharpR1.Transport;
+
 using var client = new KcpClient();
 client.ReliableReceived += (_, data) => Console.WriteLine(Encoding.UTF8.GetString(data.Span));
 
@@ -97,7 +107,7 @@ while (true)          // every frame, in your game loop
 | **Thread-boundary APIs** | A send outbox for game threads + a receive event queue |
 | **Min-heap scheduler** | Only updates sessions that are actually due, even with 10,000 sessions |
 | **Observability** | Periodic snapshots of session count, retransmit rate, RTT p50/p95/p99 |
-| **Zero external dependencies** | Both core and transport layer. MonoGame in the samples is the only exception |
+| **Minimal dependencies** | Core: none. Transport: `System.Threading.Channels` on `netstandard2.1`; no additional package on `net8.0` |
 | **Wire-compatible with original kcp** | `RawMode` talks directly to a kcp-go server |
 
 ## Performance
@@ -171,13 +181,13 @@ The library ships as two packages. **Most people only need to install one.**
 | Package | What it is | Install it if |
 |---|---|---|
 | `KcpCSharpR1.Transport` | Sockets, sessions, handshake, encryption, FEC — the layer you actually use to run a client/server | You're building a game (the common case) |
-| `KcpCSharpR1` | The pure protocol core (24-byte header, ARQ, sliding window). Zero dependencies; knows nothing about sockets or threads | You already have your own socket/session layer and only need the KCP algorithm, or you're talking to an original kcp/kcp-go server over `RawMode` |
+| `KcpCSharpR1` | The pure protocol core (24-byte header, ARQ, sliding window). Zero dependencies; knows nothing about sockets or threads | You already have your own socket/session layer and only need the KCP algorithm. `RawMode` is an option of the Transport package |
 
 `KcpCSharpR1.Transport` depends on `KcpCSharpR1`, so installing the Transport package pulls the
 core in automatically — **you don't need to add both by hand.**
 
 ```bash
-# NuGet (after publishing) — this alone is enough for almost everyone
+# NuGet — this alone is enough for almost everyone
 dotnet add package KcpCSharpR1.Transport
 
 # Source reference — same rule: referencing Transport is usually enough,
@@ -192,7 +202,12 @@ dotnet add reference path/to/kcp-csharp/src/KcpCSharpR1/KcpCSharpR1.csproj
 | Target | Use for |
 |---|---|
 | `net8.0` | Servers, MonoGame clients |
-| `netstandard2.1` | Godot C#, older runtimes |
+| `netstandard2.1` | Compatible hosts; validate socket/threading support on the actual runtime |
+
+The .NET Standard build needs a custom `IPacketCipher` for encryption; the built-in
+AES-GCM implementation is in the `net8.0` build. See the
+[target and feature boundaries](docs/game-integration.md#target-and-feature-boundaries)
+before selecting an engine or deployment target.
 
 ### Recommended Host Settings
 
@@ -292,7 +307,7 @@ docs/                    Online book + benchmark log + roadmap
 
 ```bash
 dotnet build -c Release              # keep it at 0 warnings
-dotnet test  -c Release              # 238 tests
+dotnet test  -c Release              # all tests
 dotnet test  -c Release --filter "Category!=Soak"   # skip long-running tests
 dotnet run   -c Release --project benchmarks/KcpCSharpR1.Benchmarks -- --filter '*'
 ```

@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Net;
-using System.Threading.Tasks;
 using KcpCSharpR1.Transport;
+using KcpSamples.Common;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -29,7 +28,7 @@ internal sealed class MoveSyncGame : Game
     };
 
     private readonly GraphicsDeviceManager graphics;
-    private readonly KcpClient client = new();
+    private readonly PollingKcpClient client = new();
     private readonly SnapshotBuffer buffer = new();
     private readonly Dictionary<uint, EntitySnapshot> rendered = new();
     private readonly Dictionary<uint, (string Nick, byte Color)> knownPlayers = new();
@@ -82,30 +81,23 @@ internal sealed class MoveSyncGame : Game
     {
         Window.Title = "KcpCSharpR1 샘플 4 - MoveSync";
 
-        client.ReliableReceived += (_, data) => HandleReliable(data.Span);
-        client.UnreliableReceived += (_, data) => HandleSnapshot(data.Span);
+        client.ReliableReceived += (_, data) => HandleReliable(data);
+        client.UnreliableReceived += (_, data) => HandleSnapshot(data);
         client.Disconnected += (_, reason) => status = $"DISCONNECTED ({reason})";
+        client.Error += ex => status = $"NETWORK FAILED: {ex.Message}";
+        client.Connected += OnConnected;
 
-        _ = ConnectAsync();
+        client.Connect(host, ProtocolLimits.Port);
         base.Initialize();
     }
 
-    private async Task ConnectAsync()
+    private void OnConnected(KcpSession connected)
     {
-        try
-        {
-            session = await client.ConnectAsync(new IPEndPoint(IPAddress.Parse(host), ProtocolLimits.Port));
-
-            var writer = new MessageWriter(sendBuffer, MessageType.Join);
-            writer.WriteString(nick);
-            session.Send(writer.Finish());
-
-            status = "JOINING...";
-        }
-        catch (Exception ex)
-        {
-            status = $"CONNECT FAILED: {ex.Message}";
-        }
+        session = connected;
+        var writer = new MessageWriter(sendBuffer, MessageType.Join);
+        writer.WriteString(nick);
+        var result = session.Send(writer.Finish());
+        status = result == KcpSendResult.Ok ? "JOINING..." : $"JOIN FAILED: {result}";
     }
 
     /// <inheritdoc/>
@@ -119,7 +111,7 @@ internal sealed class MoveSyncGame : Game
     /// <inheritdoc/>
     protected override void Update(GameTime gameTime)
     {
-        client.Update();   // ★ 매 프레임 폴링
+        client.Poll();   // 연결 완료와 수신 이벤트도 게임 스레드에서 적용한다.
 
         var keyboard = Keyboard.GetState();
 
@@ -318,8 +310,6 @@ internal sealed class MoveSyncGame : Game
     /// <inheritdoc/>
     protected override void UnloadContent()
     {
-        client.Disconnect();
-        client.Update();
         client.Dispose();
         pixel.Dispose();
         batch.Dispose();

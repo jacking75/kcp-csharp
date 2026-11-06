@@ -30,7 +30,7 @@ public sealed class KcpSessionOptions
     public int FinLingerMs { get; set; } = 2_000;
 
     /// <summary>
-    /// 송신 백로그 상한(세그먼트 수). <c>Kcp.WaitSnd</c> 가 이 값을 넘으면
+    /// 송신 백로그 상한(세그먼트 수). 새 메시지의 조각까지 포함해 이 값을 넘으면
     /// <see cref="KcpSession.Send(ReadOnlySpan{byte})"/> 가 <see cref="KcpSendResult.Backpressure"/> 를 반환한다.
     /// </summary>
     public int MaxSendBacklog { get; set; } = 1024;
@@ -94,33 +94,72 @@ public sealed class KcpSessionOptions
     /// </summary>
     /// <remarks>
     /// 라이브러리는 키 합의를 하지 않는다. 게임은 보통 TLS 웹 API 로그인에서 세션 키를 받아 오므로
-    /// 그 값을 여기에 넣는다. 세션마다 conv 로 nonce 를 분리하므로 같은 키를 여러 세션이 공유해도 안전하지만,
-    /// 세션별 키를 쓰는 편이 더 낫다.
+    /// 그 값을 여기에 넣는다. nonce 는 conv·송신 방향·카운터로 구성되므로 같은 키로 같은 conv 를
+    /// 다시 사용하면 안 된다. 서버 재시작이나 conv 순환 전에는 새 키가 필요하며 서버 인스턴스마다
+    /// 서로 다른 키를 사용해야 한다. 세션마다 별도 키를 쓰는 편이 더 낫다.
     /// </remarks>
     public byte[]? EncryptionKey { get; set; }
 
     /// <summary>
-    /// 직접 구현한 패킷 암호화기(P5-1). 지정하면 <see cref="EncryptionKey"/> 보다 우선한다.
-    /// netstandard2.1 처럼 <c>AesGcm</c> 을 쓸 수 없는 런타임에서 자체 구현을 주입하는 통로다.
+    /// 단일 연결에 직접 주입하는 패킷 암호화기. 연결 종료 시 IDisposable 구현을 해제한다.
+    /// 서버 또는 재연결에는 세션마다 새 인스턴스를 만드는 <see cref="CipherFactory"/> 를 사용한다.
+    /// <see cref="EncryptionKey"/> 및 <see cref="CipherFactory"/> 와 함께 지정할 수 없다.
     /// </summary>
     public IPacketCipher? Cipher { get; set; }
+
+    /// <summary>대화 번호와 송신 방향으로 세션 전용 암호화기를 만드는 팩토리.</summary>
+    /// <remarks>
+    /// netstandard2.1 서버에서도 연결마다 독립된 nonce·리플레이 상태와 수명을 갖게 한다.
+    /// 반환 객체의 Overhead 는 <see cref="CipherFactoryOverhead"/> 와 정확히 같아야 한다.
+    /// <see cref="Cipher"/> 및 <see cref="EncryptionKey"/> 와 함께 지정할 수 없다.
+    /// </remarks>
+    public PacketCipherFactory? CipherFactory { get; set; }
+
+    /// <summary>팩토리가 반환하는 암호화기의 Overhead 값. 연결 전에 MTU·버퍼 크기를 검증하는 데 쓴다.</summary>
+    public int CipherFactoryOverhead { get; set; }
 
     /// <summary>FEC 설정(P5-2). null 이면 FEC 를 쓰지 않는다.</summary>
     public FecOptions? Fec { get; set; }
 
     /// <summary>암호화·FEC 를 고려한 패킷 오버헤드(바이트).</summary>
-    internal int CipherOverhead => Cipher?.Overhead ?? (EncryptionKey != null ? AesGcmPacketCipher.OverheadBytes : 0);
+    internal int CipherOverhead => CipherFactory != null ? CipherFactoryOverhead :
+        Cipher?.Overhead ?? (EncryptionKey != null ? AesGcmPacketCipher.OverheadBytes : 0);
 
-    /// <summary>설정을 복사한다(서버가 세션마다 독립 사본을 갖도록).</summary>
+    /// <summary>설정과 키·FEC 값을 복사한다. 사용자 제공 Cipher 인스턴스는 공유하므로 세션별로 주입해야 한다.</summary>
     /// <returns>복사본.</returns>
-    public KcpSessionOptions Clone() => (KcpSessionOptions)MemberwiseClone();
+    public KcpSessionOptions Clone()
+    {
+        var copy = (KcpSessionOptions)MemberwiseClone();
+        copy.EncryptionKey = EncryptionKey == null ? null : (byte[])EncryptionKey.Clone();
+        copy.Fec = Fec == null ? null : new FecOptions { DataShards = Fec.DataShards, ParityShards = Fec.ParityShards };
+        return copy;
+    }
 
     /// <summary>값이 유효한지 검사한다.</summary>
     /// <exception cref="ArgumentOutOfRangeException">범위를 벗어난 값이 있는 경우.</exception>
+    /// <exception cref="ArgumentException">서로 함께 사용할 수 없는 설정을 지정한 경우.</exception>
     public void Validate()
     {
         if (Mtu < 64 || Mtu > 65507)
             throw new ArgumentOutOfRangeException(nameof(Mtu), Mtu, "MTU 는 64~65507 이어야 합니다.");
+        if (HandshakeTimeoutMs <= 0)
+            throw new ArgumentOutOfRangeException(nameof(HandshakeTimeoutMs));
+        if (HandshakeRetryIntervalMs <= 0)
+            throw new ArgumentOutOfRangeException(nameof(HandshakeRetryIntervalMs));
+        if (FinLingerMs < 0)
+            throw new ArgumentOutOfRangeException(nameof(FinLingerMs));
+        if (IntervalMs < 10 || IntervalMs > 5000)
+            throw new ArgumentOutOfRangeException(nameof(IntervalMs), "10~5000 이어야 합니다.");
+        if (SendWindow <= 0 || SendWindow > ushort.MaxValue)
+            throw new ArgumentOutOfRangeException(nameof(SendWindow));
+        if (ReceiveWindow < 2 || ReceiveWindow > ushort.MaxValue)
+            throw new ArgumentOutOfRangeException(nameof(ReceiveWindow));
+        if (NoDelay < 0 || NoDelay > 1)
+            throw new ArgumentOutOfRangeException(nameof(NoDelay));
+        if (NoCongestionControl < 0 || NoCongestionControl > 1)
+            throw new ArgumentOutOfRangeException(nameof(NoCongestionControl));
+        if (FastResend < 0)
+            throw new ArgumentOutOfRangeException(nameof(FastResend));
         if (SessionTimeoutMs <= 0)
             throw new ArgumentOutOfRangeException(nameof(SessionTimeoutMs), SessionTimeoutMs, "0보다 커야 합니다.");
         if (PingIntervalMs <= 0)
@@ -131,11 +170,22 @@ public sealed class KcpSessionOptions
             throw new ArgumentOutOfRangeException(nameof(HandshakeMaxRetries), HandshakeMaxRetries, "0 이상이어야 합니다.");
         if (SendOutboxCapacity < 0)
             throw new ArgumentOutOfRangeException(nameof(SendOutboxCapacity), SendOutboxCapacity, "0 이상이어야 합니다.");
+        var cipherSources = (Cipher != null ? 1 : 0) + (CipherFactory != null ? 1 : 0) + (EncryptionKey != null ? 1 : 0);
+        if (cipherSources > 1)
+            throw new ArgumentException("Cipher, CipherFactory, EncryptionKey 중 하나만 지정해야 합니다.");
+        if (CipherFactoryOverhead < 0)
+            throw new ArgumentOutOfRangeException(nameof(CipherFactoryOverhead));
+        if (CipherFactory == null && CipherFactoryOverhead != 0)
+            throw new ArgumentException("CipherFactoryOverhead 는 CipherFactory 와 함께 지정해야 합니다.", nameof(CipherFactoryOverhead));
         if (EncryptionKey != null && EncryptionKey.Length != AesGcmPacketCipher.KeySize)
             throw new ArgumentOutOfRangeException(nameof(EncryptionKey), EncryptionKey.Length,
                 $"AES-256-GCM 키는 {AesGcmPacketCipher.KeySize}바이트여야 합니다.");
-        if (Fec != null && (EncryptionKey != null || Cipher != null))
+        if (Fec != null && cipherSources != 0)
             throw new ArgumentException("이 버전에서는 FEC 와 암호화를 함께 켤 수 없습니다(로드맵 P5-2 참조).", nameof(Fec));
+        if (RawMode && (Fec != null || cipherSources != 0))
+            throw new ArgumentException("RawMode 는 암호화 또는 FEC 를 지원하지 않습니다.", nameof(RawMode));
+        if (CipherOverhead < 0 || CipherOverhead > Mtu - 50)
+            throw new ArgumentOutOfRangeException(nameof(Mtu), "암호화 오버헤드를 제외한 MTU 는 50 이상이어야 합니다.");
         Fec?.Validate();
     }
 }
@@ -143,6 +193,31 @@ public sealed class KcpSessionOptions
 /// <summary>서버 전용 설정.</summary>
 public sealed class KcpServerOptions
 {
+    /// <summary>서버 루프·소켓·세션 설정을 검사한다.</summary>
+    /// <exception cref="ArgumentException">세션 설정이 없거나 지원하지 않는 조합인 경우.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">양수여야 하는 상한·대기 시간·버퍼 크기가 유효하지 않은 경우.</exception>
+    public void Validate()
+    {
+        if (Session == null) throw new ArgumentException("세션 설정이 필요합니다.", nameof(Session));
+        Session.Validate();
+        if (MaxSessions <= 0) throw new ArgumentOutOfRangeException(nameof(MaxSessions));
+        if (PollMicroseconds <= 0) throw new ArgumentOutOfRangeException(nameof(PollMicroseconds));
+        if (MaxReceiveBatch <= 0) throw new ArgumentOutOfRangeException(nameof(MaxReceiveBatch));
+        if (SocketReceiveBufferSize <= 0) throw new ArgumentOutOfRangeException(nameof(SocketReceiveBufferSize));
+        if (SocketSendBufferSize <= 0) throw new ArgumentOutOfRangeException(nameof(SocketSendBufferSize));
+    }
+
+    /// <summary>서버 및 세션 설정을 복사한다.</summary>
+    /// <returns>복사본.</returns>
+    /// <exception cref="ArgumentException">세션 설정이 null 인 경우.</exception>
+    public KcpServerOptions Clone()
+    {
+        if (Session == null) throw new ArgumentException("세션 설정이 필요합니다.", nameof(Session));
+        var copy = (KcpServerOptions)MemberwiseClone();
+        copy.Session = Session.Clone();
+        return copy;
+    }
+
     /// <summary>세션 공통 설정.</summary>
     public KcpSessionOptions Session { get; set; } = new KcpSessionOptions();
 

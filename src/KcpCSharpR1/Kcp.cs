@@ -626,13 +626,17 @@ public class Kcp
     /// <item><term>-1</term><description>길이가 0.</description></item>
     /// <item><term>-2</term><description>
     /// 조각 수가 수신 윈도 이상이라 상대가 절대 재조립할 수 없다. 메시지 모드에서 보낼 수 있는
-    /// 최대 메시지 크기는 <c>(RcvWnd - 1) × Mss</c> 이다(진단 B-04).
+    /// 최대 메시지 크기는 <c>min(RcvWnd - 1, 256) × Mss</c> 이다(조각 번호는 1바이트).
     /// </description></item>
     /// </list>
     /// </returns>
     public int Send(ReadOnlySpan<byte> data)
     {
         if (0 == data.Length) return -1;
+
+        // 거부되는 호출은 스트림의 마지막 세그먼트도 변경하지 않아야 재시도가 안전하다.
+        var count = GetSendSegmentCount(data.Length);
+        if (count < 0) return count;
 
         if (stream != 0 && snd_queue.Count > 0)
         {
@@ -650,14 +654,6 @@ public class Kcp
         if (data.Length == 0)
             return 0;
 
-        var count = data.Length <= mss ? 1 : (int)((data.Length + mss - 1) / mss);
-
-        // 원본 ikcp.c 와 동일한 검사. 조각 수가 수신 윈도 이상이면 수신측 rcv_queue 가
-        // 절대 채워지지 못해 영구 교착이 된다(진단 B-04).
-        if (count >= rcv_wnd) return -2;
-
-        if (count == 0) count = 1;
-
         for (var i = 0; i < count; i++)
         {
             var size = Math.Min(data.Length, (int)mss);
@@ -672,6 +668,21 @@ public class Kcp
         }
 
         return 0;
+    }
+
+    /// <summary>송신 상태 변경 없이 추가로 필요한 세그먼트 수를 구한다. 보낼 수 없으면 -2.</summary>
+    internal int GetSendSegmentCount(int length)
+    {
+        if (stream != 0 && snd_queue.Count > 0)
+        {
+            var last = snd_queue.AtUnchecked(snd_queue.Count - 1);
+            length -= Math.Min(length, (int)mss - last.Len);
+        }
+
+        if (length == 0) return 0;
+        var count = length <= mss ? 1 : 1 + (length - 1) / (int)mss;
+        // 수신 윈도 교착과 8비트 frg 필드 잘림을 모두 방지한다.
+        return count >= rcv_wnd || (stream == 0 && count > 256) ? -2 : count;
     }
 
     /// <summary>RTT 샘플로 srtt/rttval/rto 를 갱신한다(RFC 6298).</summary>
@@ -1402,12 +1413,14 @@ public class Kcp
 
     /// <summary>MTU 를 바꾼다(기본 1400).</summary>
     /// <param name="mtu_">새 MTU.</param>
-    /// <returns>0 이면 성공, 음수는 오류.</returns>
+    /// <returns>0 이면 성공, 음수는 오류. 송신 대기 세그먼트가 있으면 MTU 변경을 거부한다.</returns>
     public int SetMtu(int mtu_)
     {
         if (mtu_ < 50 || mtu_ < IKCP_OVERHEAD)
             return -1;
-        if (reserved >= (int)(mtu - IKCP_OVERHEAD) || reserved < 0)
+        if (reserved >= mtu_ - IKCP_OVERHEAD || reserved < 0)
+            return -1;
+        if ((uint)mtu_ != mtu && WaitSnd != 0)
             return -1;
 
         var buffer_ = new byte[mtu_];
@@ -1468,10 +1481,12 @@ public class Kcp
     /// 각 패킷 앞에 상위 계층이 쓸 예약 영역을 확보한다(FEC 헤더, 암호화 nonce 등).
     /// </summary>
     /// <param name="reservedSize">예약 바이트 수.</param>
-    /// <returns>성공하면 true.</returns>
+    /// <returns>성공하면 true. 송신 대기 세그먼트가 있으면 예약 크기 변경을 거부한다.</returns>
     public bool ReserveBytes(int reservedSize)
     {
         if (reservedSize >= mtu - IKCP_OVERHEAD || reservedSize < 0)
+            return false;
+        if (reservedSize != reserved && WaitSnd != 0)
             return false;
 
         reserved = reservedSize;
